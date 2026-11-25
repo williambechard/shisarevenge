@@ -1,6 +1,6 @@
 // Zod schemas for client-to-server payloads. Every incoming payload is parsed here
 // before any handler runs (design/05-coding-standards.md section 5).
-// Event schemas for rooms and encounters are added in plans 02 and 03.
+// Schemas for encounters and game flow are added in plans 03 and later.
 
 import { z } from 'zod';
 import { DISPLAY_NAME_MAX_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from './constants.js';
@@ -20,8 +20,33 @@ function stripControlCharacters(value: string): string {
     .join('');
 }
 
-const roomCodeCharacter = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${String(ROOM_CODE_LENGTH)}}$`);
+const roomCodePattern = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${String(ROOM_CODE_LENGTH)}}$`);
 
-export const roomCodeSchema = z.string().regex(roomCodeCharacter, 'Invalid room code');
+// Codes are typed in lowercase on phones, so normalize before matching.
+export const roomCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(roomCodePattern, 'Invalid room code');
 
 export const sessionTokenSchema = z.uuid();
+
+export const roomCreatePayload = z.strictObject({
+  name: displayNameSchema,
+});
+
+export const roomJoinPayload = z.strictObject({
+  roomCode: roomCodeSchema,
+  name: displayNameSchema,
+  sessionToken: sessionTokenSchema.optional(),
+});
+
+export const roomLeavePayload = z.strictObject({});
+
+export const lobbyReadyPayload = z.strictObject({
+  ready: z.boolean(),
+});
+
+export type RoomCreatePayload = z.infer<typeof roomCreatePayload>;
+export type RoomJoinPayload = z.infer<typeof roomJoinPayload>;
+export type LobbyReadyPayload = z.infer<typeof lobbyReadyPayload>;
