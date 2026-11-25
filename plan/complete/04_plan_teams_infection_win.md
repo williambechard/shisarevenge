@@ -37,7 +37,7 @@
 
 - [x] Test: an Army member beats a Survivor. The Survivor's state shows the new team. The counts change, and no name is announced. Covered by the engine test and the full-match test.
 - [x] Test: each win path ends the match with the right winner. Covered by `winConditions.test.ts`.
-- [ ] Manual test: the Back to start button returns the player to a fresh lobby, and a new room can be started from there.
+- [x] Manual test: the Back to start button returns the player to a fresh lobby, and a new room can be started from there.
 
 ## Done when
 
