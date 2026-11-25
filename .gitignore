@@ -50,6 +50,9 @@ Thumbs.db
 Desktop.ini
 ehthumbs.db
 
+# Browser profiles for local multi-window testing (npm run test:windows)
+.testprofiles/
+
 # Local tool configuration that can hold credentials
 .kiro/settings/mcp.json
 

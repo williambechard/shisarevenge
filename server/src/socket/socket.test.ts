@@ -195,11 +195,18 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 describe('lobby wait', () => {
   it('offers an early start after the wait when four players are in the room', async () => {
     const first = await enter();
-    for (let index = 1; index < 4; index += 1) await enter();
+    const guests: Array<Awaited<ReturnType<typeof enter>>> = [];
+    for (let index = 1; index < 4; index += 1) guests.push(await enter());
     await pause(150);
 
     expect(game.registry.find(first.seat.roomCode)?.startAvailable).toBe(true);
 
+    // One player's press starts the room for everyone, including players who did not press.
+    const guestStarted = new Promise<unknown>((resolve) => {
+      guests[2]?.socket.once('game:started', (payload: unknown) => {
+        resolve(payload);
+      });
+    });
     const started = new Promise<{ originPlayerId: string }>((resolve) => {
       first.socket.once('game:started', (payload: { originPlayerId: string }) => {
         resolve(payload);
@@ -208,11 +215,29 @@ describe('lobby wait', () => {
     const response = await emitAck(first.socket, 'lobby:start-now', {});
     expect(response.ok).toBe(true);
     await started;
+    expect(await guestStarted).toEqual(expect.anything());
 
     const players = game.registry.find(first.seat.roomCode)?.players.length;
     expect(players).toBe(4);
   });
 
+  it('does not offer an early start with an odd number of players', async () => {
+    const first = await enter();
+    for (let index = 1; index < 5; index += 1) await enter();
+    await pause(150);
+
+    expect(game.registry.find(first.seat.roomCode)?.startAvailable).toBe(false);
+    const response = await emitAck(first.socket, 'lobby:start-now', {});
+    expect(response).toMatchObject({ ok: false, error: { code: 'WRONG_PHASE' } });
+  });
+
+  it('offers the start again once a sixth player makes the count even', async () => {
+    const first = await enter();
+    for (let index = 1; index < 6; index += 1) await enter();
+    await pause(150);
+
+    expect(game.registry.find(first.seat.roomCode)?.startAvailable).toBe(true);
+  });
   it('does not offer an early start with three players', async () => {
     const first = await enter();
     for (let index = 1; index < 3; index += 1) await enter();

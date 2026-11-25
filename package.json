@@ -21,7 +21,8 @@
     "test": "npm run build -w shared && npm run test -w shared && npm run test -w server && npm run test -w client",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "plans:sweep": "node scripts/plan-sweep.mjs"
+    "plans:sweep": "node scripts/plan-sweep.mjs",
+    "test:windows": "node scripts/test-windows.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

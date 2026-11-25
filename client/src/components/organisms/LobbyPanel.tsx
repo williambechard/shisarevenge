@@ -1,4 +1,4 @@
-import { MAX_PLAYERS, type PublicRoomState } from '@shisa-revenge/shared';
+import { MAX_PLAYERS, MIN_PLAYERS, type PublicRoomState } from '@shisa-revenge/shared';
 import { Button } from '../atoms/Button.js';
 import { Countdown } from '../atoms/Countdown.js';
 import { PlayerList } from './PlayerList.js';
@@ -33,8 +33,12 @@ export function LobbyPanel({ room, selfId, onStartNow, onLeave }: LobbyPanelProp
       <div className="flex w-full flex-col gap-3">
         {room.startAvailable ? (
           <Button onClick={onStartNow}>Start with {count} players</Button>
-        ) : room.startsAt !== null && remaining > 0 ? (
+        ) : room.startsAt !== null ? (
           <Countdown deadline={room.startsAt} label="Start available in" />
+        ) : count >= MIN_PLAYERS && count % 2 === 1 && remaining > 0 ? (
+          <p className="text-center text-sm">
+            Start needs an even number of players, so no one sits out. Waiting for one more.
+          </p>
         ) : null}
         <Button variant="secondary" onClick={onLeave}>
           Leave room

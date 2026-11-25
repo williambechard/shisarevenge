@@ -316,7 +316,7 @@ Nobody types a code, chooses a name, or presses ready. Opening the game page is 
 3. Otherwise the server places them in the oldest lobby that is not full. If there is none, it starts a new room and makes them its first player.
 4. The player gets an assigned name from a fixed list of eight, unique within the room. The list lives in `shared/constants.ts` as `PLAYER_NAMES`.
 5. When the eighth player enters, the match starts at once. Any later player goes to a new room.
-6. Lobby wait: when a lobby reaches 4 players, a 60-second wait starts. When it ends, any player in the lobby can press Start to begin with the players present (4 to 7). Until then, the room waits for a full eight.
+6. Lobby wait: when a lobby reaches 4 players, a wait starts (15 seconds during testing, 60 seconds for the party). When it ends, any player in the lobby can press Start to begin, but only with an even number of players (4 or 6), so nobody sits out a Warm-Up. An odd count waits for one more player or for the room to fill to 8. Until then, the room waits for a full eight. A press starts the match for every player in the room, including players who did not press.
 7. If the room drops below 4 players during the wait, the wait is cancelled.
 
 There is no host and no ready state. The room starts when it is full, or when the lobby wait ends with at least 4 players and a player presses Start.
@@ -506,5 +506,7 @@ The build is ready for the jam when:
 - **1.3:** Node stays as the server stack. Endgame becomes an overview followed by Back to start, with no rematch. Pairing stays random, with no repeated opponents in consecutive rounds. Added round-summary announcements and preset emotes. Shisa's Army members do not learn their teammates. Player-chosen pairing is parked for after the jam.
 - **1.4:** Render is the server host, with a spin-up message while it wakes. Emotes during rounds moved to the stretch goal.
 - **1.5:** Automatic room placement replaces the landing, join, and ready steps. Names are assigned from a list of eight. A room starts when it has eight players. The QR code is removed. Seats are saved per tab.
-- **1.7:** Lobby wait. A lobby of 4 starts a 60-second timer. After it ends, any player may start the match with 4 to 7 players. A full room of 8 still starts at once.
+- **1.7:** Lobby wait. A lobby of 4 starts a timer. After it ends, any player may start the match with 4 to 7 players. A full room of 8 still starts at once.
+- **1.9:** Early start requires an even player count (4 or 6). An odd count waits for another player or a full room of 8. The sit-out problem is avoided.
+- **1.8:** Lobby wait set to 15 seconds for testing (restore to 60 before the party). Any player's press starts the match for the whole room.
 - **1.6:** Renamed cards. Value 4 is Squall and value 5 is Typhoon. Renamed specials. Bingata Shawl is now Protection Talisman, and Hot Shikuwasa is now Ramen. Renamed the future card Typhoon Cannon to Tsunami Cannon to avoid a clash.

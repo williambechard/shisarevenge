@@ -77,6 +77,8 @@ export type MatchResult = { ok: true } | { ok: false; error: ErrorCode };
 export class MatchRunner {
   private readonly matches = new Map<string, RoomMatch>();
   private readonly lobbyTimers = new Map<string, Timer>();
+  // Lobbies whose wait has ended. Start is offered while the count is even.
+  private readonly waitElapsed = new Set<string>();
   private readonly timing: MatchTiming;
   private readonly random: RandomFn;
   private readonly clock: Clock;
@@ -100,6 +102,7 @@ export class MatchRunner {
       return { ok: false, error: 'WRONG_PHASE' };
     }
     this.clearLobbyTimer(code);
+    this.waitElapsed.delete(code);
 
     const originIndex = Math.floor(this.random() * room.players.length);
     const origin = room.players[originIndex];
@@ -138,11 +141,13 @@ export class MatchRunner {
   }
 
   // Called after anyone enters or leaves a lobby. A full room starts now. A room of at least
-  // MIN_PLAYERS starts a wait, and when it ends, any player may start the room.
+  // MIN_PLAYERS starts a wait. When the wait ends, any player may start the room, provided the
+  // count is even, so nobody sits out a Warm-Up.
   lobbyChanged(code: string): void {
     const room = this.registry.find(code);
     if (!room) {
       this.clearLobbyTimer(code);
+      this.waitElapsed.delete(code);
       return;
     }
     if (room.phase !== 'lobby') return;
@@ -155,24 +160,40 @@ export class MatchRunner {
 
     if (count < MIN_PLAYERS) {
       this.clearLobbyTimer(code);
+      this.waitElapsed.delete(code);
       this.registry.setStartState(code, null, false);
       this.broadcastRoomByCode(code);
       return;
     }
 
-    if (this.lobbyTimers.has(code)) return;
+    if (this.lobbyTimers.has(code) || this.waitElapsed.has(code)) {
+      this.refreshAvailability(code);
+      return;
+    }
 
     const startsAt = Date.now() + this.timing.lobbyWaitMs;
     this.registry.setStartState(code, startsAt, false);
     this.broadcastRoomByCode(code);
     const handle = this.clock.setTimeout(() => {
       this.lobbyTimers.delete(code);
-      this.registry.setStartState(code, startsAt, true);
-      this.broadcastRoomByCode(code);
+      this.waitElapsed.add(code);
+      this.refreshAvailability(code);
     }, this.timing.lobbyWaitMs);
     this.lobbyTimers.set(code, handle);
   }
 
+  // Start is offered only after the wait, with an even count from MIN_PLAYERS to 6.
+  private refreshAvailability(code: string): void {
+    const room = this.registry.find(code);
+    if (!room) return;
+    const count = room.players.length;
+    const available =
+      this.waitElapsed.has(code) && count >= MIN_PLAYERS && count < MAX_PLAYERS && count % 2 === 0;
+    // Once the wait has ended, the countdown is cleared. The client then shows the odd-count message.
+    const startsAt = this.waitElapsed.has(code) ? null : room.startsAt;
+    this.registry.setStartState(code, startsAt, available);
+    this.broadcastRoomByCode(code);
+  }
   // A player chose to start a room with fewer than MAX_PLAYERS. Only allowed after the wait.
   startNow(code: string): MatchResult {
     const room = this.registry.find(code);
