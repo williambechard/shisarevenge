@@ -2,8 +2,10 @@ import type {
   CardValue,
   DuelOutcome,
   EndgameSummary,
+  PrivateNotice,
   PrivatePlayerState,
   PublicRoomState,
+  SpecialKind,
 } from '@shisa-revenge/shared';
 
 // The lobby is the first screen. The round screen opens when the match starts, and the endgame
@@ -25,6 +27,9 @@ export type RoundView = {
 export type Reveal = {
   myValue: CardValue;
   opponentValue: CardValue;
+  // Special committed by each side in this duel, or null.
+  mySpecial: SpecialKind | null;
+  opponentSpecial: SpecialKind | null;
 };
 
 export type RoundSummary = {
@@ -47,9 +52,11 @@ export type GameState = {
   duel: DuelOutcome | null;
   autoLocked: boolean;
   selected: CardValue | null;
+  // True when this player has chosen to commit their special with the next lock-in.
+  specialArmed: boolean;
   roundSummary: RoundSummary | null;
-  // True after this player catches a cold. Cleared when the next round starts.
-  caughtNotice: boolean;
+  // Caught or recovered notice for this player. Cleared when the next round is paired.
+  specialNotice: PrivateNotice | null;
   endgame: EndgameSummary | null;
 };
 
@@ -68,8 +75,9 @@ export function createInitialState(): GameState {
     duel: null,
     autoLocked: false,
     selected: null,
+    specialArmed: false,
     roundSummary: null,
-    caughtNotice: false,
+    specialNotice: null,
     endgame: null,
   };
 }

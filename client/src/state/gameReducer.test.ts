@@ -83,8 +83,15 @@ describe('round state', () => {
       type: 'revealed',
       myValue: 5,
       opponentValue: 2,
+      mySpecial: 'shisa-mask',
+      opponentSpecial: null,
     });
-    expect(revealed.reveal).toEqual({ myValue: 5, opponentValue: 2 });
+    expect(revealed.reveal).toEqual({
+      myValue: 5,
+      opponentValue: 2,
+      mySpecial: 'shisa-mask',
+      opponentSpecial: null,
+    });
   });
 });
 
@@ -107,9 +114,16 @@ describe('endgame and round summary', () => {
     expect(next.endgame).toEqual(summary);
   });
 
-  it('shows the caught notice until the next round is paired', () => {
-    const caught = gameReducer(joinedState(), { type: 'caught' });
-    expect(caught.caughtNotice).toBe(true);
+  it('shows the special notice until the next round is paired', () => {
+    const caught = gameReducer(joinedState(), {
+      type: 'special-notice',
+      notice: { kind: 'caught-cold', lostSpecial: 'ramen', newSpecial: 'shisa-mask' },
+    });
+    expect(caught.specialNotice).toEqual({
+      kind: 'caught-cold',
+      lostSpecial: 'ramen',
+      newSpecial: 'shisa-mask',
+    });
     const next = gameReducer(caught, {
       type: 'round-paired',
       round: 2,
@@ -117,6 +131,23 @@ describe('endgame and round summary', () => {
       warmUpPlayerId: null,
       deadline: 1,
     });
-    expect(next.caughtNotice).toBe(false);
+    expect(next.specialNotice).toBeNull();
+  });
+
+  it('arms and disarms the special commit before the lock-in', () => {
+    const armed = gameReducer(joinedState(), { type: 'toggle-special' });
+    expect(armed.specialArmed).toBe(true);
+    expect(gameReducer(armed, { type: 'toggle-special' }).specialArmed).toBe(false);
+  });
+  it('clears the armed commit when the next round is paired', () => {
+    const armed = gameReducer(joinedState(), { type: 'toggle-special' });
+    const next = gameReducer(armed, {
+      type: 'round-paired',
+      round: 2,
+      pairings: [],
+      warmUpPlayerId: null,
+      deadline: 1,
+    });
+    expect(next.specialArmed).toBe(false);
   });
 });

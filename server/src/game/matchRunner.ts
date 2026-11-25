@@ -114,7 +114,7 @@ export class MatchRunner {
       team: player.id === origin.id ? ('infected' as const) : ('survivor' as const),
     }));
 
-    const matchState = createMatch(players);
+    const matchState = createMatch(players, this.random);
     this.matches.set(code, { state: matchState, timer: null });
     this.registry.setTeamCounts(code, teamCounts(matchState));
     this.registry.setMatchResult(code, origin.id, null);
@@ -123,11 +123,11 @@ export class MatchRunner {
     return { ok: true };
   }
   // Records one lock-in. When both players of a duel have locked in, that duel reveals.
-  submit(code: string, playerId: string, value: CardValue): MatchResult {
+  submit(code: string, playerId: string, value: CardValue, useSpecial: boolean): MatchResult {
     const match = this.matches.get(code);
     if (!match) return { ok: false, error: 'WRONG_PHASE' };
 
-    const result = submitSelection(match.state, playerId, value);
+    const result = submitSelection(match.state, playerId, value, useSpecial);
     if (!result.ok) return result;
 
     match.state = result.value;
@@ -306,7 +306,7 @@ export class MatchRunner {
   private revealDuel(code: string, pair: Pair): void {
     if (!isPairLocked(this.current(code), pair)) return;
 
-    const next = revealPair(this.current(code), pair);
+    const next = revealPair(this.current(code), pair, this.random);
     this.setState(code, next);
     const result = next.results.find(
       (entry) => entry.pair[0] === pair[0] && entry.pair[1] === pair[1],
@@ -314,6 +314,7 @@ export class MatchRunner {
     if (!result) return;
 
     this.sendDuel(code, result);
+    this.sendSpecialNotices(code, result);
     this.registry.setPhase(code, next.phase === 'resolved' ? 'resolved' : 'revealed');
     this.syncPrivate(code);
 
@@ -322,36 +323,46 @@ export class MatchRunner {
     }
   }
 
+  // Sends the reveal and result to the two participants only. Each side sees its own view.
   private sendDuel(code: string, result: DuelResult): void {
     const [a, b] = result.pair;
     const [valueA, valueB] = result.values;
-    const round = this.current(code).round;
-    const winner = result.outcome.winnerId;
+    const [specialA, specialB] = result.specials;
 
     this.emitToPlayer(code, a, 'encounter:revealed', {
       myValue: valueA,
       opponentValue: valueB,
-      mySpecial: null,
-      opponentSpecial: null,
+      mySpecial: specialA,
+      opponentSpecial: specialB,
     });
     this.emitToPlayer(code, b, 'encounter:revealed', {
       myValue: valueB,
       opponentValue: valueA,
-      mySpecial: null,
-      opponentSpecial: null,
+      mySpecial: specialB,
+      opponentSpecial: specialA,
     });
-    this.emitToPlayer(
-      code,
-      a,
-      'encounter:result',
-      duelOutcome(round, a, b, valueA, valueB, winner),
-    );
-    this.emitToPlayer(
-      code,
-      b,
-      'encounter:result',
-      duelOutcome(round, b, a, valueB, valueA, winner),
-    );
+    this.emitToPlayer(code, a, 'encounter:result', duelView(result, a));
+    this.emitToPlayer(code, b, 'encounter:result', duelView(result, b));
+  }
+
+  // The caught and recovered players are told which special they lost and which they got.
+  private sendSpecialNotices(code: string, result: DuelResult): void {
+    const caught = result.outcome.caughtCold;
+    if (caught) {
+      this.emitToPlayer(code, caught, 'player:notice', {
+        kind: 'caught-cold',
+        lostSpecial: result.caughtLostSpecial,
+        newSpecial: 'shisa-mask',
+      });
+    }
+    const recovered = result.outcome.recoveredId;
+    if (recovered && result.recoveredNewSpecial) {
+      this.emitToPlayer(code, recovered, 'player:notice', {
+        kind: 'recovered',
+        lostSpecial: 'shisa-mask',
+        newSpecial: result.recoveredNewSpecial,
+      });
+    }
   }
 
   // Every duel is resolved. Announce the round, apply the win check, then start the next round
@@ -361,24 +372,15 @@ export class MatchRunner {
     const state = this.current(code);
     const counts = teamCounts(state);
     const caught = state.results.filter((entry) => entry.outcome.caughtCold !== null);
+    const recovered = state.results.filter((entry) => entry.outcome.recoveredId !== null);
 
     this.registry.setTeamCounts(code, counts);
     this.io.to(code).emit('round:ended', {
       round: state.round,
       teamCounts: counts,
       caughtCount: caught.length,
-      recoveredCount: 0,
+      recoveredCount: recovered.length,
     });
-    for (const entry of caught) {
-      const caughtId = entry.outcome.caughtCold;
-      if (caughtId) {
-        this.emitToPlayer(code, caughtId, 'player:notice', {
-          kind: 'caught-cold',
-          lostSpecial: null,
-          newSpecial: 'shisa-mask',
-        });
-      }
-    }
     this.setPhase(code, 'resolved');
 
     const win = checkWin(state.players, state.round);
@@ -420,16 +422,19 @@ export class MatchRunner {
       const seat = room.players.find((candidate) => candidate.id === player.id);
       if (!seat || seat.socketId === null) continue;
 
+      const lastDuel = match.state.results.find(
+        (entry) => entry.pair[0] === player.id || entry.pair[1] === player.id,
+      );
       this.io.to(seat.socketId).emit('player:private-state', {
         playerId: player.id,
         team: player.team,
         hand: player.hand,
-        special: null,
+        special: player.special ? { ...player.special } : null,
         encounter: opponentId
           ? {
               opponentId,
               selectionLocked: match.state.locked.has(player.id),
-              lastResult: null,
+              lastResult: lastDuel ? duelView(lastDuel, player.id) : null,
             }
           : null,
         notices: [],
@@ -467,23 +472,34 @@ export class MatchRunner {
   }
 }
 
-function duelOutcome(
-  round: number,
-  me: string,
-  opponent: string,
-  myValue: CardValue,
-  opponentValue: CardValue,
-  winnerId: string | null,
-) {
-  const result = winnerId === null ? 'tie' : winnerId === me ? 'won' : 'lost';
+// One player's view of a resolved duel. Only the two participants receive it.
+function duelView(result: DuelResult, viewerId: string) {
+  const viewerIsFirst = result.pair[0] === viewerId;
+  const opponentId = viewerIsFirst ? result.pair[1] : result.pair[0];
+  const side = viewerIsFirst ? 0 : 1;
+  const [myValue, opponentValue] = viewerIsFirst
+    ? result.values
+    : [result.values[1], result.values[0]];
+  const myTeam = result.teams[side];
+  const mixed = result.teams[0] !== result.teams[1];
+  const winnerId = result.outcome.winnerId;
+  const { recoveredId, blocked } = result.outcome;
+
+  let outcome: 'won' | 'lost' | 'tie' | 'blocked' | 'repelled' | 'recovered';
+  if (winnerId === null) outcome = 'tie';
+  else if (blocked) outcome = 'blocked';
+  else if (recoveredId !== null) outcome = 'recovered';
+  else if (winnerId === viewerId) outcome = mixed && myTeam === 'survivor' ? 'repelled' : 'won';
+  else outcome = 'lost';
+
   return {
-    round,
-    opponentId: opponent,
+    round: result.round,
+    opponentId,
     myValue,
     opponentValue,
-    mySpecial: null,
-    opponentSpecial: null,
-    result,
+    mySpecial: result.specials[side],
+    opponentSpecial: result.specials[side === 0 ? 1 : 0],
+    result: outcome,
   };
 }
 

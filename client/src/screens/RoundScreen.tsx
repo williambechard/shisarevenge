@@ -1,6 +1,13 @@
-import { ROUND_COUNT, type CardValue, type PublicRoomState } from '@shisa-revenge/shared';
+import {
+  ROUND_COUNT,
+  SPECIAL_NAMES,
+  type CardValue,
+  type PrivateNotice,
+  type PublicRoomState,
+} from '@shisa-revenge/shared';
 import { Countdown } from '../components/atoms/Countdown.js';
 import { Announcement } from '../components/molecules/Announcement.js';
+import { SpecialCard } from '../components/molecules/SpecialCard.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
 import { HandTray } from '../components/organisms/HandTray.js';
@@ -11,6 +18,7 @@ type RoundScreenProps = {
   state: GameState;
   room: PublicRoomState | null;
   onSelect: (value: CardValue) => void;
+  onToggleSpecial: () => void;
   onLockIn: () => void;
 };
 
@@ -18,8 +26,26 @@ function nameOf(room: PublicRoomState | null, playerId: string | null): string {
   return room?.players.find((player) => player.id === playerId)?.name ?? 'Opponent';
 }
 
-// The round screen: team bar, opponent, timer, hand, lock-in, and the reveal once both players lock in.
-export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProps) {
+// Lost or gained specials are always said in words, and the player is told each time.
+function noticeText(notice: PrivateNotice): string | null {
+  if (notice.kind === 'caught-cold') {
+    const lost = notice.lostSpecial ? ` Your ${SPECIAL_NAMES[notice.lostSpecial]} is gone.` : '';
+    return `You caught a cold.${lost} You now have a ${SPECIAL_NAMES[notice.newSpecial]}.`;
+  }
+  if (notice.kind === 'recovered') {
+    return `You recovered. Your ${SPECIAL_NAMES[notice.lostSpecial ?? 'shisa-mask']} is gone. You now have a ${SPECIAL_NAMES[notice.newSpecial]}.`;
+  }
+  return null;
+}
+
+// The round screen: team bar, opponent, timer, special card, hand, lock-in, and the reveal once both players lock in.
+export function RoundScreen({
+  state,
+  room,
+  onSelect,
+  onToggleSpecial,
+  onLockIn,
+}: RoundScreenProps) {
   const view = state.roundView;
   const self = state.privateState;
   const opponentId = self?.encounter?.opponentId ?? null;
@@ -28,15 +54,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
   const locked = self?.encounter?.selectionLocked ?? false;
   const reveal = state.reveal;
   const round = view?.round ?? 1;
-
-  const winner: 'me' | 'opponent' | 'tie' =
-    reveal === null
-      ? 'tie'
-      : state.duel?.result === 'won'
-        ? 'me'
-        : state.duel?.result === 'lost'
-          ? 'opponent'
-          : 'tie';
+  const notice = state.specialNotice ? noticeText(state.specialNotice) : null;
 
   return (
     <section aria-labelledby="round-heading" className="flex flex-1 flex-col gap-5 pt-4">
@@ -56,9 +74,9 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
         ) : null}
       </header>
 
-      {state.caughtNotice ? (
-        <StatusMessage tone="error">
-          You caught a cold. You now serve Shisa&apos;s Army.
+      {notice ? (
+        <StatusMessage tone={state.specialNotice?.kind === 'caught-cold' ? 'error' : 'info'}>
+          {notice}
         </StatusMessage>
       ) : null}
 
@@ -70,12 +88,17 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
         </p>
       ) : null}
 
+      {self ? <SpecialCard special={self.special} /> : null}
+
       {!isWarmUp && reveal === null && self ? (
         <HandTray
           hand={self.hand}
           selected={state.selected}
           locked={locked}
+          special={self.special}
+          specialArmed={state.specialArmed}
           onSelect={onSelect}
+          onToggleSpecial={onToggleSpecial}
           onLockIn={onLockIn}
         />
       ) : null}
@@ -93,7 +116,9 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
           myValue={reveal.myValue}
           opponentValue={reveal.opponentValue}
           opponentName={opponentName}
-          winner={winner}
+          result={state.duel?.result ?? 'tie'}
+          mySpecial={reveal.mySpecial}
+          opponentSpecial={reveal.opponentSpecial}
         />
       ) : null}
 

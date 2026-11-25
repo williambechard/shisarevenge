@@ -192,3 +192,4 @@ These fill gaps in `01-game-design.md` and the original doc. Review them after p
 15. A room starts only when it is full (8 players). There is no fallback for a smaller room yet. Open question for playtesting.
 16. Player names are assigned from `PLAYER_NAMES` and are unique within a room. Players never choose names.
 17. The origin is chosen at random when the match starts.
+18. A Shisa's Army member who is recovered is also written to the endgame transformation history, the same as a catch. Duel results use the words in  8-socket-contract.md. A Survivor who wins a mixed duel without Ramen gets epelled. Its Army opponent gets lost.

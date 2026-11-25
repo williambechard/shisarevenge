@@ -160,10 +160,13 @@ export function registerConnectionHandlers(
       const payload = parse(encounterSubmitPayload, raw);
       if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
       if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
-      // Special cards are added in plan 05. Until then, committing one is rejected.
-      if (payload.useSpecial) return ack?.(fail('SPECIAL_UNAVAILABLE'));
 
-      const result = matches.submit(session.roomCode, session.playerId, payload.value);
+      const result = matches.submit(
+        session.roomCode,
+        session.playerId,
+        payload.value,
+        payload.useSpecial,
+      );
       if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });

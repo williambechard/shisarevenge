@@ -5,7 +5,9 @@ import {
   type CardValue,
   type DuelOutcome,
   type EndgameSummary,
+  type PrivateNotice,
   type PrivatePlayerState,
+  type SpecialKind,
   type PublicRoomState,
 } from '@shisa-revenge/shared';
 import type { Socket } from 'socket.io-client';
@@ -79,12 +81,18 @@ export type GameActions = {
   leaveRoom: () => void;
   startNow: () => void;
   selectCard: (value: CardValue) => void;
-  submitCard: (value: CardValue) => void;
+  submitCard: (value: CardValue, useSpecial: boolean) => void;
+  toggleSpecial: () => void;
   clearNotice: () => void;
 };
 
 type RoundPairedPayload = { round: number; pairings: Pairing[]; warmUpPlayerId: string | null };
-type RevealedPayload = { myValue: CardValue; opponentValue: CardValue };
+type RevealedPayload = {
+  myValue: CardValue;
+  opponentValue: CardValue;
+  mySpecial: SpecialKind | null;
+  opponentSpecial: SpecialKind | null;
+};
 
 export function useGame(): { state: GameState } & GameActions {
   const [state, dispatch] = useReducer(gameReducer, undefined, createInitialState);
@@ -135,6 +143,8 @@ export function useGame(): { state: GameState } & GameActions {
         type: 'revealed',
         myValue: payload.myValue,
         opponentValue: payload.opponentValue,
+        mySpecial: payload.mySpecial,
+        opponentSpecial: payload.opponentSpecial,
       });
     };
 
@@ -142,9 +152,12 @@ export function useGame(): { state: GameState } & GameActions {
       dispatch({ type: 'duel-result', outcome });
     };
 
-    const onNotice = (notice: { kind: string }): void => {
-      if (notice.kind === 'auto-locked') dispatch({ type: 'auto-locked' });
-      if (notice.kind === 'caught-cold') dispatch({ type: 'caught' });
+    const onNotice = (notice: PrivateNotice): void => {
+      if (notice.kind === 'auto-locked') {
+        dispatch({ type: 'auto-locked' });
+        return;
+      }
+      dispatch({ type: 'special-notice', notice });
     };
 
     const onRoundEnded = (payload: { round: number; caughtCount: number }): void => {
@@ -236,15 +249,19 @@ export function useGame(): { state: GameState } & GameActions {
     dispatch({ type: 'select', value });
   }, []);
 
-  const submitCard = useCallback((value: CardValue): void => {
-    getSocket().emit('encounter:submit', { value, useSpecial: false }, (response: PlainAck) => {
+  const submitCard = useCallback((value: CardValue, useSpecial: boolean): void => {
+    getSocket().emit('encounter:submit', { value, useSpecial }, (response: PlainAck) => {
       if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
     });
+  }, []);
+
+  const toggleSpecial = useCallback((): void => {
+    dispatch({ type: 'toggle-special' });
   }, []);
 
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return { state, leaveRoom, startNow, selectCard, submitCard, clearNotice };
+  return { state, leaveRoom, startNow, selectCard, submitCard, toggleSpecial, clearNotice };
 }

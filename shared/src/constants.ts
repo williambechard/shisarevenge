@@ -16,6 +16,13 @@ export const CARD_NAMES: Record<1 | 2 | 3 | 4 | 5, string> = {
   5: 'Typhoon',
 };
 
+// Theme names for the special cards. Code keys stay neutral. See design/01-game-design.md section 5.
+export const SPECIAL_NAMES = {
+  'protection-talisman': 'Protection Talisman',
+  ramen: 'Ramen',
+  'shisa-mask': 'Shisa Mask',
+} as const;
+
 export const MAGIC_BONUS = 2;
 export const MAX_EFFECTIVE_STRENGTH = 5;
 

@@ -1,27 +1,45 @@
 // Round state machine for the numbered-card duel. Pure: no I/O and no timers.
 // Phases: announce -> pairing -> selecting -> revealed -> resolved, then the next round or ended.
 // Each duel reveals as soon as its two players lock in (design/04-game-rules.md section 4.5).
-// Rules from design/04-game-rules.md sections 4 and 6.
+// Rules from design/04-game-rules.md sections 4 to 8.
 
-import { type CardValue, type Phase, type Result, type Team } from '@shisa-revenge/shared';
+import {
+  MAGIC_BONUS,
+  MAX_EFFECTIVE_STRENGTH,
+  type CardValue,
+  type Phase,
+  type Result,
+  type SpecialKind,
+  type Team,
+} from '@shisa-revenge/shared';
 import { createHand } from './deck.js';
 import { pairKey, pairPlayers, type RandomFn } from './pairing.js';
 import { resolveDuel, type DuelOutcome } from './encounterResolver.js';
-import { catchCold } from './teamChanges.js';
+import { catchCold, randomSurvivorSpecial, recover, type PlayerSpecial } from './teamChanges.js';
 
 export type MatchPlayer = {
   id: string;
   team: Team;
   hand: CardValue[];
   byeCount: number;
+  special: PlayerSpecial | null;
 };
 
 export type Pair = [string, string];
 
 export type DuelResult = {
+  round: number;
   pair: Pair;
   outcome: DuelOutcome;
   values: [CardValue, CardValue];
+  // Team of each side before the duel. Team changes happen at reveal, so this is the pre-duel team.
+  teams: [Team, Team];
+  // Special committed by each side, or null.
+  specials: [SpecialKind | null, SpecialKind | null];
+  // Special lost by the caught player (null when none was lost).
+  caughtLostSpecial: SpecialKind | null;
+  // Special given to the recovered player.
+  recoveredNewSpecial: SpecialKind | null;
 };
 
 export type MatchState = {
@@ -33,6 +51,8 @@ export type MatchState = {
   previousPairs: ReadonlySet<string>;
   // Locked choices for the current round, keyed by player id.
   locked: ReadonlyMap<string, CardValue>;
+  // Specials committed with a lock-in this round, keyed by player id.
+  committed: ReadonlyMap<string, SpecialKind>;
   // Duels already resolved this round, keyed by pairKey().
   resolvedPairs: ReadonlySet<string>;
   // Results from the current round, in the order duels resolved.
@@ -41,7 +61,11 @@ export type MatchState = {
   transformations: Readonly<Record<string, readonly number[]>>;
 };
 
-export function createMatch(players: ReadonlyArray<{ id: string; team: Team }>): MatchState {
+// Setup (design section 3): the origin holds a Shisa Mask. Each Survivor gets a random Survivor special.
+export function createMatch(
+  players: ReadonlyArray<{ id: string; team: Team }>,
+  random: RandomFn = Math.random,
+): MatchState {
   return {
     phase: 'lobby',
     round: 0,
@@ -50,11 +74,16 @@ export function createMatch(players: ReadonlyArray<{ id: string; team: Team }>):
       team: player.team,
       hand: createHand(),
       byeCount: 0,
+      special:
+        player.team === 'infected'
+          ? { kind: 'shisa-mask', status: 'available' }
+          : { kind: randomSurvivorSpecial(random), status: 'available' },
     })),
     pairs: [],
     warmUpId: null,
     previousPairs: new Set(),
     locked: new Map(),
+    committed: new Map(),
     resolvedPairs: new Set(),
     results: [],
     transformations: {},
@@ -70,6 +99,7 @@ export function beginRound(state: MatchState): MatchState {
     phase: 'announce',
     round: state.round + 1,
     locked: new Map(),
+    committed: new Map(),
     resolvedPairs: new Set(),
     results: [],
   };
@@ -117,10 +147,13 @@ export function opponentOf(state: MatchState, playerId: string): string | null {
   return pair[0] === playerId ? pair[1] : pair[0];
 }
 
+// Lock-in with an optional special. Committing moves the special from available to committed.
+// It is spent at reveal, whatever the outcome.
 export function submitSelection(
   state: MatchState,
   playerId: string,
   value: CardValue,
+  useSpecial = false,
 ): Result<MatchState> {
   if (state.phase !== 'selecting') return { ok: false, error: 'WRONG_PHASE' };
   if (!pairOf(state, playerId)) return { ok: false, error: 'NOT_IN_ENCOUNTER' };
@@ -131,7 +164,19 @@ export function submitSelection(
 
   const locked = new Map(state.locked);
   locked.set(playerId, value);
-  return { ok: true, value: { ...state, locked } };
+
+  if (!useSpecial) return { ok: true, value: { ...state, locked } };
+
+  if (player.special?.status !== 'available') return { ok: false, error: 'SPECIAL_UNAVAILABLE' };
+  const kind = player.special.kind;
+  const committed = new Map(state.committed);
+  committed.set(playerId, kind);
+  const players = state.players.map((candidate) =>
+    candidate.id === playerId && candidate.special
+      ? { ...candidate, special: { kind, status: 'committed' as const } }
+      : candidate,
+  );
+  return { ok: true, value: { ...state, players, locked, committed } };
 }
 
 export function isPairLocked(state: MatchState, pair: Pair): boolean {
@@ -142,9 +187,20 @@ export function isPairResolved(state: MatchState, pair: Pair): boolean {
   return state.resolvedPairs.has(pairKey(pair[0], pair[1]));
 }
 
+// Effective strength (design section 5): a committed Shisa Mask adds MAGIC_BONUS, capped.
+export function effectiveStrength(value: CardValue, committed: SpecialKind | null): number {
+  if (committed !== 'shisa-mask') return value;
+  return Math.min(value + MAGIC_BONUS, MAX_EFFECTIVE_STRENGTH);
+}
+
 // Resolves one duel once both of its players have locked in.
 // When the last duel resolves, the round moves to resolved.
-export function revealPair(state: MatchState, pair: Pair): MatchState {
+// `random` is used only when a Survivor recovers an Army member and needs a new special.
+export function revealPair(
+  state: MatchState,
+  pair: Pair,
+  random: RandomFn = Math.random,
+): MatchState {
   if (state.phase !== 'selecting') {
     throw new Error(`Cannot reveal from phase ${state.phase}`);
   }
@@ -156,36 +212,74 @@ export function revealPair(state: MatchState, pair: Pair): MatchState {
   const valueB = state.locked.get(b);
   if (valueA === undefined || valueB === undefined) throw new Error('Locked value missing');
 
-  const teamA = playerFor(state, a)?.team ?? 'survivor';
-  const teamB = playerFor(state, b)?.team ?? 'survivor';
+  const playerA = playerFor(state, a);
+  const playerB = playerFor(state, b);
+  const teamA = playerA?.team ?? 'survivor';
+  const teamB = playerB?.team ?? 'survivor';
+  const committedA = state.committed.get(a) ?? null;
+  const committedB = state.committed.get(b) ?? null;
+
+  // Step 2 uses the outcome of the duel. Step 3 applies team and special effects.
   const outcome = resolveDuel(
-    { id: a, team: teamA, effectiveStrength: valueA },
-    { id: b, team: teamB, effectiveStrength: valueB },
+    {
+      id: a,
+      team: teamA,
+      effectiveStrength: effectiveStrength(valueA, committedA),
+      committed: committedA,
+    },
+    {
+      id: b,
+      team: teamB,
+      effectiveStrength: effectiveStrength(valueB, committedB),
+      committed: committedB,
+    },
   );
 
-  // Used cards leave the hand now, and a card never returns to it.
-  const players = state.players.map((player) => {
+  // Step 1: spend committed specials and remove used cards from the hand. A card never returns.
+  const spent = state.players.map((player) => {
     if (player.id !== a && player.id !== b) return player;
     const used = state.locked.get(player.id);
-    return { ...player, hand: player.hand.filter((card) => card !== used) };
+    const hand = player.hand.filter((card) => card !== used);
+    const special =
+      state.committed.has(player.id) && player.special
+        ? { ...player.special, status: 'spent' as const }
+        : player.special;
+    return { ...player, hand, special };
   });
 
-  // A Survivor who lost to the Army catches a cold. The team change takes effect now.
-  const caught = outcome.caughtCold;
-  const finalPlayers = caught ? catchCold(players, caught) : players;
-  const transformations = caught
-    ? {
-        ...state.transformations,
-        [caught]: [...(state.transformations[caught] ?? []), state.round],
-      }
-    : state.transformations;
+  let players = spent;
+  let caughtLostSpecial: SpecialKind | null = null;
+  let recoveredNewSpecial: SpecialKind | null = null;
+  let transformations = state.transformations;
+
+  if (outcome.caughtCold) {
+    const result = catchCold(players, outcome.caughtCold);
+    players = result.players;
+    caughtLostSpecial = result.lostSpecial;
+    transformations = appendTransformation(transformations, outcome.caughtCold, state.round);
+  }
+  if (outcome.recoveredId) {
+    const result = recover(players, outcome.recoveredId, random);
+    players = result.players;
+    recoveredNewSpecial = result.newSpecial;
+    transformations = appendTransformation(transformations, outcome.recoveredId, state.round);
+  }
 
   const resolvedPairs = new Set(state.resolvedPairs);
   resolvedPairs.add(pairKey(a, b));
-  const result: DuelResult = { pair, outcome, values: [valueA, valueB] };
+  const result: DuelResult = {
+    round: state.round,
+    pair,
+    outcome,
+    values: [valueA, valueB],
+    teams: [teamA, teamB],
+    specials: [committedA, committedB],
+    caughtLostSpecial,
+    recoveredNewSpecial,
+  };
   const next: MatchState = {
     ...state,
-    players: finalPlayers,
+    players,
     transformations,
     resolvedPairs,
     results: [...state.results, result],
@@ -201,7 +295,15 @@ export function revealPair(state: MatchState, pair: Pair): MatchState {
   return next;
 }
 
-// Players who have not locked in get the lowest card in their hand.
+function appendTransformation(
+  transformations: MatchState['transformations'],
+  playerId: string,
+  round: number,
+): MatchState['transformations'] {
+  return { ...transformations, [playerId]: [...(transformations[playerId] ?? []), round] };
+}
+
+// Players who have not locked in get the lowest card in their hand. No special is committed.
 export function autoLockUnlocked(state: MatchState): MatchState {
   if (state.phase !== 'selecting') return state;
 
@@ -223,13 +325,13 @@ export function allLockedIn(state: MatchState): boolean {
 
 // Resolves every duel that is still open. Used when the selection timer runs out.
 // Every player must be locked in first, so call autoLockUnlocked before this.
-export function resolveRound(state: MatchState): MatchState {
+export function resolveRound(state: MatchState, random: RandomFn = Math.random): MatchState {
   if (state.phase !== 'selecting' || !allLockedIn(state)) {
     throw new Error('Round cannot resolve before every choice is locked in');
   }
   let current = state;
   for (const pair of state.pairs) {
-    if (!isPairResolved(current, pair)) current = revealPair(current, pair);
+    if (!isPairResolved(current, pair)) current = revealPair(current, pair, random);
   }
   return current;
 }

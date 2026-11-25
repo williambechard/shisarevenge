@@ -4,8 +4,10 @@ import type {
   CardValue,
   DuelOutcome,
   EndgameSummary,
+  PrivateNotice,
   PrivatePlayerState,
   PublicRoomState,
+  SpecialKind,
 } from '@shisa-revenge/shared';
 import {
   createInitialState,
@@ -29,12 +31,19 @@ export type GameAction =
       deadline: number;
     }
   | { type: 'private-state'; state: PrivatePlayerState }
-  | { type: 'revealed'; myValue: CardValue; opponentValue: CardValue }
+  | {
+      type: 'revealed';
+      myValue: CardValue;
+      opponentValue: CardValue;
+      mySpecial: SpecialKind | null;
+      opponentSpecial: SpecialKind | null;
+    }
   | { type: 'duel-result'; outcome: DuelOutcome }
   | { type: 'auto-locked' }
   | { type: 'select'; value: CardValue }
+  | { type: 'toggle-special' }
   | { type: 'round-ended'; round: number; caughtCount: number }
-  | { type: 'caught' }
+  | { type: 'special-notice'; notice: PrivateNotice }
   | { type: 'game-ended'; summary: EndgameSummary };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -73,8 +82,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
+        specialArmed: false,
         roundSummary: null,
-        caughtNotice: false,
+        specialNotice: null,
         endgame: null,
       };
 
@@ -91,15 +101,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
+        specialArmed: false,
         roundSummary: null,
-        caughtNotice: false,
+        specialNotice: null,
       };
 
     case 'private-state':
       return { ...state, privateState: action.state };
 
     case 'revealed':
-      return { ...state, reveal: { myValue: action.myValue, opponentValue: action.opponentValue } };
+      return {
+        ...state,
+        reveal: {
+          myValue: action.myValue,
+          opponentValue: action.opponentValue,
+          mySpecial: action.mySpecial,
+          opponentSpecial: action.opponentSpecial,
+        },
+      };
 
     case 'duel-result':
       return { ...state, duel: action.outcome };
@@ -110,11 +129,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'select':
       return { ...state, selected: action.value };
 
+    case 'toggle-special':
+      return { ...state, specialArmed: !state.specialArmed };
+
     case 'round-ended':
       return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };
 
-    case 'caught':
-      return { ...state, caughtNotice: true };
+    case 'special-notice':
+      return { ...state, specialNotice: action.notice };
 
     case 'game-ended':
       return { ...state, screen: 'endgame', endgame: action.summary };

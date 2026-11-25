@@ -52,6 +52,14 @@ function emitAck<T extends object>(socket: Socket, event: string, payload: unkno
   });
 }
 
+async function waitUntil(condition: () => boolean, timeoutMs = 2000): Promise<void> {
+  const started = Date.now();
+  while (!condition()) {
+    if (Date.now() - started > timeoutMs) throw new Error('timed out waiting for condition');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 function nextEvent<T>(socket: Socket, event: string): Promise<T> {
   return new Promise((resolve) => {
     socket.once(event, (payload: T) => {
@@ -60,21 +68,34 @@ function nextEvent<T>(socket: Socket, event: string): Promise<T> {
   });
 }
 
-type Player = { socket: Socket; id: string; events: string[] };
+type Special = { kind: string; status: string } | null;
+type Player = { socket: Socket; id: string; events: string[]; special: Special };
+
+// Opens a socket that records its own private special before it enters a room.
+async function openPlayer(): Promise<Player> {
+  const socket = await openSocket();
+  const player: Player = { socket, id: '', events: [], special: null };
+  socket.on('player:private-state', (state: { special: Special }) => {
+    player.special = state.special;
+  });
+  return player;
+}
 
 // Fills one room with eight players. The eighth entry starts the match.
 async function fillRoom(): Promise<{ players: Player[]; paired: Promise<RoundPaired> }> {
-  const first = await openSocket();
-  const created = await emitAck<{ playerId: string }>(first, 'room:enter', {});
+  const first = await openPlayer();
+  const created = await emitAck<{ playerId: string }>(first.socket, 'room:enter', {});
   if (!created.ok) throw new Error(created.error.message);
-  const paired = nextEvent<RoundPaired>(first, 'round:paired');
+  first.id = created.playerId;
+  const paired = nextEvent<RoundPaired>(first.socket, 'round:paired');
 
-  const players: Player[] = [{ socket: first, id: created.playerId, events: [] }];
+  const players: Player[] = [first];
   for (let index = 1; index < MAX_PLAYERS; index += 1) {
-    const socket = await openSocket();
-    const entered = await emitAck<{ playerId: string }>(socket, 'room:enter', {});
+    const player = await openPlayer();
+    const entered = await emitAck<{ playerId: string }>(player.socket, 'room:enter', {});
     if (!entered.ok) throw new Error(entered.error.message);
-    players.push({ socket, id: entered.playerId, events: [] });
+    player.id = entered.playerId;
+    players.push(player);
   }
 
   for (const player of players) {
@@ -91,7 +112,6 @@ async function fillRoom(): Promise<{ players: Player[]; paired: Promise<RoundPai
   }
   return { players, paired };
 }
-
 describe('one duel round over sockets', () => {
   it('reveals a choice only to its participants, after both lock in', async () => {
     const { players, paired } = await fillRoom();
@@ -138,15 +158,74 @@ describe('one duel round over sockets', () => {
     expect(bystander.events).not.toContain('encounter:revealed');
   });
 
-  it('rejects a special card until plan 05 adds them', async () => {
+  it('reveals a committed special to its two participants only', async () => {
+    const { players, paired } = await fillRoom();
+    const round = await paired;
+    // Each socket gets its own private state a moment after the round is paired.
+    await waitUntil(() => players.every((player) => player.special !== null));
+    const byId = new Map(players.map((player) => [player.id, player]));
+    const [first, second] = round.pairings;
+    if (!first || !second) throw new Error('expected at least two pairs');
+
+    // Pick the first duel's player who holds an available special.
+    const committer = [byId.get(first.a), byId.get(first.b)].find(
+      (player) => player?.special?.status === 'available',
+    );
+    const opponent = committer?.id === first.a ? byId.get(first.b) : byId.get(first.a);
+    const bystander = byId.get(second.a);
+    if (!committer || !opponent || !bystander) throw new Error('missing players');
+    const kind = committer.special?.kind;
+
+    // Everything the opponent receives before the reveal. None of it may show the commit.
+
+    const revealedCommitter = nextEvent<{ mySpecial: string | null }>(
+      committer.socket,
+      'encounter:revealed',
+    );
+    const revealedOpponent = nextEvent<{ opponentSpecial: string | null }>(
+      opponent.socket,
+      'encounter:revealed',
+    );
+    const beforeReveal: string[] = [];
+    opponent.socket.on('encounter:waiting', (payload: unknown) =>
+      beforeReveal.push(JSON.stringify(payload)),
+    );
+    opponent.socket.on('player:private-state', (payload: unknown) =>
+      beforeReveal.push(JSON.stringify(payload)),
+    );
+    const lockCommitter = await emitAck(committer.socket, 'encounter:submit', {
+      value: 2,
+      useSpecial: true,
+    });
+    expect(lockCommitter.ok).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(beforeReveal.length).toBeGreaterThan(0);
+    expect(beforeReveal.some((entry) => entry.includes('committed'))).toBe(false);
+
+    const lockOpponent = await emitAck(opponent.socket, 'encounter:submit', {
+      value: 2,
+      useSpecial: false,
+    });
+    expect(lockOpponent.ok).toBe(true);
+
+    expect(await revealedCommitter).toEqual({
+      myValue: 2,
+      opponentValue: 2,
+      mySpecial: kind,
+      opponentSpecial: null,
+    });
+    expect(await revealedOpponent).toEqual(expect.objectContaining({ opponentSpecial: kind }));
+    expect(bystander.events).not.toContain('encounter:revealed');
+  });
+
+  it('rejects a commit when the player has no special to use', async () => {
     const socket = await openSocket();
     const entered = await emitAck(socket, 'room:enter', {});
     expect(entered.ok).toBe(true);
     const response = await emitAck(socket, 'encounter:submit', { value: 2, useSpecial: true });
-    expect(response).toMatchObject({ ok: false, error: { code: 'SPECIAL_UNAVAILABLE' } });
+    expect(response).toMatchObject({ ok: false, error: { code: 'WRONG_PHASE' } });
   });
 });
-
 describe('selection timeout', () => {
   it('auto-locks the lowest card when the timer runs out and tells each player', async () => {
     const { players, paired } = await fillRoom();
