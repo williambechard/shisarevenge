@@ -1,17 +1,17 @@
 # Plan 05: Special cards
 
-**Goal:** Bingata Shawl, Hot Shikuwasa, and Shisa Mask work as written. Each is used once, and the interface shows its status.
+**Goal:** Protection Talisman, Ramen, and Shisa Mask work as written. Each is used once, and the interface shows its status.
 **Source:** `design/07-implementation-plan.md` M4, `04-game-rules.md` sections 5, 6, and 12, `01-game-design.md` section 5.
 
 ## Steps
 
 ### Game logic
 
-- [ ] At setup, give each Survivor one of `bingata-shawl` or `hot-shikuwasa` at random. Unit test the distribution with a seeded random function.
+- [ ] At setup, give each Survivor one of `protection-talisman` or `ramen` at random. Unit test the distribution with a seeded random function.
 - [ ] Committing a special marks it `spent` at reveal, whatever the outcome. Unit test a win, a loss, and a tie.
 - [ ] Shisa Mask: add +2 to the played value when committed, capped at 5. Unit test 1, 3, 4, and 5.
-- [ ] Bingata Shawl: a committed Shawl blocks a freeze, even when the Army wins by a large margin. Unit test.
-- [ ] Hot Shikuwasa: a committed Survivor that wins against an Army member recovers that member. Unit test.
+- [ ] Protection Talisman: a committed Talisman blocks a freeze, even when the Army wins by a large margin. Unit test.
+- [ ] Ramen: a committed Survivor that wins against an Army member recovers that member. Unit test.
 - [ ] A tie spends committed specials and changes no teams. Unit test.
 - [ ] Shisa Mask is always fresh when given. Unit test a player who was frozen after using their Survivor special.
 

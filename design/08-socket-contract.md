@@ -15,7 +15,7 @@
 ```ts
 type CardValue = 1 | 2 | 3 | 4 | 5;
 type Team = 'survivor' | 'infected';
-type SpecialKind = 'bingata-shawl' | 'hot-shikuwasa' | 'shisa-mask';
+type SpecialKind = 'protection-talisman' | 'ramen' | 'shisa-mask';
 type SpecialStatus = 'available' | 'committed' | 'spent' | 'lost';
 type Phase = 'lobby' | 'announce' | 'pairing' | 'selecting' | 'revealed' | 'resolved' | 'ended';
 

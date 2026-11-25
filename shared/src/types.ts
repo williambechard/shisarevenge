@@ -4,7 +4,7 @@ export type CardValue = 1 | 2 | 3 | 4 | 5;
 
 export type Team = 'survivor' | 'infected';
 
-export type SpecialKind = 'bingata-shawl' | 'hot-shikuwasa' | 'shisa-mask';
+export type SpecialKind = 'protection-talisman' | 'ramen' | 'shisa-mask';
 
 export type SpecialStatus = 'available' | 'committed' | 'spent' | 'lost';
 

@@ -12,8 +12,8 @@ export const CARD_NAMES: Record<1 | 2 | 3 | 4 | 5, string> = {
   1: 'Mist',
   2: 'Breeze',
   3: 'Gust',
-  4: 'Kitakaze',
-  5: 'Squall',
+  4: 'Squall',
+  5: 'Typhoon',
 };
 
 export const MAGIC_BONUS = 2;

@@ -19,7 +19,7 @@
 
 - **Player:** `id`, `name`, `sessionToken`, `team`, `hand` (unused card values), `special` (`{ kind, status }`), `byeCount`, `connected`.
 - **Team:** `'survivor' | 'infected'`. Display names come from the terminology table. Code uses the neutral names.
-- **Special kinds:** `'bingata-shawl' | 'hot-shikuwasa' | 'shisa-mask'`.
+- **Special kinds:** `'protection-talisman' | 'ramen' | 'shisa-mask'`.
 - **Special status:** `'available' | 'committed' | 'spent' | 'lost'`.
 - **Encounter:** `{ a, b, selections: { [playerId]: Selection | null } }`.
 - **Selection:** `{ value: 1..5, useSpecial: boolean }`.
@@ -29,7 +29,7 @@
 1. The match starts when the room reaches `MAX_PLAYERS` (8) players. There is no ready step and no host. Players are placed automatically (see `01-game-design.md` section 8).
 2. Pick one player at random as origin. Give that player team `infected` and special `shisa-mask`, status `available`.
 3. Every other player gets team `survivor`.
-4. Give each survivor one special at random: `bingata-shawl` or `hot-shikuwasa`, status `available`.
+4. Give each survivor one special at random: `protection-talisman` or `ramen`, status `available`.
 5. Give every player the full hand `[1, 2, 3, 4, 5]`.
 6. Set `round = 1`.
 
@@ -90,7 +90,7 @@ Let `A` and `B` be the two players in an encounter. Resolve in this order.
 
 ### Step 1: Spend special cards
 
-Every committed special is marked `spent`, whatever the outcome. This includes a Shawl or Cocoa committed in a losing or tied duel.
+Every committed special is marked `spent`, whatever the outcome. This includes a Talisman or Ramen committed in a losing or tied duel.
 
 ### Step 2: Determine the winner
 
@@ -104,14 +104,14 @@ Only mixed-team duels can change teams. Same-team duels never change teams.
 Let `S` be the Shisa's Army member and `V` be the Survivor.
 
 - **Army wins (`S` stronger than `V`):**
-  - If `V` committed `bingata-shawl`, the freeze is blocked. No team change.
+  - If `V` committed `protection-talisman`, the freeze is blocked. No team change.
   - Otherwise `V` catches a cold. See section 7.
 - **Survivor wins (`V` stronger than `S`):**
   - The attack is repelled.
-  - If `V` committed `hot-shikuwasa`, `S` recovers. See section 8.
+  - If `V` committed `ramen`, `S` recovers. See section 8.
 - **Tie:** no team change, regardless of specials.
 
-Rules precedence: a committed Shawl blocks a freeze regardless of the margin.
+Rules precedence: a committed Talisman blocks a freeze regardless of the margin.
 
 ### Step 4: Record results
 
@@ -133,10 +133,10 @@ The `lost` notification must appear on the player's screen. Do not hide it.
 
 1. Set the player's `team` to `survivor`.
 2. If the player's special is `shisa-mask` (`available` or `spent`), set it to `lost`. The private view shows: "You recovered. Your Shisa Mask is gone."
-3. Give the player a fresh survivor special chosen at random: `bingata-shawl` or `hot-shikuwasa`, status `available`.
+3. Give the player a fresh survivor special chosen at random: `protection-talisman` or `ramen`, status `available`.
 4. Send the player a private message describing their new special.
 
-Recovery applies only to the duel's Shisa's Army member, and only when the Survivor committed `hot-shikuwasa` and won.
+Recovery applies only to the duel's Shisa's Army member, and only when the Survivor committed `ramen` and won.
 
 ## 9. Win checks
 
@@ -176,8 +176,8 @@ The engine must uphold these at all times. Each one needs a unit test.
 These fill gaps in `01-game-design.md` and the original doc. Review them after playtesting.
 
 1. Committing a special spends it, win or lose. (The original doc said this for ties only.)
-2. Hot Shikuwasa's recovery is decided at commit time. Committing it means "recover this opponent if I win." No second choice after the reveal.
-3. Bingata Shawl is an active commit, not automatic. It is hidden until reveal.
+2. Ramen's recovery is decided at commit time. Committing it means "recover this opponent if I win." No second choice after the reveal.
+3. Protection Talisman is an active commit, not automatic. It is hidden until reveal.
 4. Each Survivor receives one of the two Survivor specials at random at setup.
 5. A recovered player receives a fresh random Survivor special. Their Shisa Mask is lost.
 6. A caught player's unused Survivor special is lost, and the player is told.

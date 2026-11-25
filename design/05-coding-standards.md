@@ -37,8 +37,8 @@
 | `catchCold` / `caughtCold` | Catch a Cold |
 | `recover` / `recovered` | Recover |
 | `coldBreath` | Cold Breath |
-| `bingata-shawl` | Bingata Shawl |
-| `hot-shikuwasa` | Hot Shikuwasa |
+| `protection-talisman` | Protection Talisman |
+| `ramen` | Ramen |
 | `shisa-mask` | Shisa Mask |
 
 - Functions: verbs. `resolveEncounter`, `pairPlayers`.

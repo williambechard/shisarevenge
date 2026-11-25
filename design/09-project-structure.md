@@ -78,7 +78,7 @@ Graphics come in two kinds, and each kind has one home.
 ### Asset rules
 
 - **Formats:** Use tVG for flat shapes, icons, and anything that must scale. Use WebP or PNG for raster art. Use PNG for images that need transparency and cannot be tVG.
-- **File names:** Lowercase kebab case, with the subject first. Examples: `card-kitakaze.svg`, `shisa-cursed.svg`, `mask-overlay.png`, `bingata-band-indigo.svg`.
+- **File names:** Lowercase kebab case, with the subject first. Examples: `card-squall.svg`, `shisa-cursed.svg`, `mask-overlay.png`, `bingata-band-indigo.svg`.
 - **tize limits:** Any one bundled image is 200 KB or less. The total of `client/src/assets/` and `client/public/` is 2 MB or less. Check these before the party, since the free Vercel tier and mobile data both matter.
 - **Dimensions:** Raster art is exported at 2x the largest on-screen size, not at print size.
 - **Alt text:** Every image rendered by a component takes an `alt` prop, or `alt=""` when it is decorative. Never leave `alt` out.

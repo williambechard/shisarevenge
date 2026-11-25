@@ -74,10 +74,10 @@ If a milestone slips by more than a day, use the cut list in section 4.
 
 ### M4: Special cards (days 10 to 11)
 
-- [ ] Assign survivor specials at setup (Shawl or Cocoa at random).
+- [ ] Assign survivor specials at setup (Talisman or Ramen at random).
 - [ ] Commit logic for each special. Spend on commit. Unit tests.
-- [ ] Bingata Shawl blocks a freeze.
-- [ ] Hot Shikuwasa recovers on a winning Survivor duel.
+- [ ] Protection Talisman blocks a freeze.
+- [ ] Ramen recovers on a winning Survivor duel.
 - [ ] Shisa Mask adds +2, capped at 5. Given to origin and newly caught players.
 - [ ] Lost-special message on catch and on recover.
 - [ ] Client: SpecialCard with available, committed, and spent states, plus text labels.

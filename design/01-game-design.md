@@ -39,7 +39,7 @@ Players open the game on their own phone. The server places them in a room autom
 
 It is winter in Okinawa. The air is mild but the north wind is cold. The guardian Shisa on the village gate has been cursed by an ancient winter spell. It is spreading colds through the village, and it is building an army to take over the island before the New Year.
 
-The survivors have a few useful things: a Bingata Shawl, a cup of Hot Shikuwasa, and a Shisa Mask they can take from the Shisa itself. They must last until the countdown ends, or recover enough of the village to break the curse.
+The survivors have a few useful things: a Protection Talisman, a bowl of ramen, and a Shisa Mask they can take from the Shisa itself. They must last until the countdown ends, or recover enough of the village to break the curse.
 
 ### Tone and visual direction
 
@@ -61,8 +61,8 @@ The survivors have a few useful things: a Bingata Shawl, a cup of Hot Shikuwasa,
 | Cure | Recover |
 | Quarantine | Bed Rest |
 | Infection attack | Cold Breath |
-| Healing item | Hot Shikuwasa |
-| Protective item | Bingata Shawl |
+| Healing item | Ramen |
+| Protective item | Protection Talisman |
 | Infected-player item | Shisa Mask |
 | Match timer | Countdown to New Year |
 
@@ -73,8 +73,8 @@ Numbered cards:
 | 1 | Mist |
 | 2 | Breeze |
 | 3 | Gust |
-| 4 | Kitakaze |
-| 5 | Squall |
+| 4 | Squall |
+| 5 | Typhoon |
 
 ---
 
@@ -123,8 +123,8 @@ Each player starts with the same five numbered cards:
 | 1 | Mist | Once per game |
 | 2 | Breeze | Once per game |
 | 3 | Gust | Once per game |
-| 4 | Kitakaze | Once per game |
-| 5 | Squall | Once per game |
+| 4 | Squall | Once per game |
+| 5 | Typhoon | Once per game |
 
 Played cards are discarded and do not return during the match.
 
@@ -179,11 +179,11 @@ Each player has one special card. The server assigns it by team.
 
 | Card | Given to | Effect |
 |---|---|---|
-| **Bingata Shawl** | Survivors (see note) | Once per game. If committed, it blocks one incoming Cold Breath. The duel still happens and both numbers are spent. |
-| **Hot Shikuwasa** | Survivors (see note) | Once per game. If committed and the Survivor wins a duel against a Shisa's Army member, that member recovers. |
+| **Protection Talisman** | Survivors (see note) | Once per game. If committed, it blocks one incoming Cold Breath. The duel still happens and both numbers are spent. |
+| **Ramen** | Survivors (see note) | Once per game. If committed and the Survivor wins a duel against a Shisa's Army member, that member recovers. |
 | **Shisa Mask** | The Cursed Shisa and every newly frozen player | Once per game. If committed, it adds +2 to the played number, capped at 5. |
 
-**Note on Survivor specials:** Each Survivor receives either a Bingata Shawl or a Hot Shikuwasa, assigned at random when the match starts. The design doc listed both cards under Survivors but gave each player one card, so this resolves the gap. Balance this after playtesting.
+**Note on Survivor specials:** Each Survivor receives either a Protection Talisman or a Ramen, assigned at random when the match starts. The design doc listed both cards under Survivors but gave each player one card, so this resolves the gap. Balance this after playtesting.
 
 ### Special-card timing
 
@@ -194,21 +194,21 @@ Each player has one special card. The server assigns it by team.
 
 ### Rules precedence
 
-1. A committed Bingata Shawl blocks a Cold Breath, even when the attacker wins by a large margin.
-2. Hot Shikuwasa only recovers a Shisa's Army member when its Survivor wins the duel.
+1. A committed Protection Talisman blocks a Cold Breath, even when the attacker wins by a large margin.
+2. Ramen only recovers a Shisa's Army member when its Survivor wins the duel.
 3. Shisa Mask adds +2, capped at 5.
 4. A tied duel changes no teams. Committed special cards are still spent.
 
 ### Losing a Survivor special on freeze
 
-When a Survivor catches a cold, their unused Survivor special is removed. The player's private view shows a clear message, for example: "You caught a cold. Your Bingata Shawl is gone. You now have a Shisa Mask." The Shisa Mask is always fresh and unused.
+When a Survivor catches a cold, their unused Survivor special is removed. The player's private view shows a clear message, for example: "You caught a cold. Your Protection Talisman is gone. You now have a Shisa Mask." The Shisa Mask is always fresh and unused.
 
 ### Future special cards (not in this build)
 
 Do not build these for the jam:
 
 - **Snow Globe** becomes Lantern Glow: protects a player from one encounter.
-- **Snowball Cannon** becomes Typhoon Cannon: high-risk removal of a Shisa's Army member.
+- **Snowball Cannon** becomes Tsunami Cannon: high-risk removal of a Shisa's Army member. (Renamed so it does not clash with the value 5 card, Typhoon.)
 - **Sleigh Ride** becomes Fishing Boat Escape: avoids an encounter.
 - **Coal** becomes Charcoal Brazier: forces an opponent to discard an unused number.
 - **Christmas Miracle** becomes New Year's Miracle: recovers a player without a duel.
@@ -426,7 +426,7 @@ The build has two weeks. The scope below is what must ship. The cut list in `07-
 - Blind simultaneous card selection
 - Higher-number duel resolution
 - Team conversion (Catch a Cold)
-- Bingata Shawl, Hot Shikuwasa, and Shisa Mask
+- Protection Talisman, Ramen, and Shisa Mask
 - Private and public state separation
 - Reconnect by session token
 - Win conditions, results overview, and Back to start
@@ -462,7 +462,7 @@ Track these outcomes during playtests:
 - Average round when the first Survivor catches a cold
 - How often players tie
 - Whether players have meaningful choices late in the match
-- Whether Hot Shikuwasa is strong enough to justify saving it
+- Whether Ramen is strong enough to justify saving it
 
 ### Open questions for playtesting
 
@@ -471,7 +471,7 @@ These are tuning decisions, not blockers:
 1. Is five rounds the right length, or should it be four or six?
 2. Does Shisa's Army grow too fast with 4 players, or too slowly with 8?
 3. Should a newly frozen player get a fresh Shisa Mask, or should the mask be shared across the team?
-4. Is Hot Shikuwasa too hard to use if the Survivor must first win a duel?
+4. Is Ramen too hard to use if the Survivor must first win a duel?
 5. Should the final round reveal all team identities for drama?
 6. With the current win rules, Survivors may win most matches by default. Does the progress bar change how players feel about this?
 7. Does the bar make late-game results feel decided too early?
@@ -504,3 +504,4 @@ The build is ready for the jam when:
 - **1.3:** Node stays as the server stack. Endgame becomes an overview followed by Back to start, with no rematch. Pairing stays random, with no repeated opponents in consecutive rounds. Added round-summary announcements and preset emotes. Shisa's Army members do not learn their teammates. Player-chosen pairing is parked for after the jam.
 - **1.4:** Render is the server host, with a spin-up message while it wakes. Emotes during rounds moved to the stretch goal.
 - **1.5:** Automatic room placement replaces the landing, join, and ready steps. Names are assigned from a list of eight. A room starts when it has eight players. The QR code is removed. Seats are saved per tab.
+- **1.6:** Renamed cards. Value 4 is Squall and value 5 is Typhoon. Renamed specials. Bingata Shawl is now Protection Talisman, and Hot Shikuwasa is now Ramen. Renamed the future card Typhoon Cannon to Tsunami Cannon to avoid a clash.
