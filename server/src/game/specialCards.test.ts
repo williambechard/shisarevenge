@@ -1,12 +1,13 @@
-// Special-card rules from design/04-game-rules.md sections 3, 5, 6, 7, 8, and 12.
+// Special cards are played in place of a number card. Rules from design/04-game-rules.md
+// sections 3, 4.2, 5, 6, 7, 8, and 12. A special has a fixed strength (SPECIAL_STRENGTH).
 import { describe, expect, it } from 'vitest';
-import type { CardValue, SpecialKind } from '@shisa-revenge/shared';
+import { SPECIAL_STRENGTH, type CardValue, type SpecialKind } from '@shisa-revenge/shared';
 import {
   beginRound,
   createMatch,
-  effectiveStrength,
   pairRound,
   revealPair,
+  strengthOf,
   submitSelection,
   type MatchState,
   type Pair,
@@ -22,11 +23,18 @@ function seeded(seed: number): RandomFn {
   };
 }
 
+type Card = { type: 'number'; value: CardValue } | { type: 'special' };
+const N = (value: CardValue): Card => ({ type: 'number', value });
+const SPECIAL: Card = { type: 'special' };
+
 const ARMY = 'p0';
 
 // Four players: p0 is Shisa's Army (holds a Shisa Mask). The other three are Survivors.
 // Returns the round paired with the Army member's duel, and the Survivor in that duel.
-function setupDuel(survivorSpecial: PlayerSpecial | null) {
+function setupDuel(
+  survivorSpecial: PlayerSpecial | null,
+  armySpecial: PlayerSpecial | null = { kind: 'shisa-mask', status: 'available' },
+) {
   const base = pairRound(
     beginRound(
       createMatch(
@@ -45,36 +53,37 @@ function setupDuel(survivorSpecial: PlayerSpecial | null) {
   const survivorId = pair[0] === ARMY ? pair[1] : pair[0];
   const state: MatchState = {
     ...base,
-    players: base.players.map((player) =>
-      player.id === survivorId ? { ...player, special: survivorSpecial } : player,
-    ),
+    players: base.players.map((player) => {
+      if (player.id === survivorId) return { ...player, special: survivorSpecial };
+      if (player.id === ARMY) return { ...player, special: armySpecial };
+      return player;
+    }),
   };
   return { state, pair, armyId: ARMY, survivorId };
 }
 
-// Both players lock in. The Army member's commit is optional. The Survivor's commit depends on the test.
-function lockDuel(
+// Both players lock in, then the duel reveals.
+function playDuel(
   state: MatchState,
+  pair: Pair,
   armyId: string,
-  armyValue: CardValue,
+  armyCard: Card,
   survivorId: string,
-  survivorValue: CardValue,
-  options: { army?: boolean; survivor?: boolean } = {},
+  survivorCard: Card,
 ): MatchState {
-  const armyLock = submitSelection(state, armyId, armyValue, options.army ?? false);
+  const armyLock = submitSelection(state, armyId, armyCard);
   if (!armyLock.ok) throw new Error(`army lock failed: ${armyLock.error}`);
-  const survivorLock = submitSelection(
-    armyLock.value,
-    survivorId,
-    survivorValue,
-    options.survivor ?? false,
-  );
+  const survivorLock = submitSelection(armyLock.value, survivorId, survivorCard);
   if (!survivorLock.ok) throw new Error(`survivor lock failed: ${survivorLock.error}`);
-  return survivorLock.value;
+  return revealPair(survivorLock.value, pair, seeded(2));
 }
 
 function specialOf(state: MatchState, id: string): PlayerSpecial | null | undefined {
   return state.players.find((player) => player.id === id)?.special;
+}
+
+function handOf(state: MatchState, id: string): readonly CardValue[] | undefined {
+  return state.players.find((player) => player.id === id)?.hand;
 }
 
 describe('setup (design section 3)', () => {
@@ -113,82 +122,103 @@ describe('setup (design section 3)', () => {
   });
 });
 
-describe('effective strength (design section 5)', () => {
-  it.each([
-    [1, 3],
-    [3, 5],
-    [4, 5],
-    [5, 5],
-  ] as const)('adds the Shisa Mask bonus and caps at 5: %i becomes %i', (value, expected) => {
-    expect(effectiveStrength(value, 'shisa-mask')).toBe(expected);
+describe('special card strength (design section 5)', () => {
+  it('plays each special at its fixed strength', () => {
+    expect(strengthOf({ type: 'special', kind: 'protection-talisman' })).toBe(
+      SPECIAL_STRENGTH['protection-talisman'],
+    );
+    expect(strengthOf({ type: 'special', kind: 'ramen' })).toBe(SPECIAL_STRENGTH.ramen);
+    expect(strengthOf({ type: 'special', kind: 'shisa-mask' })).toBe(
+      SPECIAL_STRENGTH['shisa-mask'],
+    );
   });
 
-  it('adds nothing without a committed Shisa Mask', () => {
-    expect(effectiveStrength(2, null)).toBe(2);
-    expect(effectiveStrength(2, 'ramen')).toBe(2);
+  it('keeps the specials between the lowest and highest number cards', () => {
+    for (const value of Object.values(SPECIAL_STRENGTH)) {
+      expect(value).toBeGreaterThanOrEqual(1);
+      expect(value).toBeLessThanOrEqual(5);
+    }
   });
 
-  it('uses the bonus in a duel: a Mask at 1 ties a Survivor at 3', () => {
+  it('uses the number value for a number card', () => {
+    expect(strengthOf({ type: 'number', value: 4 })).toBe(4);
+  });
+
+  it('compares a special with a number on strength: Mask (4) beats a Survivor who plays 3', () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const locked = lockDuel(state, armyId, 1, survivorId, 3, { army: true });
-    const next = revealPair(locked, pair, seeded(1));
+    const next = playDuel(state, pair, armyId, SPECIAL, survivorId, N(3));
+    expect(next.results[0]?.outcome.caughtCold).toBe(survivorId);
+  });
+
+  it('ties a special with a number of equal strength, and changes no team', () => {
+    // Talisman has strength 2. The Army member plays 2.
+    const { state, pair, armyId, survivorId } = setupDuel({
+      kind: 'protection-talisman',
+      status: 'available',
+    });
+    const next = playDuel(state, pair, armyId, N(2), survivorId, SPECIAL);
     expect(next.results[0]?.outcome.winnerId).toBeNull();
-    expect(next.results[0]?.outcome.caughtCold).toBeNull();
+    expect(next.players.find((p) => p.id === survivorId)?.team).toBe('survivor');
   });
 });
 
-describe('committing a special (design section 4.2)', () => {
-  it('moves the special to committed on lock-in', () => {
-    const { state, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const locked = lockDuel(state, armyId, 2, survivorId, 2, { survivor: true });
-    expect(specialOf(locked, survivorId)?.status).toBe('committed');
+describe('playing a special card (design section 4.2)', () => {
+  it('moves the special to committed on lock-in and keeps all number cards', () => {
+    const { state, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
+    const locked = submitSelection(state, survivorId, SPECIAL);
+    if (!locked.ok) throw new Error('lock failed');
+    expect(specialOf(locked.value, survivorId)?.status).toBe('committed');
+    expect(handOf(locked.value, survivorId)).toEqual([1, 2, 3, 4, 5]);
   });
 
-  it('rejects a commit when the special is already spent', () => {
+  it('plays a number without spending the special', () => {
+    const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
+    const next = playDuel(state, pair, armyId, N(2), survivorId, N(2));
+    expect(specialOf(next, survivorId)?.status).toBe('available');
+    expect(handOf(next, survivorId)).not.toContain(2);
+  });
+
+  it('rejects a special when the player has already spent it', () => {
     const { state, survivorId } = setupDuel({ kind: 'ramen', status: 'spent' });
-    expect(submitSelection(state, survivorId, 2, true)).toEqual({
+    expect(submitSelection(state, survivorId, SPECIAL)).toEqual({
       ok: false,
       error: 'SPECIAL_UNAVAILABLE',
     });
   });
 
-  it('rejects a commit when the player holds no special', () => {
+  it('rejects a special when the player holds none', () => {
     const { state, survivorId } = setupDuel(null);
-    expect(submitSelection(state, survivorId, 2, true)).toEqual({
+    expect(submitSelection(state, survivorId, SPECIAL)).toEqual({
       ok: false,
       error: 'SPECIAL_UNAVAILABLE',
     });
   });
 
-  it('spends a committed special on a win, a loss, and a tie', () => {
-    // Win: the Survivor plays 5 with Ramen against the Army's 1. The Army member is recovered.
+  it('spends the special played on a win, a loss, and a tie', () => {
+    // Win: Ramen (3) beats the Army's 2. The Army member is recovered.
     const win = setupDuel({ kind: 'ramen', status: 'available' });
-    const winLocked = lockDuel(win.state, win.armyId, 1, win.survivorId, 5, { survivor: true });
-    const winNext = revealPair(winLocked, win.pair, seeded(2));
+    const winNext = playDuel(win.state, win.pair, win.armyId, N(2), win.survivorId, SPECIAL);
     expect(specialOf(winNext, win.survivorId)?.status).toBe('spent');
 
-    // Loss: the Survivor commits Talisman and the Army's 5 wins. The freeze is blocked.
+    // Loss: Talisman (2) meets the Army's 5. The freeze is blocked, and the Talisman is spent.
     const loss = setupDuel({ kind: 'protection-talisman', status: 'available' });
-    const lossLocked = lockDuel(loss.state, loss.armyId, 5, loss.survivorId, 1, { survivor: true });
-    const lossNext = revealPair(lossLocked, loss.pair, seeded(2));
+    const lossNext = playDuel(loss.state, loss.pair, loss.armyId, N(5), loss.survivorId, SPECIAL);
     expect(specialOf(lossNext, loss.survivorId)?.status).toBe('spent');
 
-    // Tie: both play 3 and the Survivor commits Ramen.
+    // Tie: Ramen (3) meets the Army's 3.
     const tie = setupDuel({ kind: 'ramen', status: 'available' });
-    const tieLocked = lockDuel(tie.state, tie.armyId, 3, tie.survivorId, 3, { survivor: true });
-    const tieNext = revealPair(tieLocked, tie.pair, seeded(2));
+    const tieNext = playDuel(tie.state, tie.pair, tie.armyId, N(3), tie.survivorId, SPECIAL);
     expect(specialOf(tieNext, tie.survivorId)?.status).toBe('spent');
   });
 });
 
 describe('Protection Talisman (design section 6)', () => {
-  it('blocks a freeze when committed, even by a large margin', () => {
+  it('blocks a freeze when played, even by a large margin', () => {
     const { state, pair, armyId, survivorId } = setupDuel({
       kind: 'protection-talisman',
       status: 'available',
     });
-    const locked = lockDuel(state, armyId, 5, survivorId, 1, { survivor: true });
-    const next = revealPair(locked, pair, seeded(2));
+    const next = playDuel(state, pair, armyId, N(5), survivorId, SPECIAL);
     const result = next.results[0];
 
     expect(result?.outcome.blocked).toBe(true);
@@ -197,13 +227,12 @@ describe('Protection Talisman (design section 6)', () => {
     expect(specialOf(next, survivorId)?.status).toBe('spent');
   });
 
-  it('does not block when not committed, so the Survivor is caught', () => {
+  it('does not block when a number is played, so the Survivor is caught', () => {
     const { state, pair, armyId, survivorId } = setupDuel({
       kind: 'protection-talisman',
       status: 'available',
     });
-    const locked = lockDuel(state, armyId, 5, survivorId, 1);
-    const next = revealPair(locked, pair, seeded(2));
+    const next = playDuel(state, pair, armyId, N(5), survivorId, N(1));
 
     expect(next.results[0]?.outcome.caughtCold).toBe(survivorId);
     expect(next.results[0]?.caughtLostSpecial).toBe('protection-talisman');
@@ -212,10 +241,9 @@ describe('Protection Talisman (design section 6)', () => {
 });
 
 describe('Ramen (design section 8)', () => {
-  it('recovers the Army member when a committed Ramen wins the duel', () => {
+  it('recovers the Army member when a played Ramen wins the duel', () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const locked = lockDuel(state, armyId, 1, survivorId, 4, { survivor: true });
-    const next = revealPair(locked, pair, seeded(9));
+    const next = playDuel(state, pair, armyId, N(1), survivorId, SPECIAL);
     const army = next.players.find((p) => p.id === armyId);
 
     expect(next.results[0]?.outcome.recoveredId).toBe(armyId);
@@ -226,18 +254,23 @@ describe('Ramen (design section 8)', () => {
     expect(next.transformations[armyId]).toEqual([next.round]);
   });
 
-  it('does not recover when Ramen is not committed', () => {
+  it('does not recover when the Survivor plays a number', () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const locked = lockDuel(state, armyId, 1, survivorId, 4);
-    const next = revealPair(locked, pair, seeded(9));
+    const next = playDuel(state, pair, armyId, N(1), survivorId, N(4));
     expect(next.results[0]?.outcome.recoveredId).toBeNull();
     expect(next.players.find((p) => p.id === armyId)?.team).toBe('infected');
   });
 
-  it('changes no team on a tie, and the commit is still spent', () => {
+  it("does not recover when Ramen (3) loses to the Army member's Mask (4)", () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const locked = lockDuel(state, armyId, 2, survivorId, 2, { survivor: true });
-    const next = revealPair(locked, pair, seeded(9));
+    const next = playDuel(state, pair, armyId, SPECIAL, survivorId, SPECIAL);
+    expect(next.results[0]?.outcome.recoveredId).toBeNull();
+    expect(next.results[0]?.outcome.caughtCold).toBe(survivorId);
+  });
+
+  it('changes no team on a tie, and the special is still spent', () => {
+    const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
+    const next = playDuel(state, pair, armyId, N(3), survivorId, SPECIAL);
     expect(next.results[0]?.outcome.winnerId).toBeNull();
     expect(next.players.find((p) => p.id === armyId)?.team).toBe('infected');
     expect(next.players.find((p) => p.id === survivorId)?.team).toBe('survivor');
@@ -245,11 +278,37 @@ describe('Ramen (design section 8)', () => {
   });
 });
 
-describe('Shisa Mask and lost specials (design sections 7 and 12)', () => {
+describe('Shisa Mask (design section 5 and 12)', () => {
+  it('plays the Mask at strength 4, so it beats a Survivor who plays 3', () => {
+    const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
+    const next = playDuel(state, pair, armyId, SPECIAL, survivorId, N(3));
+    expect(next.results[0]?.outcome.caughtCold).toBe(survivorId);
+    expect(next.results[0]?.specials).toEqual(['shisa-mask', null]);
+  });
+
+  it('loses to a Survivor who plays 5, and the Army member keeps the Mask as spent', () => {
+    const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
+    const next = playDuel(state, pair, armyId, SPECIAL, survivorId, N(5));
+    expect(next.results[0]?.outcome.winnerId).toBe(survivorId);
+    expect(specialOf(next, armyId)?.status).toBe('spent');
+    expect(next.players.find((p) => p.id === armyId)?.team).toBe('infected');
+  });
+
+  it('is blocked by a Talisman when the Army member wins with the Mask', () => {
+    const { state, pair, armyId, survivorId } = setupDuel({
+      kind: 'protection-talisman',
+      status: 'available',
+    });
+    const next = playDuel(state, pair, armyId, SPECIAL, survivorId, SPECIAL);
+    expect(next.results[0]?.outcome.blocked).toBe(true);
+    expect(next.players.find((p) => p.id === survivorId)?.team).toBe('survivor');
+  });
+});
+
+describe('caught players (design section 7)', () => {
   it('gives a caught player a fresh Shisa Mask when their special was spent', () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'spent' });
-    const locked = lockDuel(state, armyId, 5, survivorId, 1);
-    const next = revealPair(locked, pair, seeded(9));
+    const next = playDuel(state, pair, armyId, N(5), survivorId, N(1));
 
     expect(next.players.find((p) => p.id === survivorId)?.team).toBe('infected');
     expect(specialOf(next, survivorId)).toEqual({ kind: 'shisa-mask', status: 'available' });
@@ -258,22 +317,17 @@ describe('Shisa Mask and lost specials (design sections 7 and 12)', () => {
 
   it('loses an unused Survivor special when caught, and reports it', () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const locked = lockDuel(state, armyId, 5, survivorId, 1);
-    const next = revealPair(locked, pair, seeded(9));
+    const next = playDuel(state, pair, armyId, N(5), survivorId, N(1));
 
     expect(next.results[0]?.caughtLostSpecial).toBe('ramen');
     expect(specialOf(next, survivorId)).toEqual({ kind: 'shisa-mask', status: 'available' });
   });
 
-  it('a player who used a Survivor special and was frozen gets a fresh Shisa Mask', () => {
-    // Ramen is committed and spent on a losing duel. The next duel freezes the player.
+  it('a Survivor who played Ramen and was caught gets a fresh Mask, and the Ramen is spent not lost', () => {
     const { state, pair, armyId, survivorId } = setupDuel({ kind: 'ramen', status: 'available' });
-    const first = revealPair(
-      lockDuel(state, armyId, 5, survivorId, 1, { survivor: true }),
-      pair,
-      seeded(9),
-    );
-    expect(first.players.find((p) => p.id === survivorId)?.team).toBe('infected');
-    expect(specialOf(first, survivorId)).toEqual({ kind: 'shisa-mask', status: 'available' });
+    const next = playDuel(state, pair, armyId, N(5), survivorId, SPECIAL);
+    expect(next.players.find((p) => p.id === survivorId)?.team).toBe('infected');
+    expect(specialOf(next, survivorId)).toEqual({ kind: 'shisa-mask', status: 'available' });
+    expect(next.results[0]?.caughtLostSpecial).toBeNull();
   });
 });

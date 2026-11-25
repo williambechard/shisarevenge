@@ -18,7 +18,7 @@ The server is the only source of truth for:
 - Duel resolution
 - Round and win conditions
 
-The client sends **intentions**, for example `encounter:submit { value: 4, useSpecial: true }`. It never sends results, such as "I won" or "I am a Survivor."
+The client sends **intentions**, for example `encounter:submit { type: "special" }`. It never sends results, such as "I won" or "I am a Survivor."
 
 ## 2. Hidden information
 

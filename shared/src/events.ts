@@ -41,10 +41,14 @@ export const roomLeavePayload = z.strictObject({});
 // Any player in a lobby of 4 to 7 may start it once the wait has passed.
 export const lobbyStartNowPayload = z.strictObject({});
 
-export const encounterSubmitPayload = z.strictObject({
-  value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
-  useSpecial: z.boolean(),
-});
+// The card played this round: a number card, or the player's special card (played like a number).
+export const encounterSubmitPayload = z.union([
+  z.strictObject({
+    type: z.literal('number'),
+    value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+  }),
+  z.strictObject({ type: z.literal('special') }),
+]);
 
 export type EncounterSubmitPayload = z.infer<typeof encounterSubmitPayload>;
 export type RoomEnterPayload = z.infer<typeof roomEnterPayload>;

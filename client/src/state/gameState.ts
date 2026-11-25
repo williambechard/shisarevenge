@@ -3,6 +3,7 @@ import type {
   DuelOutcome,
   EndgameSummary,
   PrivateNotice,
+  PlayedCard,
   PrivatePlayerState,
   PublicRoomState,
   SpecialKind,
@@ -51,9 +52,8 @@ export type GameState = {
   reveal: Reveal | null;
   duel: DuelOutcome | null;
   autoLocked: boolean;
-  selected: CardValue | null;
-  // True when this player has chosen to commit their special with the next lock-in.
-  specialArmed: boolean;
+  // The card this player has picked for the round, not yet locked in.
+  selected: PlayedCard | null;
   roundSummary: RoundSummary | null;
   // Caught or recovered notice for this player. Cleared when the next round is paired.
   specialNotice: PrivateNotice | null;
@@ -75,7 +75,6 @@ export function createInitialState(): GameState {
     duel: null,
     autoLocked: false,
     selected: null,
-    specialArmed: false,
     roundSummary: null,
     specialNotice: null,
     endgame: null,

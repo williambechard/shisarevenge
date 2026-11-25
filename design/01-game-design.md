@@ -175,29 +175,28 @@ Even without infection, a duel matters. It reveals card-use patterns, uses up va
 
 ## 5. Special cards
 
-Each player has one special card. The server assigns it by team.
+Each player has one special card, in addition to their five number cards. The server assigns it by team. A special is played like a number card: each round, a player picks one card to play, either a number or their special. Over five rounds, one card is left unused.
 
-| Card | Given to | Effect |
-|---|---|---|
-| **Protection Talisman** | Survivors (see note) | Once per game. If committed, it blocks one incoming Cold Breath. The duel still happens and both numbers are spent. |
-| **Ramen** | Survivors (see note) | Once per game. If committed and the Survivor wins a duel against a Shisa's Army member, that member recovers. |
-| **Shisa Mask** | The Cursed Shisa and every newly frozen player | Once per game. If committed, it adds +2 to the played number, capped at 5. |
+| Card | Given to | Strength | Effect |
+|---|---|---|---|
+| **Protection Talisman** | Survivors (see note) | 2 | Once per game. If played and the Army wins the duel, the freeze is blocked. |
+| **Ramen** | Survivors (see note) | 3 | Once per game. If played and the Survivor wins a duel against a Shisa's Army member, that member recovers. |
+| **Shisa Mask** | The Cursed Shisa and every newly frozen player | 4 | Once per game. Plays as strength 4. No bonus. |
 
-**Note on Survivor specials:** Each Survivor receives either a Protection Talisman or a Ramen, assigned at random when the match starts. The design doc listed both cards under Survivors but gave each player one card, so this resolves the gap. Balance this after playtesting.
+**Note on Survivor specials:** Each Survivor receives either a Protection Talisman or a Ramen, assigned at random when the match starts. The design doc listed both cards under Survivors but gave each player one card, so this resolves the gap. The strengths are a first guess. Balance this after playtesting.
 
 ### Special-card timing
 
-- A special card is optional and can be used once.
-- Committing a special card spends it, whatever the outcome of the duel.
-- The commit is hidden until both players lock in.
-- The interface shows each special card as available, committed, or spent.
+- A special card can be played once. Playing it spends it, whatever the outcome of the duel.
+- The played card is hidden until both players lock in.
+- The interface shows the special card in the hand, with its status: ready, selected, played this round, or spent.
 
 ### Rules precedence
 
-1. A committed Protection Talisman blocks a Cold Breath, even when the attacker wins by a large margin.
+1. A played Protection Talisman blocks a freeze, even when the Army wins by a large margin.
 2. Ramen only recovers a Shisa's Army member when its Survivor wins the duel.
-3. Shisa Mask adds +2, capped at 5.
-4. A tied duel changes no teams. Committed special cards are still spent.
+3. Specials are compared to numbers and to each other on strength. Shisa Mask's strength is 4.
+4. A tied duel changes no teams. Played special cards are still spent.
 
 ### Losing a Survivor special on freeze
 

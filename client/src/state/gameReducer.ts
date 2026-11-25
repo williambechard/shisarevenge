@@ -4,6 +4,7 @@ import type {
   CardValue,
   DuelOutcome,
   EndgameSummary,
+  PlayedCard,
   PrivateNotice,
   PrivatePlayerState,
   PublicRoomState,
@@ -40,8 +41,7 @@ export type GameAction =
     }
   | { type: 'duel-result'; outcome: DuelOutcome }
   | { type: 'auto-locked' }
-  | { type: 'select'; value: CardValue }
-  | { type: 'toggle-special' }
+  | { type: 'select'; card: PlayedCard }
   | { type: 'round-ended'; round: number; caughtCount: number }
   | { type: 'special-notice'; notice: PrivateNotice }
   | { type: 'game-ended'; summary: EndgameSummary };
@@ -82,7 +82,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
-        specialArmed: false,
         roundSummary: null,
         specialNotice: null,
         endgame: null,
@@ -101,7 +100,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
-        specialArmed: false,
         roundSummary: null,
         specialNotice: null,
       };
@@ -127,10 +125,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, autoLocked: true };
 
     case 'select':
-      return { ...state, selected: action.value };
-
-    case 'toggle-special':
-      return { ...state, specialArmed: !state.specialArmed };
+      return { ...state, selected: action.card };
 
     case 'round-ended':
       return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };

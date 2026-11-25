@@ -5,6 +5,7 @@ import {
   type CardValue,
   type DuelOutcome,
   type EndgameSummary,
+  type PlayedCard,
   type PrivateNotice,
   type PrivatePlayerState,
   type SpecialKind,
@@ -80,9 +81,8 @@ function enterRoom(
 export type GameActions = {
   leaveRoom: () => void;
   startNow: () => void;
-  selectCard: (value: CardValue) => void;
-  submitCard: (value: CardValue, useSpecial: boolean) => void;
-  toggleSpecial: () => void;
+  selectCard: (card: PlayedCard) => void;
+  submitCard: (card: PlayedCard) => void;
   clearNotice: () => void;
 };
 
@@ -245,23 +245,19 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
-  const selectCard = useCallback((value: CardValue): void => {
-    dispatch({ type: 'select', value });
+  const selectCard = useCallback((card: PlayedCard): void => {
+    dispatch({ type: 'select', card });
   }, []);
 
-  const submitCard = useCallback((value: CardValue, useSpecial: boolean): void => {
-    getSocket().emit('encounter:submit', { value, useSpecial }, (response: PlainAck) => {
+  const submitCard = useCallback((card: PlayedCard): void => {
+    getSocket().emit('encounter:submit', card, (response: PlainAck) => {
       if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
     });
-  }, []);
-
-  const toggleSpecial = useCallback((): void => {
-    dispatch({ type: 'toggle-special' });
   }, []);
 
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return { state, leaveRoom, startNow, selectCard, submitCard, toggleSpecial, clearNotice };
+  return { state, leaveRoom, startNow, selectCard, submitCard, clearNotice };
 }

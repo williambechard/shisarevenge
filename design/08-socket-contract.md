@@ -92,7 +92,7 @@ Notes:
 | `room:enter` | `{ sessionToken?: uuid }` | Any | Place this window in a room. With a token, reclaim that seat. Without one, join the oldest open lobby or start a new room. The server assigns the name. |
 | `room:leave` | `{}` | Any | Leave the room. The window is then placed again. |
 | `lobby:start-now` | `{}` | `lobby` | Start the room with 4 to 7 players. Allowed only once the lobby wait has ended (`startAvailable`). |
-| `encounter:submit` | `{ value: CardValue, useSpecial: boolean }` | `selecting` | Lock in a card. Once only. |
+| `encounter:submit` | `{ type: 'number', value: CardValue }` or `{ type: 'special' }` | `selecting` | Lock in the card played this round: a number, or the special card. Once only. |
 | `emote:send` | `{ emoteId: string }` | `ended` | Send one preset emote to the room. Rate limited. |
 
 ### Payload schemas (summary)
@@ -100,8 +100,8 @@ Notes:
 - `name`: 1 to 16 characters after trimming. Control characters removed.
 - `roomCode`: exactly 6 characters from the allowed alphabet.
 - `sessionToken`: UUID format.
-- `value`: integer 1 to 5.
-- `useSpecial`: boolean. The server rejects `true` if the player has no `available` special.
+- `value`: integer 1 to 5, present when `type` is `number`.
+- `type: 'special'`: the server rejects it if the player has no `available` special. A special is played in place of a number, so it carries no `value`.
 
 ## 4. Server to client
 
@@ -180,7 +180,7 @@ No public event for an encounter is sent before step 2.
 
 Before merging any change to this contract, confirm:
 
-- No event sent before both players lock in contains the other player's `value` or `useSpecial`.
+- No event sent before both players lock in contains the other player's played card.
 - `round:state` never contains `hand`, `special`, or `encounter` data.
 - `player:private-state` is emitted only to its own socket.
 - `encounter:revealed` and `encounter:result` are emitted only to the two participants.

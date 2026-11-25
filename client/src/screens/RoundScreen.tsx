@@ -1,13 +1,12 @@
 import {
   ROUND_COUNT,
   SPECIAL_NAMES,
-  type CardValue,
+  type PlayedCard,
   type PrivateNotice,
   type PublicRoomState,
 } from '@shisa-revenge/shared';
 import { Countdown } from '../components/atoms/Countdown.js';
 import { Announcement } from '../components/molecules/Announcement.js';
-import { SpecialCard } from '../components/molecules/SpecialCard.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
 import { HandTray } from '../components/organisms/HandTray.js';
@@ -17,8 +16,7 @@ import type { GameState } from '../state/gameState.js';
 type RoundScreenProps = {
   state: GameState;
   room: PublicRoomState | null;
-  onSelect: (value: CardValue) => void;
-  onToggleSpecial: () => void;
+  onSelect: (card: PlayedCard) => void;
   onLockIn: () => void;
 };
 
@@ -39,13 +37,7 @@ function noticeText(notice: PrivateNotice): string | null {
 }
 
 // The round screen: team bar, opponent, timer, special card, hand, lock-in, and the reveal once both players lock in.
-export function RoundScreen({
-  state,
-  room,
-  onSelect,
-  onToggleSpecial,
-  onLockIn,
-}: RoundScreenProps) {
+export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProps) {
   const view = state.roundView;
   const self = state.privateState;
   const opponentId = self?.encounter?.opponentId ?? null;
@@ -88,17 +80,13 @@ export function RoundScreen({
         </p>
       ) : null}
 
-      {self ? <SpecialCard special={self.special} /> : null}
-
       {!isWarmUp && reveal === null && self ? (
         <HandTray
           hand={self.hand}
           selected={state.selected}
           locked={locked}
           special={self.special}
-          specialArmed={state.specialArmed}
           onSelect={onSelect}
-          onToggleSpecial={onToggleSpecial}
           onLockIn={onLockIn}
         />
       ) : null}

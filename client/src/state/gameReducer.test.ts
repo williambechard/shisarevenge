@@ -61,17 +61,19 @@ describe('lobby state', () => {
 
 describe('round state', () => {
   it('opens the round screen on game start and clears the selection', () => {
-    const selected = { ...joinedState(), selected: 3 as const };
+    const selected = { ...joinedState(), selected: { type: 'number' as const, value: 3 as const } };
     const next = gameReducer(selected, { type: 'game-started' });
     expect(next.screen).toBe('round');
     expect(next.selected).toBeNull();
   });
 
   it('keeps a selected card until the next round is paired', () => {
-    const state = { ...joinedState(), selected: 4 as const };
-    expect(gameReducer(state, { type: 'select', value: 2 }).selected).toBe(2);
+    const state = { ...joinedState(), selected: { type: 'number' as const, value: 4 as const } };
+    expect(gameReducer(state, { type: 'select', card: { type: 'special' } }).selected).toEqual({
+      type: 'special',
+    });
     const paired = gameReducer(
-      { ...state, selected: 2 },
+      { ...state, selected: { type: 'special' as const } },
       { type: 'round-paired', round: 1, pairings: [], warmUpPlayerId: null, deadline: 1 },
     );
     expect(paired.selected).toBeNull();
@@ -132,22 +134,5 @@ describe('endgame and round summary', () => {
       deadline: 1,
     });
     expect(next.specialNotice).toBeNull();
-  });
-
-  it('arms and disarms the special commit before the lock-in', () => {
-    const armed = gameReducer(joinedState(), { type: 'toggle-special' });
-    expect(armed.specialArmed).toBe(true);
-    expect(gameReducer(armed, { type: 'toggle-special' }).specialArmed).toBe(false);
-  });
-  it('clears the armed commit when the next round is paired', () => {
-    const armed = gameReducer(joinedState(), { type: 'toggle-special' });
-    const next = gameReducer(armed, {
-      type: 'round-paired',
-      round: 2,
-      pairings: [],
-      warmUpPlayerId: null,
-      deadline: 1,
-    });
-    expect(next.specialArmed).toBe(false);
   });
 });

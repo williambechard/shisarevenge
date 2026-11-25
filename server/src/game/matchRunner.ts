@@ -8,8 +8,8 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   SELECTION_SECONDS,
-  type CardValue,
   type EndgameSummary,
+  type PlayedCard,
   type ErrorCode,
   type Phase,
   type PublicRoomState,
@@ -123,11 +123,11 @@ export class MatchRunner {
     return { ok: true };
   }
   // Records one lock-in. When both players of a duel have locked in, that duel reveals.
-  submit(code: string, playerId: string, value: CardValue, useSpecial: boolean): MatchResult {
+  submit(code: string, playerId: string, card: PlayedCard): MatchResult {
     const match = this.matches.get(code);
     if (!match) return { ok: false, error: 'WRONG_PHASE' };
 
-    const result = submitSelection(match.state, playerId, value, useSpecial);
+    const result = submitSelection(match.state, playerId, card);
     if (!result.ok) return result;
 
     match.state = result.value;

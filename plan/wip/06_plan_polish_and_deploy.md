@@ -8,6 +8,7 @@
 ### Feature freeze (day 12)
 
 - [ ] Confirm the feature freeze. After this step, only bug fixes and deployment work are allowed.
+- [x] Scope change (steer after plan 05): special cards are played in place of a number, like the number cards. Design in `04-game-rules.md` section 5 and decision 19. Added here because plan 05 was already complete.
 - [ ] Add placeholder SVG art to `client/src/assets/shisa/` and `client/src/assets/textures/`: a Shisa shape, bingata color bands, and a wind swirl.
 - [ ] Add placeholder SVG card art to `client/src/assets/cards/` for the five numbers and the three specials.
 - [ ] Shorten transitions to under 400 ms.

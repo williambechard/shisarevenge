@@ -11,7 +11,11 @@ import {
 } from './gameEngine.js';
 import type { RandomFn } from './pairing.js';
 import type { CardValue } from '@shisa-revenge/shared';
-import { revealPair } from './gameEngine.js';
+import { revealPair, type Played } from './gameEngine.js';
+
+function num(value: CardValue): { type: 'number'; value: CardValue } {
+  return { type: 'number', value };
+}
 
 function seeded(seed: number): RandomFn {
   let state = seed;
@@ -44,7 +48,7 @@ describe('round flow', () => {
         { id: 'b', team: 'survivor' },
       ]),
     );
-    expect(submitSelection(state, 'a', 3)).toEqual({ ok: false, error: 'WRONG_PHASE' });
+    expect(submitSelection(state, 'a', num(3))).toEqual({ ok: false, error: 'WRONG_PHASE' });
   });
 
   it('rejects a player who is not in an encounter', () => {
@@ -52,7 +56,10 @@ describe('round flow', () => {
     const warmUp = state.warmUpId;
     expect(warmUp).not.toBeNull();
     if (warmUp === null) return;
-    expect(submitSelection(state, warmUp, 2)).toEqual({ ok: false, error: 'NOT_IN_ENCOUNTER' });
+    expect(submitSelection(state, warmUp, num(2))).toEqual({
+      ok: false,
+      error: 'NOT_IN_ENCOUNTER',
+    });
   });
 
   it('rejects a card not in the hand', () => {
@@ -63,16 +70,16 @@ describe('round flow', () => {
       ...state,
       players: state.players.map((p) => (p.id === a ? { ...p, hand: [1, 2] } : p)),
     };
-    expect(submitSelection(limited, a, 5)).toEqual({ ok: false, error: 'CARD_UNAVAILABLE' });
+    expect(submitSelection(limited, a, num(5))).toEqual({ ok: false, error: 'CARD_UNAVAILABLE' });
   });
 
   it('rejects a second lock-in from the same player', () => {
     const state = startedMatch(4);
     const [a] = state.pairs[0] ?? [];
     if (!a) throw new Error('no pair');
-    const first = submitSelection(state, a, 2);
+    const first = submitSelection(state, a, num(2));
     if (!first.ok) throw new Error('first lock failed');
-    expect(submitSelection(first.value, a, 3)).toEqual({ ok: false, error: 'ALREADY_LOCKED' });
+    expect(submitSelection(first.value, a, num(3))).toEqual({ ok: false, error: 'ALREADY_LOCKED' });
   });
 
   it('resolves only after every choice is locked in', () => {
@@ -83,13 +90,13 @@ describe('round flow', () => {
 
     let current = state;
     for (const id of [a, b, c]) {
-      const result = submitSelection(current, id, 1);
+      const result = submitSelection(current, id, num(1));
       if (!result.ok) throw new Error('lock failed');
       current = result.value;
     }
     expect(allLockedIn(current)).toBe(false);
 
-    const last = submitSelection(current, d, 1);
+    const last = submitSelection(current, d, num(1));
     if (!last.ok) throw new Error('lock failed');
     expect(allLockedIn(last.value)).toBe(true);
     expect(resolveRound(last.value).phase).toBe('resolved');
@@ -101,7 +108,7 @@ describe('round flow', () => {
     expect(allLockedIn(locked)).toBe(true);
     for (const player of state.players) {
       if (!state.pairs.flat().includes(player.id)) continue;
-      expect(locked.locked.get(player.id)).toBe(Math.min(...player.hand));
+      expect(locked.locked.get(player.id)).toEqual(num(Math.min(...player.hand) as CardValue));
     }
   });
 });
@@ -114,7 +121,8 @@ describe('card use invariants', () => {
 
     for (const player of resolved.players) {
       const played = state.locked.get(player.id);
-      expect(player.hand).not.toContain(played);
+      const playedValue = played?.type === 'number' ? played.value : undefined;
+      expect(player.hand).not.toContain(playedValue);
       expect(new Set(player.hand).size).toBe(player.hand.length);
     }
   });
@@ -153,11 +161,11 @@ describe('catching a cold', () => {
     if (!armyPlayer || !pair) throw new Error('setup');
     const survivorId = pair[0] === armyPlayer ? pair[1] : pair[0];
 
-    const locked = new Map<string, CardValue>([
-      [armyPlayer, 5],
-      [survivorId, 1],
+    const locked = new Map<string, Played>([
+      [armyPlayer, num(5)],
+      [survivorId, num(1)],
     ]);
-    const next = revealPair({ ...base, locked }, pair);
+    const next = revealPair({ ...base, locked }, pair, seeded(1));
 
     expect(next.players.find((p) => p.id === survivorId)?.team).toBe('infected');
     expect(next.transformations[survivorId]).toEqual([base.round]);
@@ -171,11 +179,11 @@ describe('catching a cold', () => {
     if (!armyPlayer || !pair) throw new Error('setup');
     const survivorId = pair[0] === armyPlayer ? pair[1] : pair[0];
 
-    const locked = new Map<string, CardValue>([
-      [armyPlayer, 1],
-      [survivorId, 5],
+    const locked = new Map<string, Played>([
+      [armyPlayer, num(1)],
+      [survivorId, num(5)],
     ]);
-    const next = revealPair({ ...base, locked }, pair);
+    const next = revealPair({ ...base, locked }, pair, seeded(1));
 
     expect(next.players.find((p) => p.id === survivorId)?.team).toBe('survivor');
     expect(next.transformations).toEqual({});

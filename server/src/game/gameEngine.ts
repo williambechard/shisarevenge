@@ -1,11 +1,10 @@
-// Round state machine for the numbered-card duel. Pure: no I/O and no timers.
+// Round state machine for the card duel. Pure: no I/O and no timers.
 // Phases: announce -> pairing -> selecting -> revealed -> resolved, then the next round or ended.
 // Each duel reveals as soon as its two players lock in (design/04-game-rules.md section 4.5).
-// Rules from design/04-game-rules.md sections 4 to 8.
+// Rules from design/04-game-rules.md sections 3 to 8.
 
 import {
-  MAGIC_BONUS,
-  MAX_EFFECTIVE_STRENGTH,
+  SPECIAL_STRENGTH,
   type CardValue,
   type Phase,
   type Result,
@@ -20,21 +19,27 @@ import { catchCold, randomSurvivorSpecial, recover, type PlayerSpecial } from '.
 export type MatchPlayer = {
   id: string;
   team: Team;
+  // Number cards not yet played. A number is removed once it is played.
   hand: CardValue[];
   byeCount: number;
+  // The special card. Played at most once, like a number card.
   special: PlayerSpecial | null;
 };
 
 export type Pair = [string, string];
 
+// A card as it is locked in on the server. A special carries its kind.
+export type Played = { type: 'number'; value: CardValue } | { type: 'special'; kind: SpecialKind };
+
 export type DuelResult = {
   round: number;
   pair: Pair;
   outcome: DuelOutcome;
+  // Strength of each side's card. A special's strength comes from SPECIAL_STRENGTH.
   values: [CardValue, CardValue];
   // Team of each side before the duel. Team changes happen at reveal, so this is the pre-duel team.
   teams: [Team, Team];
-  // Special committed by each side, or null.
+  // Special card played by each side, or null when a number was played.
   specials: [SpecialKind | null, SpecialKind | null];
   // Special lost by the caught player (null when none was lost).
   caughtLostSpecial: SpecialKind | null;
@@ -49,10 +54,8 @@ export type MatchState = {
   pairs: Pair[];
   warmUpId: string | null;
   previousPairs: ReadonlySet<string>;
-  // Locked choices for the current round, keyed by player id.
-  locked: ReadonlyMap<string, CardValue>;
-  // Specials committed with a lock-in this round, keyed by player id.
-  committed: ReadonlyMap<string, SpecialKind>;
+  // Cards locked in for the current round, keyed by player id.
+  locked: ReadonlyMap<string, Played>;
   // Duels already resolved this round, keyed by pairKey().
   resolvedPairs: ReadonlySet<string>;
   // Results from the current round, in the order duels resolved.
@@ -60,6 +63,11 @@ export type MatchState = {
   // Round numbers in which each player changed team, for the endgame history.
   transformations: Readonly<Record<string, readonly number[]>>;
 };
+
+// Strength of a played card. A number is its value. A special uses its fixed strength.
+export function strengthOf(card: Played): CardValue {
+  return card.type === 'number' ? card.value : SPECIAL_STRENGTH[card.kind];
+}
 
 // Setup (design section 3): the origin holds a Shisa Mask. Each Survivor gets a random Survivor special.
 export function createMatch(
@@ -83,7 +91,6 @@ export function createMatch(
     warmUpId: null,
     previousPairs: new Set(),
     locked: new Map(),
-    committed: new Map(),
     resolvedPairs: new Set(),
     results: [],
     transformations: {},
@@ -99,7 +106,6 @@ export function beginRound(state: MatchState): MatchState {
     phase: 'announce',
     round: state.round + 1,
     locked: new Map(),
-    committed: new Map(),
     resolvedPairs: new Set(),
     results: [],
   };
@@ -147,36 +153,37 @@ export function opponentOf(state: MatchState, playerId: string): string | null {
   return pair[0] === playerId ? pair[1] : pair[0];
 }
 
-// Lock-in with an optional special. Committing moves the special from available to committed.
-// It is spent at reveal, whatever the outcome.
+// Lock-in. The card is either a number from the hand or the player's special card.
+// Playing the special moves it from available to committed. It is spent at reveal.
 export function submitSelection(
   state: MatchState,
   playerId: string,
-  value: CardValue,
-  useSpecial = false,
+  card: { type: 'number'; value: CardValue } | { type: 'special' },
 ): Result<MatchState> {
   if (state.phase !== 'selecting') return { ok: false, error: 'WRONG_PHASE' };
   if (!pairOf(state, playerId)) return { ok: false, error: 'NOT_IN_ENCOUNTER' };
   if (state.locked.has(playerId)) return { ok: false, error: 'ALREADY_LOCKED' };
 
   const player = playerFor(state, playerId);
-  if (!player || !player.hand.includes(value)) return { ok: false, error: 'CARD_UNAVAILABLE' };
+  if (!player) return { ok: false, error: 'NOT_IN_ENCOUNTER' };
 
-  const locked = new Map(state.locked);
-  locked.set(playerId, value);
-
-  if (!useSpecial) return { ok: true, value: { ...state, locked } };
+  if (card.type === 'number') {
+    if (!player.hand.includes(card.value)) return { ok: false, error: 'CARD_UNAVAILABLE' };
+    const locked = new Map(state.locked);
+    locked.set(playerId, { type: 'number', value: card.value });
+    return { ok: true, value: { ...state, locked } };
+  }
 
   if (player.special?.status !== 'available') return { ok: false, error: 'SPECIAL_UNAVAILABLE' };
   const kind = player.special.kind;
-  const committed = new Map(state.committed);
-  committed.set(playerId, kind);
+  const locked = new Map(state.locked);
+  locked.set(playerId, { type: 'special', kind });
   const players = state.players.map((candidate) =>
     candidate.id === playerId && candidate.special
       ? { ...candidate, special: { kind, status: 'committed' as const } }
       : candidate,
   );
-  return { ok: true, value: { ...state, players, locked, committed } };
+  return { ok: true, value: { ...state, players, locked } };
 }
 
 export function isPairLocked(state: MatchState, pair: Pair): boolean {
@@ -185,12 +192,6 @@ export function isPairLocked(state: MatchState, pair: Pair): boolean {
 
 export function isPairResolved(state: MatchState, pair: Pair): boolean {
   return state.resolvedPairs.has(pairKey(pair[0], pair[1]));
-}
-
-// Effective strength (design section 5): a committed Shisa Mask adds MAGIC_BONUS, capped.
-export function effectiveStrength(value: CardValue, committed: SpecialKind | null): number {
-  if (committed !== 'shisa-mask') return value;
-  return Math.min(value + MAGIC_BONUS, MAX_EFFECTIVE_STRENGTH);
 }
 
 // Resolves one duel once both of its players have locked in.
@@ -208,43 +209,36 @@ export function revealPair(
   if (isPairResolved(state, pair)) throw new Error('Duel already resolved');
 
   const [a, b] = pair;
-  const valueA = state.locked.get(a);
-  const valueB = state.locked.get(b);
-  if (valueA === undefined || valueB === undefined) throw new Error('Locked value missing');
+  const playedA = state.locked.get(a);
+  const playedB = state.locked.get(b);
+  if (!playedA || !playedB) throw new Error('Locked card missing');
 
+  const valueA = strengthOf(playedA);
+  const valueB = strengthOf(playedB);
   const playerA = playerFor(state, a);
   const playerB = playerFor(state, b);
   const teamA = playerA?.team ?? 'survivor';
   const teamB = playerB?.team ?? 'survivor';
-  const committedA = state.committed.get(a) ?? null;
-  const committedB = state.committed.get(b) ?? null;
+  const specialA = playedA.type === 'special' ? playedA.kind : null;
+  const specialB = playedB.type === 'special' ? playedB.kind : null;
 
   // Step 2 uses the outcome of the duel. Step 3 applies team and special effects.
   const outcome = resolveDuel(
-    {
-      id: a,
-      team: teamA,
-      effectiveStrength: effectiveStrength(valueA, committedA),
-      committed: committedA,
-    },
-    {
-      id: b,
-      team: teamB,
-      effectiveStrength: effectiveStrength(valueB, committedB),
-      committed: committedB,
-    },
+    { id: a, team: teamA, effectiveStrength: valueA, committed: specialA },
+    { id: b, team: teamB, effectiveStrength: valueB, committed: specialB },
   );
 
-  // Step 1: spend committed specials and remove used cards from the hand. A card never returns.
+  // Step 1: spend the special cards played, and remove a played number from the hand.
+  // A card never returns to the hand.
   const spent = state.players.map((player) => {
     if (player.id !== a && player.id !== b) return player;
-    const used = state.locked.get(player.id);
-    const hand = player.hand.filter((card) => card !== used);
-    const special =
-      state.committed.has(player.id) && player.special
-        ? { ...player.special, status: 'spent' as const }
-        : player.special;
-    return { ...player, hand, special };
+    const played = state.locked.get(player.id);
+    if (!played) return player;
+    if (played.type === 'special') {
+      const special = player.special ? { ...player.special, status: 'spent' as const } : null;
+      return { ...player, special };
+    }
+    return { ...player, hand: player.hand.filter((card) => card !== played.value) };
   });
 
   let players = spent;
@@ -273,7 +267,7 @@ export function revealPair(
     outcome,
     values: [valueA, valueB],
     teams: [teamA, teamB],
-    specials: [committedA, committedB],
+    specials: [specialA, specialB],
     caughtLostSpecial,
     recoveredNewSpecial,
   };
@@ -303,7 +297,7 @@ function appendTransformation(
   return { ...transformations, [playerId]: [...(transformations[playerId] ?? []), round] };
 }
 
-// Players who have not locked in get the lowest card in their hand. No special is committed.
+// Players who have not locked in play the lowest number in their hand. No special is played.
 export function autoLockUnlocked(state: MatchState): MatchState {
   if (state.phase !== 'selecting') return state;
 
@@ -312,8 +306,8 @@ export function autoLockUnlocked(state: MatchState): MatchState {
     for (const id of [a, b]) {
       if (locked.has(id)) continue;
       const player = playerFor(state, id);
-      const lowest = player ? Math.min(...player.hand) : undefined;
-      if (lowest !== undefined) locked.set(id, lowest as CardValue);
+      const lowest = player && player.hand.length > 0 ? Math.min(...player.hand) : undefined;
+      if (lowest !== undefined) locked.set(id, { type: 'number', value: lowest as CardValue });
     }
   }
   return { ...state, locked };

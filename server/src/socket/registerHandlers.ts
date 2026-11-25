@@ -161,12 +161,7 @@ export function registerConnectionHandlers(
       if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
       if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
 
-      const result = matches.submit(
-        session.roomCode,
-        session.playerId,
-        payload.value,
-        payload.useSpecial,
-      );
+      const result = matches.submit(session.roomCode, session.playerId, payload);
       if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });

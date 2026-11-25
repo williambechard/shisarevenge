@@ -4,6 +4,9 @@ export type CardValue = 1 | 2 | 3 | 4 | 5;
 
 export type Team = 'survivor' | 'infected';
 
+// The card a player plays in a round. Specials are played in place of a number card.
+export type PlayedCard = { type: 'number'; value: CardValue } | { type: 'special' };
+
 export type SpecialKind = 'protection-talisman' | 'ramen' | 'shisa-mask';
 
 export type SpecialStatus = 'available' | 'committed' | 'spent' | 'lost';

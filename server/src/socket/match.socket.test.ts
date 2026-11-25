@@ -4,7 +4,7 @@
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import { MAX_PLAYERS, type AckResponse } from '@shisa-revenge/shared';
+import { MAX_PLAYERS, SPECIAL_STRENGTH, type AckResponse } from '@shisa-revenge/shared';
 import { createGameServer, type GameServer } from '../server.js';
 
 type Pairing = { a: string; b: string };
@@ -128,10 +128,7 @@ describe('one duel round over sockets', () => {
     if (!aPlayer || !bPlayer || !bystander) throw new Error('missing players');
 
     // The first player locks in. Nobody in the duel gets a reveal yet.
-    const lockA = await emitAck(aPlayer.socket, 'encounter:submit', {
-      value: 1,
-      useSpecial: false,
-    });
+    const lockA = await emitAck(aPlayer.socket, 'encounter:submit', { type: 'number', value: 1 });
     expect(lockA.ok).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(aPlayer.events).not.toContain('encounter:revealed');
@@ -147,10 +144,7 @@ describe('one duel round over sockets', () => {
       bPlayer.socket,
       'encounter:revealed',
     );
-    const lockB = await emitAck(bPlayer.socket, 'encounter:submit', {
-      value: 3,
-      useSpecial: false,
-    });
+    const lockB = await emitAck(bPlayer.socket, 'encounter:submit', { type: 'number', value: 3 });
     expect(lockB.ok).toBe(true);
 
     expect(await revealedA).toEqual(expect.objectContaining({ myValue: 1, opponentValue: 3 }));
@@ -193,23 +187,20 @@ describe('one duel round over sockets', () => {
     opponent.socket.on('player:private-state', (payload: unknown) =>
       beforeReveal.push(JSON.stringify(payload)),
     );
-    const lockCommitter = await emitAck(committer.socket, 'encounter:submit', {
-      value: 2,
-      useSpecial: true,
-    });
+    const lockCommitter = await emitAck(committer.socket, 'encounter:submit', { type: 'special' });
     expect(lockCommitter.ok).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(beforeReveal.length).toBeGreaterThan(0);
     expect(beforeReveal.some((entry) => entry.includes('committed'))).toBe(false);
 
     const lockOpponent = await emitAck(opponent.socket, 'encounter:submit', {
+      type: 'number',
       value: 2,
-      useSpecial: false,
     });
     expect(lockOpponent.ok).toBe(true);
 
     expect(await revealedCommitter).toEqual({
-      myValue: 2,
+      myValue: kind ? SPECIAL_STRENGTH[kind as keyof typeof SPECIAL_STRENGTH] : undefined,
       opponentValue: 2,
       mySpecial: kind,
       opponentSpecial: null,
@@ -222,7 +213,7 @@ describe('one duel round over sockets', () => {
     const socket = await openSocket();
     const entered = await emitAck(socket, 'room:enter', {});
     expect(entered.ok).toBe(true);
-    const response = await emitAck(socket, 'encounter:submit', { value: 2, useSpecial: true });
+    const response = await emitAck(socket, 'encounter:submit', { type: 'special' });
     expect(response).toMatchObject({ ok: false, error: { code: 'WRONG_PHASE' } });
   });
 });

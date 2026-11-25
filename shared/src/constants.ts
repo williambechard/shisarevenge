@@ -23,8 +23,13 @@ export const SPECIAL_NAMES = {
   'shisa-mask': 'Shisa Mask',
 } as const;
 
-export const MAGIC_BONUS = 2;
-export const MAX_EFFECTIVE_STRENGTH = 5;
+// Strength of each special card when it is played. A special is played in place of a number card and
+// is compared the same way. See design/04-game-rules.md section 5.
+export const SPECIAL_STRENGTH = {
+  'protection-talisman': 2,
+  ramen: 3,
+  'shisa-mask': 4,
+} as const;
 
 export const SELECTION_SECONDS = 45;
 

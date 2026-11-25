@@ -1,6 +1,7 @@
 import {
   CARD_NAMES,
   SPECIAL_NAMES,
+  SPECIAL_STRENGTH,
   type CardValue,
   type DuelOutcome,
   type SpecialKind,
@@ -12,6 +13,7 @@ type RevealPanelProps = {
   opponentName: string;
   // The duel result from this player's view. A tie reads as 'tie'.
   result: DuelOutcome['result'];
+  // The special played by each side, or null when a number was played.
   mySpecial: SpecialKind | null;
   opponentSpecial: SpecialKind | null;
 };
@@ -25,11 +27,12 @@ const OUTCOME_TEXT: Record<DuelOutcome['result'], string> = {
   recovered: 'Ramen won. A member of Shisa’s Army returned to the Survivors.',
 };
 
-function committedText(special: SpecialKind | null): string {
-  return special ? `Committed: ${SPECIAL_NAMES[special]}` : 'No special committed';
+// A played special shows its name. A played number shows its card name.
+function cardName(value: CardValue, special: SpecialKind | null): string {
+  return special ? SPECIAL_NAMES[special] : CARD_NAMES[value];
 }
 
-// Both cards and any committed specials are shown together, after both players lock in.
+// Both played cards are shown together, after both players lock in.
 export function RevealPanel({
   myValue,
   opponentValue,
@@ -50,14 +53,20 @@ export function RevealPanel({
         <div>
           <p className="text-xs text-navy/70">You</p>
           <p className="text-3xl font-bold">{myValue}</p>
-          <p className="text-xs">{CARD_NAMES[myValue]}</p>
-          <p className="text-xs text-navy/70">{committedText(mySpecial)}</p>
+          <p className="text-xs">{cardName(myValue, mySpecial)}</p>
+          {mySpecial ? (
+            <p className="text-xs text-navy/70">Strength {String(SPECIAL_STRENGTH[mySpecial])}</p>
+          ) : null}
         </div>
         <div>
           <p className="text-xs text-navy/70">{opponentName}</p>
           <p className="text-3xl font-bold">{opponentValue}</p>
-          <p className="text-xs">{CARD_NAMES[opponentValue]}</p>
-          <p className="text-xs text-navy/70">{committedText(opponentSpecial)}</p>
+          <p className="text-xs">{cardName(opponentValue, opponentSpecial)}</p>
+          {opponentSpecial ? (
+            <p className="text-xs text-navy/70">
+              Strength {String(SPECIAL_STRENGTH[opponentSpecial])}
+            </p>
+          ) : null}
         </div>
       </div>
       <p className="text-center font-semibold">{OUTCOME_TEXT[result]}</p>
