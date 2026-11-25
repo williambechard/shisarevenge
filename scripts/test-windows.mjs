@@ -4,8 +4,8 @@
 // Usage: npm run test:windows              (4 windows, http://localhost:5173)
 //        npm run test:windows -- --count 8 --url http://localhost:5173 --width 400 --height 820
 
-import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,10 +44,43 @@ if (!Number.isInteger(count) || count < 1 || count > 8) {
   process.exit(1);
 }
 
+// Earlier runs leave windows behind: the browser restores each profile's last session on launch.
+// Close any test windows still open, then clear the saved sessions, so each run starts clean.
+function closeOldTestWindows() {
+  // Only browser processes whose profile lives under .testprofiles are closed.
+  const script = [
+    "Get-CimInstance Win32_Process -Filter \"Name='msedge.exe' OR Name='chrome.exe'\"",
+    "Where-Object { $_.CommandLine -like '*user-data-dir=*testprofiles*' }",
+    'ForEach-Object { Stop-Process -Id .ProcessId -Force -ErrorAction SilentlyContinue }',
+  ].join(' | ');
+  spawnSync('powershell', ['-NoProfile', '-Command', script], { stdio: 'ignore' });
+}
+const SESSION_ENTRIES = [
+  'Sessions',
+  'Current Session',
+  'Last Session',
+  'Current Tabs',
+  'Last Tabs',
+];
+
+function clearSavedSession(profile) {
+  for (const entry of SESSION_ENTRIES) {
+    try {
+      rmSync(join(profile, 'Default', entry), { recursive: true, force: true });
+    } catch {
+      // A file still locked by a closing browser is skipped. The next run clears it.
+    }
+  }
+}
+
+closeOldTestWindows();
+// Give the closing browsers a moment to release their files.
+Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
 mkdirSync(profilesDir, { recursive: true });
 
 for (let index = 0; index < count; index += 1) {
   const profile = join(profilesDir, `window-${String(index + 1)}`);
+  clearSavedSession(profile);
   const args = [
     `--user-data-dir=${profile}`,
     '--no-first-run',
