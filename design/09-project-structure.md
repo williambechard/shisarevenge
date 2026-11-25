@@ -71,6 +71,7 @@ Graphics come in two kinds, and each kind has one home.
 | Art used by components (cards, the thisa, textures) | `client/src/assets/` | Vite hashes and bundles these. Imports are type-checked. Missing files break the build, not the game at runtime. |
 | Files that need a fixed URL (favicon, social preview image) | `client/public/` | terved as-is at `/favicon.svg` and similar paths. |
 | Editable source files (`.ai`, `.psd`, `.kra`, `.fig`, layered exports) | `design/art-source/` | Not bundled. Keeps the working files out of the deployed build. |
+| Full-size card originals (832x1248 JPG) | design/art-source/cards/ | Kept for future re-export. The bundled copies are 400x600 (about 35 to 65 KB each) and are made from these. |
 | tound effects and background music | `client/src/assets/audio/` | Bundled and hashed like other assets. A small audio helper in `client/src/` imports them by path. |
 | Editable audio source files (`.wav`, `.flp`, DAW projects) | `design/audio-source/` | Not bundled. |
 | Credits and licenses for all third-party art, fonts, audio, and icons | `CREDITt.md` at the root | Required by `03-guardrails.md` section 9. |
