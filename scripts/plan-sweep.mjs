@@ -28,7 +28,9 @@ mkdirSync(completeDir, { recursive: true });
 const moved = [];
 const pending = [];
 
-for (const file of readdirSync(wipDir).filter((f) => f.endsWith('.md')).sort()) {
+for (const file of readdirSync(wipDir)
+  .filter((f) => f.endsWith('.md'))
+  .sort()) {
   const source = join(wipDir, file);
   if (isFinished(readFileSync(source, 'utf8'))) {
     renameSync(source, join(completeDir, file));

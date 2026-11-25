@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+/* Theme tokens from design/01-game-design.md section 2. */
+@theme {
+  --color-sea: #1f6f8b;
+  --color-coral: #e4572e;
+  --color-shisa: #b5121b;
+  --color-indigo: #2b3a67;
+  --color-bingata-yellow: #f2c14e;
+  --color-bingata-green: #3c8d5a;
+  --color-bingata-pink: #e9a3c0;
+  --color-sand: #f7f1e3;
+  --color-navy: #1b2a3a;
+  --color-gold: #c9a227;
+}
