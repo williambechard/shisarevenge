@@ -31,7 +31,7 @@
 
 - [x] Every row in the special-card tables of `04-game-rules.md` has a passing test.
 - [x] Test: no special status is visible to the opponent before the reveal.
-- [ ] Manual test: each special works once in a live match.
+- [x] Manual test: each special works once in a live match.
 
 ## Done when
 
