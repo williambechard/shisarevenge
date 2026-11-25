@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_PLAYERS, ROOM_INACTIVITY_HOURS } from '@shisa-revenge/shared';
+import { MAX_PLAYERS, PLAYER_NAMES, ROOM_INACTIVITY_HOURS } from '@shisa-revenge/shared';
 import { RoomRegistry } from './roomRegistry.js';
 
 // Deterministic registry: fixed codes, sequential ids and tokens, and a controllable clock.
@@ -12,6 +12,7 @@ function makeRegistry(startTime = 1_000_000) {
     newRoomCode: () => `ROOM${String(codeCounter++).padStart(2, '0')}`,
     newId: () => `p${String(++counter)}`,
     newToken: () => `t${String(counter)}`,
+    randomInt: () => 0,
   });
   return {
     registry,
@@ -21,93 +22,121 @@ function makeRegistry(startTime = 1_000_000) {
   };
 }
 
-describe('RoomRegistry.create', () => {
-  it('makes the creator the host and marks them connected', () => {
-    const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
+function enterOk(registry: RoomRegistry, socketId: string, token?: string) {
+  const result = registry.enter(token, socketId);
+  if (!result.ok) throw new Error(`enter failed: ${result.error}`);
+  return result.value;
+}
 
-    expect(room.hostId).toBe(player.id);
+describe('RoomRegistry.enter', () => {
+  it('starts a new room for the first player and assigns a name', () => {
+    const { registry } = makeRegistry();
+    const { room, player, reconnected } = enterOk(registry, 's1');
+
     expect(room.phase).toBe('lobby');
-    expect(player.connected).toBe(true);
-    expect(player.ready).toBe(true);
-  });
-});
-
-describe('RoomRegistry.join', () => {
-  it('adds a new player to a lobby', () => {
-    const { registry } = makeRegistry();
-    const { room } = registry.create('Aiko');
-
-    const result = registry.join(room.code, 'Ben');
-    expect(result.ok).toBe(true);
-    expect(registry.find(room.code)?.players).toHaveLength(2);
+    expect(room.players).toHaveLength(1);
+    expect(player.name).toBe(PLAYER_NAMES[0]);
+    expect(reconnected).toBe(false);
   });
 
-  it('reports an unknown room', () => {
+  it('places the next player in the same open lobby', () => {
     const { registry } = makeRegistry();
-    expect(registry.join('NOPE00', 'Ben')).toEqual({ ok: false, error: 'ROOM_NOT_FOUND' });
+    const first = enterOk(registry, 's1');
+    const second = enterOk(registry, 's2');
+
+    expect(second.room.code).toBe(first.room.code);
+    expect(second.room.players).toHaveLength(2);
   });
 
-  it('rejects a ninth player', () => {
+  it('gives every player in a room a different name', () => {
     const { registry } = makeRegistry();
-    const { room } = registry.create('P1');
-    for (let index = 2; index <= MAX_PLAYERS; index += 1) {
-      registry.join(room.code, `P${String(index)}`);
+    const names = Array.from(
+      { length: MAX_PLAYERS },
+      (_, index) => enterOk(registry, `s${String(index)}`).player.name,
+    );
+    expect(new Set(names).size).toBe(MAX_PLAYERS);
+    for (const name of names) expect(PLAYER_NAMES).toContain(name);
+  });
+
+  it('starts a new room when the open lobby is full', () => {
+    const { registry } = makeRegistry();
+    const first = enterOk(registry, 's0');
+    for (let index = 1; index < MAX_PLAYERS; index += 1) {
+      enterOk(registry, `s${String(index)}`);
     }
-    expect(registry.join(room.code, 'Extra')).toEqual({ ok: false, error: 'ROOM_FULL' });
+    const next = enterOk(registry, 'late');
+
+    expect(next.room.code).not.toBe(first.room.code);
+    expect(next.room.players).toHaveLength(1);
   });
 
-  it('keeps the same seat when a known token rejoins', () => {
+  it('does not place new players in a room that has started', () => {
     const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
-    registry.markDisconnected(room.code, player.id, 'socket-1');
+    const first = enterOk(registry, 's0');
+    registry.setPhase(first.room.code, 'selecting');
 
-    const result = registry.join(room.code, 'Aiko', player.token);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.reconnected).toBe(true);
-    expect(result.value.player.id).toBe(player.id);
+    const next = enterOk(registry, 's1');
+    expect(next.room.code).not.toBe(first.room.code);
+  });
+
+  it('keeps the same seat when a known token reclaims it', () => {
+    const { registry } = makeRegistry();
+    const { room, player } = enterOk(registry, 's1');
+    registry.markDisconnected(room.code, player.id, 's1');
+
+    const again = enterOk(registry, 's2', player.token);
+    expect(again.reconnected).toBe(true);
+    expect(again.player.id).toBe(player.id);
     expect(registry.find(room.code)?.players).toHaveLength(1);
   });
-});
 
-describe('RoomRegistry.leave and host migration', () => {
-  it('passes the host role to the earliest joined connected player', () => {
+  it('refuses a token while another connected socket holds the seat', () => {
     const { registry } = makeRegistry();
-    const { room, player: host } = registry.create('Aiko');
-    const second = registry.join(room.code, 'Ben');
-    const third = registry.join(room.code, 'Cleo');
-    if (!second.ok || !third.ok) throw new Error('join failed');
+    const { room, player } = enterOk(registry, 's1');
+    registry.bindSocket(room.code, player.id, 's1');
 
-    registry.leave(room.code, host.id);
-
-    const updated = registry.find(room.code);
-    expect(updated?.hostId).toBe(second.value.player.id);
-    expect(updated?.players.map((player) => player.id)).not.toContain(host.id);
+    expect(registry.enter(player.token, 's2')).toEqual({ ok: false, error: 'SEAT_IN_USE' });
   });
 
+  it('allows the same socket to reclaim its own seat', () => {
+    const { registry } = makeRegistry();
+    const { room, player } = enterOk(registry, 's1');
+    registry.bindSocket(room.code, player.id, 's1');
+
+    expect(registry.enter(player.token, 's1').ok).toBe(true);
+  });
+
+  it('allows a new socket once the old one has disconnected', () => {
+    const { registry } = makeRegistry();
+    const { room, player } = enterOk(registry, 's1');
+    registry.bindSocket(room.code, player.id, 's1');
+    registry.markDisconnected(room.code, player.id, 's1');
+
+    expect(registry.enter(player.token, 's2').ok).toBe(true);
+  });
+});
+
+describe('RoomRegistry.leave', () => {
   it('removes the room when the last player leaves', () => {
     const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
+    const { room, player } = enterOk(registry, 's1');
     registry.leave(room.code, player.id);
     expect(registry.find(room.code)).toBeUndefined();
   });
-});
 
-describe('RoomRegistry.setReady', () => {
-  it('updates ready state for a lobby player', () => {
+  it('keeps the room for the remaining players', () => {
     const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
-    const result = registry.setReady(room.code, player.id, false);
-    expect(result.ok).toBe(true);
-    expect(registry.find(room.code)?.players[0]?.ready).toBe(false);
+    const first = enterOk(registry, 's1');
+    enterOk(registry, 's2');
+    registry.leave(first.room.code, first.player.id);
+    expect(registry.find(first.room.code)?.players).toHaveLength(1);
   });
 });
 
 describe('RoomRegistry.markDisconnected', () => {
   it('ignores a stale socket that the player already replaced', () => {
     const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
+    const { room, player } = enterOk(registry, 's1');
     registry.bindSocket(room.code, player.id, 'new-socket');
 
     expect(registry.markDisconnected(room.code, player.id, 'old-socket')).toBeNull();
@@ -116,10 +145,10 @@ describe('RoomRegistry.markDisconnected', () => {
 
   it('marks the current socket as gone and keeps the seat', () => {
     const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
-    registry.bindSocket(room.code, player.id, 'socket-1');
+    const { room, player } = enterOk(registry, 's1');
+    registry.bindSocket(room.code, player.id, 's1');
 
-    registry.markDisconnected(room.code, player.id, 'socket-1');
+    registry.markDisconnected(room.code, player.id, 's1');
     const current = registry.find(room.code);
     expect(current?.players).toHaveLength(1);
     expect(current?.players[0]?.connected).toBe(false);
@@ -129,7 +158,7 @@ describe('RoomRegistry.markDisconnected', () => {
 describe('RoomRegistry.expireIdle', () => {
   it('removes rooms idle longer than the inactivity window', () => {
     const { registry, advance } = makeRegistry();
-    const { room } = registry.create('Aiko');
+    const { room } = enterOk(registry, 's1');
 
     advance(ROOM_INACTIVITY_HOURS * 60 * 60 * 1000 + 1);
     expect(registry.expireIdle()).toEqual([room.code]);
@@ -138,7 +167,7 @@ describe('RoomRegistry.expireIdle', () => {
 
   it('keeps rooms that are still active', () => {
     const { registry, advance } = makeRegistry();
-    const { room } = registry.create('Aiko');
+    const { room } = enterOk(registry, 's1');
 
     advance(ROOM_INACTIVITY_HOURS * 60 * 60 * 1000 - 1);
     expect(registry.expireIdle()).toEqual([]);
@@ -149,7 +178,7 @@ describe('RoomRegistry.expireIdle', () => {
 describe('RoomRegistry.toPublicState', () => {
   it('never includes session tokens', () => {
     const { registry } = makeRegistry();
-    const { room, player } = registry.create('Aiko');
+    const { room, player } = enterOk(registry, 's1');
     const serialized = JSON.stringify(registry.toPublicState(room));
     expect(serialized).not.toContain(player.token);
   });

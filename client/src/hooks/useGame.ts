@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, type Dispatch } from 'react';
 import {
   SELECTION_SECONDS,
   type AckResponse,
@@ -7,35 +7,77 @@ import {
   type PrivatePlayerState,
   type PublicRoomState,
 } from '@shisa-revenge/shared';
+import type { Socket } from 'socket.io-client';
 import { getSocket } from '../socket/socketClient.js';
-import {
-  createInitialState,
-  type GameState,
-  type Pairing,
-  type Screen,
-} from '../state/gameState.js';
-import { gameReducer } from '../state/gameReducer.js';
+import { createInitialState, type GameState, type Pairing } from '../state/gameState.js';
+import { gameReducer, type GameAction } from '../state/gameReducer.js';
 import { clearSession, readSession, writeSession, type KeyValueStorage } from '../state/session.js';
 
-type SeatAck = AckResponse<{ roomCode: string; playerId: string; sessionToken: string }>;
+type EnterAck = AckResponse<{
+  roomCode: string;
+  playerId: string;
+  sessionToken: string;
+  name: string;
+}>;
 type PlainAck = AckResponse;
 
 // After this long without a connection, the message says the server is waking up.
 const WAKING_AFTER_MS = 3000;
 
+// A seat can still be held by the old socket for a moment after a refresh. Retry before giving up.
+const REENTER_RETRY_MS = 1500;
+const REENTER_ATTEMPTS = 10;
+
+// sessionStorage is per tab. Two windows in one browser profile can each hold their own seat.
 function browserStorage(): KeyValueStorage {
-  return window.localStorage;
+  return window.sessionStorage;
+}
+
+// Places this window in a room. A stored token reclaims the seat. Otherwise the server
+// assigns an open lobby, or starts a new one.
+function enterRoom(
+  socket: Socket,
+  storage: KeyValueStorage,
+  dispatch: Dispatch<GameAction>,
+  attempt = 1,
+): void {
+  const stored = readSession(storage);
+  const payload = stored ? { sessionToken: stored.sessionToken } : {};
+
+  socket.emit('room:enter', payload, (response: EnterAck) => {
+    if (response.ok) {
+      writeSession(storage, {
+        roomCode: response.roomCode,
+        playerId: response.playerId,
+        sessionToken: response.sessionToken,
+        name: response.name,
+      });
+      dispatch({
+        type: 'joined',
+        roomCode: response.roomCode,
+        playerId: response.playerId,
+        name: response.name,
+      });
+      return;
+    }
+
+    if (stored && response.error.code === 'SEAT_IN_USE' && attempt < REENTER_ATTEMPTS) {
+      setTimeout(() => {
+        enterRoom(socket, storage, dispatch, attempt + 1);
+      }, REENTER_RETRY_MS);
+      return;
+    }
+
+    // The stored seat is no longer usable. Start fresh.
+    if (stored) clearSession(storage);
+    dispatch({ type: 'notice', message: response.error.message });
+  });
 }
 
 export type GameActions = {
-  createRoom: (name: string) => void;
-  joinRoom: (code: string, name: string) => void;
   leaveRoom: () => void;
-  setReady: (ready: boolean) => void;
-  startGame: () => void;
   selectCard: (value: CardValue) => void;
   submitCard: (value: CardValue) => void;
-  navigate: (screen: Screen) => void;
   clearNotice: () => void;
 };
 
@@ -43,7 +85,7 @@ type RoundPairedPayload = { round: number; pairings: Pairing[]; warmUpPlayerId: 
 type RevealedPayload = { myValue: CardValue; opponentValue: CardValue };
 
 export function useGame(): { state: GameState } & GameActions {
-  const [state, dispatch] = useReducer(gameReducer, window.location.search, createInitialState);
+  const [state, dispatch] = useReducer(gameReducer, undefined, createInitialState);
 
   useEffect(() => {
     const socket = getSocket();
@@ -53,28 +95,7 @@ export function useGame(): { state: GameState } & GameActions {
     const onConnect = (): void => {
       hasConnected = true;
       dispatch({ type: 'connection', connection: 'connected' });
-
-      // Rejoin the stored seat after a refresh or reconnect.
-      const session = readSession(storage);
-      if (!session) return;
-      socket.emit(
-        'room:join',
-        { roomCode: session.roomCode, name: session.name, sessionToken: session.sessionToken },
-        (response: SeatAck) => {
-          if (response.ok) {
-            writeSession(storage, {
-              roomCode: response.roomCode,
-              playerId: response.playerId,
-              sessionToken: response.sessionToken,
-              name: session.name,
-            });
-            dispatch({ type: 'joined', roomCode: response.roomCode, playerId: response.playerId });
-            return;
-          }
-          clearSession(storage);
-          dispatch({ type: 'notice', message: response.error.message });
-        },
-      );
+      enterRoom(socket, storage, dispatch);
     };
 
     const onDisconnect = (): void => {
@@ -164,6 +185,7 @@ export function useGame(): { state: GameState } & GameActions {
     subscriptions.push(() => {
       socket.off('player:notice', onNotice);
     });
+
     const wakingTimer = setTimeout(() => {
       if (!hasConnected) dispatch({ type: 'connection', connection: 'waking' });
     }, WAKING_AFTER_MS);
@@ -176,56 +198,13 @@ export function useGame(): { state: GameState } & GameActions {
     };
   }, []);
 
-  const createRoom = useCallback((name: string): void => {
-    const storage = browserStorage();
-    getSocket().emit('room:create', { name }, (response: SeatAck) => {
-      if (!response.ok) {
-        dispatch({ type: 'notice', message: response.error.message });
-        return;
-      }
-      writeSession(storage, {
-        roomCode: response.roomCode,
-        playerId: response.playerId,
-        sessionToken: response.sessionToken,
-        name,
-      });
-      dispatch({ type: 'joined', roomCode: response.roomCode, playerId: response.playerId });
-    });
-  }, []);
-
-  const joinRoom = useCallback((code: string, name: string): void => {
-    const storage = browserStorage();
-    getSocket().emit('room:join', { roomCode: code, name }, (response: SeatAck) => {
-      if (!response.ok) {
-        dispatch({ type: 'notice', message: response.error.message });
-        return;
-      }
-      writeSession(storage, {
-        roomCode: response.roomCode,
-        playerId: response.playerId,
-        sessionToken: response.sessionToken,
-        name,
-      });
-      dispatch({ type: 'joined', roomCode: response.roomCode, playerId: response.playerId });
-    });
-  }, []);
-
   const leaveRoom = useCallback((): void => {
-    clearSession(browserStorage());
+    const socket = getSocket();
+    const storage = browserStorage();
+    socket.emit('room:leave', {});
+    clearSession(storage);
     dispatch({ type: 'left' });
-    getSocket().emit('room:leave', {});
-  }, []);
-
-  const setReady = useCallback((ready: boolean): void => {
-    getSocket().emit('lobby:ready', { ready }, (response: PlainAck) => {
-      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
-    });
-  }, []);
-
-  const startGame = useCallback((): void => {
-    getSocket().emit('game:start', {}, (response: PlainAck) => {
-      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
-    });
+    enterRoom(socket, storage, dispatch);
   }, []);
 
   const selectCard = useCallback((value: CardValue): void => {
@@ -238,24 +217,9 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
-  const navigate = useCallback((screen: Screen): void => {
-    dispatch({ type: 'navigate', screen });
-  }, []);
-
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return {
-    state,
-    createRoom,
-    joinRoom,
-    leaveRoom,
-    setReady,
-    startGame,
-    selectCard,
-    submitCard,
-    navigate,
-    clearNotice,
-  };
+  return { state, leaveRoom, selectCard, submitCard, clearNotice };
 }

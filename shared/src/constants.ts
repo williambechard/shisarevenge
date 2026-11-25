@@ -28,6 +28,18 @@ export const ROOM_CODE_LENGTH = 6;
 
 export const DISPLAY_NAME_MAX_LENGTH = 16;
 
+// Players do not choose names. Each new player gets one of these, unique within the room.
+export const PLAYER_NAMES = [
+  'Sandy Shikuwasa',
+  'Mochi Monk',
+  'Kiki Kitakaze',
+  'Bingata Bob',
+  'Habu Hannah',
+  'Gusuku Gus',
+  'Sanshin Sally',
+  'Ryukyu Rocky',
+] as const;
+
 export const RATE_LIMIT_EVENTS_PER_SECOND = 10;
 export const ROOM_CREATE_PER_IP_PER_MINUTE = 5;
 export const ROOM_INACTIVITY_HOURS = 2;

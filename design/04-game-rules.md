@@ -26,7 +26,7 @@
 
 ## 3. Setup
 
-1. Require 4 to 8 players, all ready. Otherwise the host's Start button is disabled.
+1. The match starts when the room reaches `MAX_PLAYERS` (8) players. There is no ready step and no host. Players are placed automatically (see `01-game-design.md` section 8).
 2. Pick one player at random as origin. Give that player team `infected` and special `shisa-mask`, status `available`.
 3. Every other player gets team `survivor`.
 4. Give each survivor one special at random: `bingata-shawl` or `hot-shikuwasa`, status `available`.
@@ -156,7 +156,7 @@ Run after every round's resolution, in this order:
 | `selecting` | Pairing done | All encounters locked in, or timer ends |
 | `revealed` | All encounters locked in or auto-locked | Reveals sent (immediate) |
 | `resolved` | Reveal done | Win check runs |
-| `ended` | Win check says the game is over | Host restarts or room expires |
+| `ended` | Win check says the game is over | Players leave, and the room closes when it is empty |
 
 ## 11. Invariants
 
@@ -189,3 +189,6 @@ These fill gaps in `01-game-design.md` and the original doc. Review them after p
 12. Pairing is fully random. There is no opposite-team priority.
 13. Round announcements are built from public counts at the round summary only. They never name a player.
 14. If no pairing avoids every repeat in 50 shuffles, the engine keeps the attempt with the fewest repeats. It does not pick the least recently faced opponent as section 4.1 states. Revisit after playtests (known gap, plan 03).
+15. A room starts only when it is full (8 players). There is no fallback for a smaller room yet. Open question for playtesting.
+16. Player names are assigned from `PLAYER_NAMES` and are unique within a room. Players never choose names.
+17. The origin is chosen at random when the match starts.

@@ -4,7 +4,7 @@
 **Status:** Design locked for the 2-week game jam build. Changes need a note in the changelog at the end of this file.
 **Source:** Supersedes `frostys-revenge-design-doc.md`, which is kept as reference only.
 **Platform:** Mobile-friendly web game (phones join from a browser, no install).
-**Players:** 4 to 8
+**Players:** 8 per match. A room starts when it is full.
 **Session length:** About 10 to 15 minutes
 **Genre:** Social deduction, hidden information, push-your-luck card duels
 **Language:** English only
@@ -21,7 +21,7 @@ A guardian Shisa, the lion-dog statue that protects gates and rooftops across th
 
 Each encounter resolves through a simultaneous, blind choice of numbered cards. Players decide when to spend their strongest cards, when to save them, and whom they can trust.
 
-Players gather in one room. Each person joins the same game from their own phone with a URL and room code. No app or account is needed.
+Players open the game on their own phone. The server places them in a room automatically, with no code and no account. No app is needed.
 
 ### Design pillars
 
@@ -237,7 +237,7 @@ Show:
 - Each player's transformation history
 - Number cards each player used
 
-Overview is the final screen of the match. Its Back to start button leaves the room and returns the player to the landing screen. The room closes when every player has left. If the optional village ships, the overview leads to the village first.
+Overview is the final screen of the match. Its Back to start button leaves the room. The player is then placed again, in an open lobby or a new room. The room closes when every player has left. If the optional village ships, the overview leads to the village first.
 
 Awards are cut from the jam build.
 
@@ -305,34 +305,33 @@ A segmented bar sits at the top of the round screen and the result screen.
 - **Data:** The bar uses only the public team counts. It adds no new information.
 - **Accessibility:** The caption gives the same numbers as text, and the bar is not the only source.
 
-## 8. Match setup and lobby
+## 8. Joining and the lobby
 
-### Join flow
+Nobody types a code, chooses a name, or presses ready. Opening the game page is all it takes.
 
-1. The host opens the game URL and selects **Create Game**.
-2. The server creates a room and returns a short room code.
-3. The host shows the room code and a QR code.
-4. Participants open the URL on their phones and enter the code.
-5. Participants enter a display name and join the lobby.
-6. The host starts the match when 4 to 8 players are ready.
+### Automatic placement
 
-No accounts, passwords, or downloads are needed.
+1. A player opens the page. The app connects and asks the server to place them.
+2. If the player has a saved seat in this tab (from a refresh), the server returns that seat.
+3. Otherwise the server places them in the oldest lobby that is not full. If there is none, it starts a new room and makes them its first player.
+4. The player gets an assigned name from a fixed list of eight, unique within the room. The list lives in `shared/constants.ts` as `PLAYER_NAMES`.
+5. When the eighth player enters, the match starts at once. Any later player goes to a new room.
 
-### Lobby features (jam scope)
+There is no host, no ready state, and no start button. The room's size is the only trigger.
 
-- Room code shown prominently
-- QR code that links to the URL with the room code
-- Player list with ready indicators
-- Host-only Start Game button
-- Minimum and maximum player validation
-- Lobby closes after the match ends or the room expires
+### Lobby
 
-Removing a player from the lobby is cut from the jam build.
+- Shows the player's assigned name.
+- Shows who is in the room and how many seats are left.
+- Has a Leave room button. Leaving places the player again, in an open lobby or a new room.
+
+Room codes stay internal. They are not shown on screen, and no QR code is used. The QR code and the join-by-code screen from version 1.4 are removed.
 
 ### Reconnection
 
-Each participant gets a session token stored on their device for the life of the room. If they refresh or briefly disconnect, they rejoin their existing player slot. The server never creates a duplicate player for a known token.
+Each player's seat is saved in `sessionStorage`, which is scoped to the browser tab. A refresh or brief disconnect returns the same seat. Two windows in one browser profile can each hold their own seat.
 
+If the old socket still holds the seat during a refresh, the app retries for a short time before it gives up.
 ---
 
 ## 9. User experience and screens
@@ -341,9 +340,9 @@ The game is mobile-first. It must work in current iOS Safari and Android Chrome.
 
 ### Required screens
 
-1. **Landing:** Title, simple artwork, Create Game, Join Game
-2. **Join:** Room code, display name, Join button
-3. **Lobby:** Room code, QR code, player list, ready state, host controls
+1. **Lobby:** Assigned name, player list, seats left, Leave room
+2. **Round:** Round number, countdown, opponent, hand, lock-in, reveal
+3. **Endgame overview:** Winner, history, Back to start
 4. **Role reveal:** Private reveal of Cursed Shisa or Survivor, plus the special card and a short rules reminder
 5. **Round:** Round number, countdown, opponent, own remaining numbered cards, special card control, Lock In button, waiting state
 6. **Result:** Simultaneous reveal, winner and outcome, transformation message if applicable, Continue button
@@ -417,9 +416,9 @@ The build has two weeks. The scope below is what must ship. The cut list in `07-
 
 ### Must have
 
-- Create and join rooms with a room code, with a QR code
-- 4 to 8 players
-- Lobby with ready states
+- Automatic placement into rooms, with assigned names
+- 8 players per match, starting when the room is full
+- Lobby with seats left
 - Random Cursed Shisa assignment
 - Survivor and Shisa's Army teams
 - Five numbered cards per player
@@ -504,3 +503,4 @@ The build is ready for the jam when:
 - **1.2:** Added the team progress bar HUD. Public counts update only at round summary, not during duels.
 - **1.3:** Node stays as the server stack. Endgame becomes an overview followed by Back to start, with no rematch. Pairing stays random, with no repeated opponents in consecutive rounds. Added round-summary announcements and preset emotes. Shisa's Army members do not learn their teammates. Player-chosen pairing is parked for after the jam.
 - **1.4:** Render is the server host, with a spin-up message while it wakes. Emotes during rounds moved to the stretch goal.
+- **1.5:** Automatic room placement replaces the landing, join, and ready steps. Names are assigned from a list of eight. A room starts when it has eight players. The QR code is removed. Seats are saved per tab.

@@ -33,7 +33,6 @@ client/src/
 │   │   ├── NumberCard.tsx
 │   │   ├── SpecialCard.tsx
 │   │   ├── PlayerChip.tsx
-│   │   ├── RoomCode.tsx
 │   │   ├── TeamCount.tsx
 │   │   ├── TeamBar.tsx
 │   │   ├── StatusMessage.tsx
@@ -50,8 +49,6 @@ client/src/
 │   └── templates/
 │       └── PhoneFrame.tsx
 ├── screens/
-│   ├── LandingScreen.tsx
-│   ├── JoinScreen.tsx
 │   ├── LobbyScreen.tsx
 │   ├── RoleRevealScreen.tsx
 │   ├── RoundScreen.tsx
@@ -63,7 +60,7 @@ client/src/
 ├── state/
 │   ├── gameReducer.ts
 │   ├── gameState.ts         (types)
-│   └── session.ts           (localStorage token helpers)
+│   └── session.ts           (sessionStorage token helpers)
 ├── hooks/
 │   ├── useGame.ts           (exposes state and actions to screens)
 │   └── useCountdown.ts
@@ -89,7 +86,6 @@ client/src/
 | `NumberCard` | One numbered card. Shows value and name. Can be disabled or selected. | `value`, `name`, `state` (`available`, `selected`, `used`), `onSelect` |
 | `SpecialCard` | Special card with status | `kind`, `status`, `onToggle` |
 | `PlayerChip` | Name, avatar, and team badge in a compact row | `player`, `isSelf` |
-| `RoomCode` | Room code with copy button | `code` |
 | `TeamCount` | Survivor and Shisa's Army counts | `survivors`, `infected` |
 | `TeamBar` | Segmented progress bar: one segment per player, 100% win marker, five round ticks, text caption | `survivors`, `infected`, `round`, `roundCount` |
 | `StatusMessage` | Live status text, for example "Waiting for opponent" | `message`, `tone` |
@@ -100,7 +96,7 @@ client/src/
 
 | Component | Purpose | Shows |
 |---|---|---|
-| `LobbyPanel` | Room code, QR, player list, ready toggle, host start | Room state |
+| `LobbyPanel` | Assigned name, seats left, player list, Leave room | Room state |
 | `PlayerList` | List of `PlayerChip` | Players in the room |
 | `HandTray` | Bottom tray with the player's five `NumberCard`s and `SpecialCard` | Private hand |
 | `EncounterPanel` | Opponent, round number, countdown, lock-in button | Current encounter |
@@ -116,8 +112,7 @@ client/src/
 
 Each screen takes its data from `useGame()` and renders organisms in the right order.
 
-- `LandingScreen`, `JoinScreen`: no game state.
-- `LobbyScreen`: `LobbyPanel`, `PlayerList`.
+- `LobbyScreen`: `LobbyPanel`, `PlayerList`. Placement happens on load, so there is no landing or join screen.
 - `RoleRevealScreen`: `RoleCard`.
 - `RoundScreen`: `TeamBar`, `Announcement`, `EncounterPanel`, `HandTray`, `StatusMessage`. Shows the lost-special message when it exists.
 - `ResultScreen`: `RevealPanel`, then the next-round control.
@@ -195,7 +190,7 @@ Follow the naming table in `05-coding-standards.md`. Components use theme names 
 Build from the bottom up, in this order, so every level can be tested as it is built:
 
 1. Atoms: `Button`, `Badge`, `Avatar`, `Icon`, `Countdown`.
-2. Molecules: `NumberCard`, `SpecialCard`, `PlayerChip`, `RoomCode`, `TeamCount`, `TeamBar`, `StatusMessage`, `EmoteBar`, `Announcement`.
+2. Molecules: `NumberCard`, `SpecialCard`, `PlayerChip`, `TeamCount`, `TeamBar`, `StatusMessage`, `EmoteBar`, `Announcement`.
 3. Organisms: `PlayerList`, `LobbyPanel`, `HandTray`, `EncounterPanel`, `RevealPanel`, `RoleCard`, `EndgameSummary`.
 4. Template: `PhoneFrame`.
 5. Screens, connected last.

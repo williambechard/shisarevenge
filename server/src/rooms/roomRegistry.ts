@@ -1,9 +1,11 @@
-// In-memory room registry. Holds membership, host, ready state, and seats.
-// Rules here follow design/01-game-design.md section 8 and design/03-guardrails.md section 4.
+// In-memory room registry. Players are placed automatically: a new window joins the oldest
+// lobby that is not full, or starts a new room. Names are assigned, not chosen.
+// Rules follow design/01-game-design.md section 8 and design/03-guardrails.md section 4.
 
 import { randomUUID } from 'node:crypto';
 import {
   MAX_PLAYERS,
+  PLAYER_NAMES,
   ROOM_INACTIVITY_HOURS,
   ROUND_COUNT,
   type Phase,
@@ -17,7 +19,6 @@ export type PlayerRecord = {
   id: string;
   name: string;
   token: string;
-  ready: boolean;
   connected: boolean;
   joinedAt: number;
   // The socket that currently holds this seat. Null before the first bind.
@@ -27,20 +28,14 @@ export type PlayerRecord = {
 export type RoomRecord = {
   code: string;
   phase: Phase;
-  hostId: string;
   players: PlayerRecord[];
   lastActivityAt: number;
 };
 
-export type JoinOutcome = {
+export type EnterOutcome = {
   room: RoomRecord;
   player: PlayerRecord;
   reconnected: boolean;
-};
-
-export type CreateOutcome = {
-  room: RoomRecord;
-  player: PlayerRecord;
 };
 
 export type RegistryOptions = {
@@ -48,6 +43,8 @@ export type RegistryOptions = {
   newRoomCode?: () => string;
   newId?: () => string;
   newToken?: () => string;
+  // Returns an integer in [0, exclusiveMax). Used for name assignment.
+  randomInt?: (exclusiveMax: number) => number;
 };
 
 const INACTIVITY_MS = ROOM_INACTIVITY_HOURS * 60 * 60 * 1000;
@@ -59,56 +56,49 @@ export class RoomRegistry {
   private readonly newRoomCode: () => string;
   private readonly newId: () => string;
   private readonly newToken: () => string;
+  private readonly randomInt: (exclusiveMax: number) => number;
 
   constructor(options: RegistryOptions = {}) {
     this.now = options.now ?? (() => Date.now());
     this.newRoomCode = options.newRoomCode ?? (() => generateRoomCode());
     this.newId = options.newId ?? (() => randomUUID());
     this.newToken = options.newToken ?? (() => createSessionToken());
+    this.randomInt = options.randomInt ?? ((max) => Math.floor(Math.random() * max));
   }
 
-  create(name: string): CreateOutcome {
-    const code = this.uniqueRoomCode();
-    const player = this.buildPlayer(name, true);
-    const room: RoomRecord = {
-      code,
-      phase: 'lobby',
-      hostId: player.id,
-      players: [player],
-      lastActivityAt: this.now(),
-    };
-    this.rooms.set(code, room);
-    return { room, player };
+  // Enters the game. A known token reclaims its seat. Otherwise the player joins the oldest
+  // lobby with room left, or a new room starts.
+  enter(token: string | undefined, socketId: string): Result<EnterOutcome> {
+    if (token !== undefined) {
+      const found = this.findByToken(token);
+      if (found) {
+        const { room, player } = found;
+        const heldElsewhere =
+          player.connected && player.socketId !== null && player.socketId !== socketId;
+        if (heldElsewhere) return { ok: false, error: 'SEAT_IN_USE' };
+        player.connected = true;
+        room.lastActivityAt = this.now();
+        return { ok: true, value: { room, player, reconnected: true } };
+      }
+    }
+
+    const room = this.openLobby() ?? this.createRoom();
+    const player = this.buildPlayer(this.assignName(room));
+    room.players.push(player);
+    room.lastActivityAt = this.now();
+    return { ok: true, value: { room, player, reconnected: false } };
+  }
+
+  // True when a new player would join an existing lobby rather than start a room.
+  hasOpenLobby(): boolean {
+    return this.openLobby() !== undefined;
   }
 
   find(code: string): RoomRecord | undefined {
     return this.rooms.get(code);
   }
 
-  join(code: string, name: string, token?: string): Result<JoinOutcome> {
-    const room = this.rooms.get(code);
-    if (!room) return { ok: false, error: 'ROOM_NOT_FOUND' };
-
-    // A known session token reclaims its seat, even after the match has started.
-    if (token !== undefined) {
-      const existing = room.players.find((player) => player.token === token);
-      if (existing) {
-        existing.connected = true;
-        room.lastActivityAt = this.now();
-        return { ok: true, value: { room, player: existing, reconnected: true } };
-      }
-    }
-
-    if (room.phase !== 'lobby') return { ok: false, error: 'GAME_IN_PROGRESS' };
-    if (room.players.length >= MAX_PLAYERS) return { ok: false, error: 'ROOM_FULL' };
-
-    const player = this.buildPlayer(name, false);
-    room.players.push(player);
-    room.lastActivityAt = this.now();
-    return { ok: true, value: { room, player, reconnected: false } };
-  }
-
-  // Removes a player from the lobby. Returns the room if it still exists.
+  // Removes a player from a lobby. Returns the room if it still exists.
   leave(code: string, playerId: string): RoomRecord | null {
     const room = this.rooms.get(code);
     if (!room) return null;
@@ -120,24 +110,7 @@ export class RoomRegistry {
       this.rooms.delete(code);
       return null;
     }
-
-    if (room.hostId === playerId) {
-      room.hostId = this.longestConnected(room).id;
-    }
     return room;
-  }
-
-  setReady(code: string, playerId: string, ready: boolean): Result<RoomRecord> {
-    const room = this.rooms.get(code);
-    if (!room) return { ok: false, error: 'ROOM_NOT_FOUND' };
-    if (room.phase !== 'lobby') return { ok: false, error: 'WRONG_PHASE' };
-
-    const player = room.players.find((candidate) => candidate.id === playerId);
-    if (!player) return { ok: false, error: 'ROOM_NOT_FOUND' };
-
-    player.ready = ready;
-    room.lastActivityAt = this.now();
-    return { ok: true, value: room };
   }
 
   setPhase(code: string, phase: Phase): void {
@@ -192,9 +165,7 @@ export class RoomRegistry {
       players: room.players.map((player) => ({
         id: player.id,
         name: player.name,
-        ready: player.ready,
         connected: player.connected,
-        isHost: player.id === room.hostId,
       })),
       pairings: [],
       warmUpPlayerId: null,
@@ -206,16 +177,48 @@ export class RoomRegistry {
     };
   }
 
-  private buildPlayer(name: string, ready: boolean): PlayerRecord {
+  private findByToken(token: string): { room: RoomRecord; player: PlayerRecord } | undefined {
+    for (const room of this.rooms.values()) {
+      const player = room.players.find((candidate) => candidate.token === token);
+      if (player) return { room, player };
+    }
+    return undefined;
+  }
+
+  // The oldest lobby that still has room. Rooms are kept in creation order.
+  private openLobby(): RoomRecord | undefined {
+    for (const room of this.rooms.values()) {
+      if (room.phase === 'lobby' && room.players.length < MAX_PLAYERS) return room;
+    }
+    return undefined;
+  }
+
+  private createRoom(): RoomRecord {
+    const code = this.uniqueRoomCode();
+    const room: RoomRecord = { code, phase: 'lobby', players: [], lastActivityAt: this.now() };
+    this.rooms.set(code, room);
+    return room;
+  }
+
+  private buildPlayer(name: string): PlayerRecord {
     return {
       id: this.newId(),
       name,
       token: this.newToken(),
-      ready,
       connected: true,
       joinedAt: this.now(),
       socketId: null,
     };
+  }
+
+  // Picks a name no one in the room has. A room holds at most MAX_PLAYERS, and there are
+  // as many names as that, so one is always free.
+  private assignName(room: RoomRecord): string {
+    const taken = new Set(room.players.map((player) => player.name));
+    const free = PLAYER_NAMES.filter((name) => !taken.has(name));
+    const name = free[this.randomInt(free.length)];
+    if (name === undefined) throw new Error('No free player name');
+    return name;
   }
 
   private uniqueRoomCode(): string {
@@ -224,15 +227,5 @@ export class RoomRegistry {
       if (!this.rooms.has(code)) return code;
     }
     throw new Error('Could not generate a unique room code');
-  }
-
-  // New host: the connected player who joined earliest. Falls back to anyone left.
-  private longestConnected(room: RoomRecord): PlayerRecord {
-    const byJoin = (a: PlayerRecord, b: PlayerRecord) => a.joinedAt - b.joinedAt;
-    const connected = room.players.filter((player) => player.connected).sort(byJoin);
-    const fallback = [...room.players].sort(byJoin);
-    const next = connected[0] ?? fallback[0];
-    if (!next) throw new Error('Room has no players');
-    return next;
   }
 }

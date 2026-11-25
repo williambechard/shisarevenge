@@ -32,14 +32,14 @@ If a milestone slips by more than a day, use the cut list in section 4.
 ### M1: Multiplayer foundation (days 1 to 2)
 
 - [ ] Express server with `/health`, Socket.IO attached, and CORS limited to `CLIENT_ORIGIN`.
-- [ ] Zod schemas for `room:create`, `room:join`, `room:leave`, and `lobby:ready`.
-- [ ] Room registry with room codes and expiry.
+- [ ] Zod schemas for `room:enter` and `room:leave`. (Changed by the auto-placement steering: no create, join, or ready events.)
+- [ ] Room registry with automatic placement, assigned names, and expiry.
 - [ ] Session tokens and reconnect by token.
 - [ ] Lobby state broadcast to everyone in the room.
-- [ ] Client: Landing, Join, and Lobby screens.
+- [ ] Client: Lobby screen. (Changed: no Landing or Join screens. The page places the player on load.)
 - [ ] Client: socket connection with reconnect status shown.
 - [ ] "Server waking up" spinner, shown while the first connection is pending.
-- [ ] QR code on the lobby screen.
+- [ ] QR code on the lobby screen. (Removed by the auto-placement steering.)
 
 **Check:** Four phones (or four browser windows) join one room and see the same player list. Refreshing one window keeps the same seat.
 
@@ -102,7 +102,7 @@ If a milestone slips by more than a day, use the cut list in section 4.
 - [ ] Test: a player's phone locks after the timer, and auto-lock applies.
 - [ ] Test: a lost special shows the message.
 - [ ] Test: a match ends with a clear winner on the endgame overview.
-- [ ] Test: Back to start returns to the landing screen, and a new room can be created from there.
+- [ ] Test: Back to start places the player again, in an open lobby or a new room.
 
 ### Optional: post-match village and emotes
 
@@ -125,9 +125,9 @@ Build only if days 10 to 12 finish early. Otherwise move this block to the parki
 ## 3. Manual test checklist (party readiness)
 
 - [ ] Create a room on the deployed URL.
-- [ ] Join with a QR scan.
+- [ ] Open the game on two phones and check automatic placement into the same room.
 - [ ] Four to eight players join without errors.
-- [ ] Ready states and Start Game work.
+- [ ] Room starts automatically when the eighth player enters.
 - [ ] Role reveal shows the correct private role.
 - [ ] Each round pairs players and shows the Warm-Up when needed.
 - [ ] Lock-in shows "waiting" until the opponent locks in.
@@ -136,14 +136,14 @@ Build only if days 10 to 12 finish early. Otherwise move this block to the parki
 - [ ] A lost special message appears.
 - [ ] A refresh keeps the same seat.
 - [ ] Endgame shows the winner and the Shisa's identity.
-- [ ] Overview, then Back to start, returns to the landing screen.
+- [ ] Overview, then Back to start, places the player again.
 
 ## 4. Cut list
 
 If the schedule slips, cut in this order. The first item is cut first.
 
 1. Sound effects and background music. Audio is optional, so it goes first.
-2. Lobby QR code. Keep the room code and copy button.
+2. Lobby seat counter styling. Keep plain text.
 3. Animations beyond a simple fade.
 4. Endgame transformation history. Keep the winner and counts.
 5. Announcement banner styling. Keep plain text.

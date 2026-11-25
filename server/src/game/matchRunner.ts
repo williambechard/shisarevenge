@@ -4,6 +4,7 @@
 
 import type { Server } from 'socket.io';
 import {
+  MAX_PLAYERS,
   ROUND_COUNT,
   SELECTION_SECONDS,
   type CardValue,
@@ -85,31 +86,27 @@ export class MatchRunner {
     this.clock = options.clock ?? defaultClock;
   }
 
-  // Host starts the match. Every player must be ready and the count must be 4 to 8.
-  start(code: string, hostId: string): MatchResult {
+  // Starts the match once the room is full. The origin is chosen at random.
+  start(code: string): MatchResult {
     const room = this.registry.find(code);
     if (!room) return { ok: false, error: 'ROOM_NOT_FOUND' };
-    if (room.hostId !== hostId) return { ok: false, error: 'NOT_HOST' };
     if (room.phase !== 'lobby') return { ok: false, error: 'WRONG_PHASE' };
+    if (room.players.length !== MAX_PLAYERS) return { ok: false, error: 'WRONG_PHASE' };
 
-    const ready = room.players.every((player) => player.ready);
-    if (room.players.length < 4 || room.players.length > 8 || !ready) {
-      return { ok: false, error: 'WRONG_PHASE' };
-    }
+    const originIndex = Math.floor(this.random() * room.players.length);
+    const origin = room.players[originIndex];
+    if (!origin) return { ok: false, error: 'INTERNAL' };
 
-    // Origin assignment is refined in plan 04. For now the first lobby player starts infected.
-    const origin = room.players[0];
     const players = room.players.map((player) => ({
       id: player.id,
-      team: player.id === origin?.id ? ('infected' as const) : ('survivor' as const),
+      team: player.id === origin.id ? ('infected' as const) : ('survivor' as const),
     }));
 
     this.matches.set(code, { state: createMatch(players), timer: null });
-    this.io.to(code).emit('game:started', { originPlayerId: origin?.id ?? null });
+    this.io.to(code).emit('game:started', { originPlayerId: origin.id });
     this.startRound(code);
     return { ok: true };
   }
-
   // Records one lock-in. When both players of a duel have locked in, that duel reveals.
   submit(code: string, playerId: string, value: CardValue): MatchResult {
     const match = this.matches.get(code);

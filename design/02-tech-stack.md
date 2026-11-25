@@ -6,26 +6,25 @@ The stack is chosen for speed of delivery, low hosting cost, and strict server a
 
 ## Summary
 
-| Layer | Choice | Why |
-|---|---|---|
-| Language | TypeScript (strict) | Shared types across client and server. Catches mistakes before a party. |
-| Runtime | Node.js 22 LTS | Current long-term support line. Node 20 reaches end of life in April 2026. |
-| Package manager | npm workspaces | Built into Node. One lockfile. No extra tooling. |
-| Frontend | React | Component model suits cards, lobbies, and lists. |
-| Build tool | Vite | Fast dev server and static production build. |
-| Styling | Tailwind CSS (v4 with the Vite plugin) | Mobile-first utilities. No separate CSS files to manage. |
-| Icons | lucide-react | Consistent icons. Tree-shaken. |
-| QR codes | `qrcode` | Small, no runtime service needed. |
-| Realtime | Socket.IO (v4) | Rooms, reconnects, and events out of the box. |
-| Server | Node.js with Express | Hosts the Socket.IO server and a `/health` endpoint. |
-| Runtime validation | Zod | Validates every incoming socket payload at the trust boundary. |
-| Unit tests | Vitest | Same syntax as Vite. Fast. Covers the pure game rules. |
-| Lint | ESLint (flat config) with typescript-eslint and eslint-plugin-react-hooks | Catches bugs and hook misuse. |
-| Format | Prettier | No formatting debates. |
-| Hosting: client | Vercel (static) | Free tier. Automatic deploys from GitHub. |
-| Hosting: server | Render (Node web service) | Long-running process for WebSockets. |
-| Source control | GitHub | Repo and automatic deploys. |
-| Database | None | Rooms and state live in server memory. |
+  Layer   Choice   Why  
+ --- --- --- 
+  Language   TypeScript (strict)   Shared types across client and server. Catches mistakes before a party.  
+  Runtime   Node.js 22 LTS   Current long-term support line. Node 20 reaches end of life in April 2026.  
+  Package manager   npm workspaces   Built into Node. One lockfile. No extra tooling.  
+  Frontend   React   Component model suits cards, lobbies, and lists.  
+  Build tool   Vite   Fast dev server and static production build.  
+  Styling   Tailwind CSS (v4 with the Vite plugin)   Mobile-first utilities. No separate CSS files to manage.  
+  Icons   lucide-react   Consistent icons. Tree-shaken.  
+  Realtime   Socket.IO (v4)   Rooms, reconnects, and events out of the box.  
+  Server   Node.js with Express   Hosts the Socket.IO server and a `/health` endpoint.  
+  Runtime validation   Zod   Validates every incoming socket payload at the trust boundary.  
+  Unit tests   Vitest   Same syntax as Vite. Fast. Covers the pure game rules.  
+  Lint   ESLint (flat config) with typescript-eslint and eslint-plugin-react-hooks   Catches bugs and hook misuse.  
+  Format   Prettier   No formatting debates.  
+  Hosting: client   Vercel (static)   Free tier. Automatic deploys from GitHub.  
+  Hosting: server   Render (Node web service)   Long-running process for WebSockets.  
+  Source control   GitHub   Repo and automatic deploys.  
+  Database   None   Rooms and state live in server memory.  
 
 ## Why not the alternatives
 

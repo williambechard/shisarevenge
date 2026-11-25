@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import type { PublicRoomState } from '@shisa-revenge/shared';
-import { createInitialState, prefillCodeFrom } from './gameState.js';
+import { createInitialState } from './gameState.js';
 import { gameReducer } from './gameReducer.js';
 
 function room(code: string): PublicRoomState {
@@ -20,68 +20,53 @@ function room(code: string): PublicRoomState {
   };
 }
 
-describe('gameReducer', () => {
-  it('moves to the lobby when the server confirms a seat', () => {
-    const next = gameReducer(createInitialState(''), {
-      type: 'joined',
-      roomCode: 'ABCDEF',
-      playerId: 'p1',
-    });
-    expect(next.screen).toBe('lobby');
-    expect(next.roomCode).toBe('ABCDEF');
-    expect(next.playerId).toBe('p1');
+function joinedState() {
+  return gameReducer(createInitialState(), {
+    type: 'joined',
+    roomCode: 'ABCDEF',
+    playerId: 'p1',
+    name: 'Sandy Shikuwasa',
+  });
+}
+
+describe('lobby state', () => {
+  it('starts in the lobby and records the assigned name on join', () => {
+    const state = joinedState();
+    expect(state.screen).toBe('lobby');
+    expect(state.name).toBe('Sandy Shikuwasa');
+    expect(state.roomCode).toBe('ABCDEF');
   });
 
   it('applies room state for the current room', () => {
-    const joined = gameReducer(createInitialState(''), {
-      type: 'joined',
-      roomCode: 'ABCDEF',
-      playerId: 'p1',
-    });
-    const next = gameReducer(joined, { type: 'room-state', room: room('ABCDEF') });
+    const next = gameReducer(joinedState(), { type: 'room-state', room: room('ABCDEF') });
     expect(next.room?.roomCode).toBe('ABCDEF');
   });
 
   it('ignores room state for a room the client has left', () => {
-    const joined = gameReducer(createInitialState(''), {
-      type: 'joined',
-      roomCode: 'ABCDEF',
-      playerId: 'p1',
-    });
-    const next = gameReducer(joined, { type: 'room-state', room: room('ZZZZZZ') });
+    const next = gameReducer(joinedState(), { type: 'room-state', room: room('ZZZZZZ') });
     expect(next.room).toBeNull();
   });
 
-  it('returns to the landing screen after leaving', () => {
-    const joined = gameReducer(createInitialState(''), {
-      type: 'joined',
-      roomCode: 'ABCDEF',
-      playerId: 'p1',
-    });
-    const next = gameReducer(joined, { type: 'left' });
-    expect(next.screen).toBe('landing');
+  it('clears the seat on leave and keeps the connection state', () => {
+    const connected = { ...joinedState(), connection: 'connected' as const };
+    const next = gameReducer(connected, { type: 'left' });
     expect(next.roomCode).toBeNull();
     expect(next.playerId).toBeNull();
+    expect(next.name).toBeNull();
+    expect(next.connection).toBe('connected');
   });
 });
 
-describe('prefillCodeFrom', () => {
-  it('reads and uppercases the room code from the URL', () => {
-    expect(prefillCodeFrom('?room=abc123')).toBe('ABC123');
-    expect(prefillCodeFrom('')).toBe('');
-  });
-});
-
-describe('round actions', () => {
+describe('round state', () => {
   it('opens the round screen on game start and clears the selection', () => {
-    const selected = { ...createInitialState(''), selected: 3 as const };
+    const selected = { ...joinedState(), selected: 3 as const };
     const next = gameReducer(selected, { type: 'game-started' });
     expect(next.screen).toBe('round');
     expect(next.selected).toBeNull();
   });
 
   it('keeps a selected card until the next round is paired', () => {
-    const state = { ...createInitialState(''), selected: 4 as const };
+    const state = { ...joinedState(), selected: 4 as const };
     expect(gameReducer(state, { type: 'select', value: 2 }).selected).toBe(2);
     const paired = gameReducer(
       { ...state, selected: 2 },
@@ -91,8 +76,8 @@ describe('round actions', () => {
     expect(paired.roundView?.round).toBe(1);
   });
 
-  it('records a reveal and the duel result', () => {
-    const revealed = gameReducer(createInitialState(''), {
+  it('records a reveal', () => {
+    const revealed = gameReducer(joinedState(), {
       type: 'revealed',
       myValue: 5,
       opponentValue: 2,

@@ -31,23 +31,12 @@ export const roomCodeSchema = z
 
 export const sessionTokenSchema = z.uuid();
 
-export const roomCreatePayload = z.strictObject({
-  name: displayNameSchema,
-});
-
-export const roomJoinPayload = z.strictObject({
-  roomCode: roomCodeSchema,
-  name: displayNameSchema,
+export const roomEnterPayload = z.strictObject({
+  // Present when a window reconnects. Absent for a new player.
   sessionToken: sessionTokenSchema.optional(),
 });
 
 export const roomLeavePayload = z.strictObject({});
-
-export const lobbyReadyPayload = z.strictObject({
-  ready: z.boolean(),
-});
-
-export const gameStartPayload = z.strictObject({});
 
 export const encounterSubmitPayload = z.strictObject({
   value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
@@ -55,6 +44,4 @@ export const encounterSubmitPayload = z.strictObject({
 });
 
 export type EncounterSubmitPayload = z.infer<typeof encounterSubmitPayload>;
-export type RoomCreatePayload = z.infer<typeof roomCreatePayload>;
-export type RoomJoinPayload = z.infer<typeof roomJoinPayload>;
-export type LobbyReadyPayload = z.infer<typeof lobbyReadyPayload>;
+export type RoomEnterPayload = z.infer<typeof roomEnterPayload>;

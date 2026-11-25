@@ -24,12 +24,13 @@
 - [x] Send `encounter:result` and `player:private-state` to the two participants only.
 - [x] Add the selection timer (45 seconds). On timeout, auto-lock the lowest card with no special, and send `player:notice` `auto-locked` to that player.
 - [x] Send `round:paired` with pairings and the Warm-Up player.
-- [x] Add `game:start` for the host, which needs 4 to 8 ready players. Not in the original step list, but the duel cannot start without it.
+- [x] Add `game:start` for the host, which needs 4 to 8 ready players. (Superseded by the auto-placement steering: the match starts when the room is full, with no host or ready step.)
 - [x] Resync a rejoining player to the running game (`game:started`, `round:paired`, and private state).
 
 ### Client
 
 - [x] Build the Round screen. The opponent and timer sit in its header, and the `EncounterPanel` organism from `06-atomic-design.md` was folded into it.
+- [x] Start from the auto-placement steering: the match starts when the eighth player enters.
 - [x] Build the `HandTray` organism with `NumberCard` molecules.
 - [x] Build the `RevealPanel` organism.
 - [x] Show "Waiting for opponent" after lock-in.

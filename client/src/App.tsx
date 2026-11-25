@@ -1,64 +1,40 @@
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
+import { StatusMessage } from './components/molecules/StatusMessage.js';
 import { useGame } from './hooks/useGame.js';
-import { JoinScreen } from './screens/JoinScreen.js';
-import { LandingScreen } from './screens/LandingScreen.js';
 import { LobbyScreen } from './screens/LobbyScreen.js';
 import { RoundScreen } from './screens/RoundScreen.js';
 
-// Chooses the screen from state. The endgame screen comes in plan 04.
+// Players are placed in a room on load. The screen follows the match state.
 export function App() {
-  const {
-    state,
-    createRoom,
-    joinRoom,
-    leaveRoom,
-    setReady,
-    startGame,
-    selectCard,
-    submitCard,
-    navigate,
-    clearNotice,
-  } = useGame();
+  const { state, leaveRoom, selectCard, submitCard, clearNotice } = useGame();
 
   return (
     <PhoneFrame>
-      {state.screen === 'landing' ? (
-        <LandingScreen
-          connection={state.connection}
-          notice={state.notice}
-          onCreate={(name) => {
-            clearNotice();
-            createRoom(name);
-          }}
-          onJoin={() => {
-            clearNotice();
-            navigate('join');
-          }}
-        />
+      {state.connection === 'waking' ? (
+        <StatusMessage showSpinner>
+          Server waking up. The first connection can take up to a minute.
+        </StatusMessage>
       ) : null}
-
-      {state.screen === 'join' ? (
-        <JoinScreen
-          prefillCode={state.prefillCode}
-          notice={state.notice}
-          onSubmit={(code, name) => {
-            clearNotice();
-            joinRoom(code, name);
-          }}
-          onBack={() => {
-            navigate('landing');
-          }}
-        />
+      {state.connection === 'connecting' ? (
+        <StatusMessage showSpinner>Connecting...</StatusMessage>
+      ) : null}
+      {state.connection === 'reconnecting' ? (
+        <StatusMessage showSpinner>Reconnecting...</StatusMessage>
+      ) : null}
+      {state.connection === 'offline' ? (
+        <StatusMessage tone="error">You are offline.</StatusMessage>
       ) : null}
 
       {state.screen === 'lobby' ? (
         <LobbyScreen
           room={state.room}
           selfId={state.playerId}
+          name={state.name}
           notice={state.notice}
-          onToggleReady={setReady}
-          onStart={startGame}
-          onLeave={leaveRoom}
+          onLeave={() => {
+            clearNotice();
+            leaveRoom();
+          }}
         />
       ) : null}
 

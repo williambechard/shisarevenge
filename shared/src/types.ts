@@ -14,9 +14,7 @@ export type Phase =
 export type PublicPlayer = {
   id: string;
   name: string;
-  ready: boolean;
   connected: boolean;
-  isHost: boolean;
 };
 
 export type EndgameSummary = {

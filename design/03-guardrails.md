@@ -42,15 +42,16 @@ The client sends **intentions**, for example `encounter:submit { value: 4, useSp
 ## 4. Abuse limits
 
 - Rate limit socket events per connection. Start with 10 events per second, and tune as needed.
-- Reject room creation after a small cap per IP address (for example, 5 per minute).
+- Room creation is capped at 5 per IP address per minute. Joining an open lobby is not capped, since it creates no room.
 - Rooms close when the last player leaves after the match. Otherwise they expire after 2 hours of inactivity.
-- Maximum 8 players per room. Reject extra joins with a clear message.
+- A room holds at most 8 players. When it is full, its match starts, and the next player is placed in a new room.
 
 ## 5. Room codes and tokens
 
-- Room codes use 6 characters from an alphabet without ambiguous letters (no `0`, `O`, `1`, `I`). Generate them with `crypto.randomInt`.
+- Room codes are internal identifiers. They are not shown to players and are not needed to join. They use 6 characters from an alphabet without ambiguous letters (no `0`, `O`, `1`, `I`), generated with `crypto.randomInt`.
 - Session tokens use `crypto.randomUUID()` or 32 random bytes from `crypto.randomBytes`.
-- Session tokens are stored in the browser's `localStorage`, keyed by room code. They are never placed in a URL or logged.
+- Session tokens are stored in the browser's `sessionStorage`, which is scoped to one tab. Two windows in one browser profile can each hold their own seat. Tokens are never placed in a URL or logged.
+- A token whose seat is held by another connected socket is refused with `SEAT_IN_USE`. A seat is never taken over silently.
 - Never log session tokens, room codes with tokens, or full socket payloads.
 
 ## 6. Transport and CORS

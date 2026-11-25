@@ -12,6 +12,7 @@ export const ERROR_CODES = [
   'ALREADY_LOCKED',
   'RATE_LIMITED',
   'GAME_IN_PROGRESS',
+  'SEAT_IN_USE',
   'INTERNAL',
 ] as const;
 
@@ -30,6 +31,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   ALREADY_LOCKED: 'You have already locked in.',
   RATE_LIMITED: 'Too many actions. Wait a moment and try again.',
   GAME_IN_PROGRESS: 'This match has already started.',
+  SEAT_IN_USE: 'This seat is open in another window.',
   INTERNAL: 'Something went wrong. Please try again.',
 };
 

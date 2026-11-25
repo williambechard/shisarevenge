@@ -22,9 +22,7 @@ type Phase = 'lobby' | 'announce' | 'pairing' | 'selecting' | 'revealed' | 'reso
 type PublicPlayer = {
   id: string;
   name: string;
-  ready: boolean;
   connected: boolean;
-  isHost: boolean;
 };
 
 type PublicRoomState = {
@@ -89,11 +87,8 @@ Notes:
 
 | Event | Payload | Phase | Purpose |
 |---|---|---|---|
-| `room:create` | `{ name: string }` | Any | Create a room. Host is the creator. |
-| `room:join` | `{ roomCode: string, name: string, sessionToken?: string }` | Any | Join or rejoin. Include the token to reconnect. |
-| `room:leave` | `{}` | Any | Leave the room. |
-| `lobby:ready` | `{ ready: boolean }` | `lobby` | Set ready state. |
-| `game:start` | `{}` | `lobby`, host only | Start the match when 4 to 8 players are ready. |
+| `room:enter` | `{ sessionToken?: uuid }` | Any | Place this window in a room. With a token, reclaim that seat. Without one, join the oldest open lobby or start a new room. The server assigns the name. |
+| `room:leave` | `{}` | Any | Leave the room. The window is then placed again. |
 | `encounter:submit` | `{ value: CardValue, useSpecial: boolean }` | `selecting` | Lock in a card. Once only. |
 | `emote:send` | `{ emoteId: string }` | `ended` | Send one preset emote to the room. Rate limited. |
 
@@ -115,7 +110,7 @@ Notes:
 | `room:error` | `{ code, message }` | Invalid room action for that socket only. |
 | `round:paired` | `{ round, pairings, warmUpPlayerId }` | Pairing done. Shows opponents. |
 | `round:ended` | `{ round, teamCounts, caughtCount, recoveredCount }` | After resolution. Public counts and their change this round. Drives the announcement banner. |
-| `game:started` | `{ originPlayerId }` | Match starts. Triggers role reveal. Origin is public. |
+| `game:started` | `{ originPlayerId }` | Match starts when the room reaches 8 players. Origin is public. |
 | `game:ended` | `EndgameSummary` | Win check says the game is over. |
 | `player:reconnected` | `{ playerId, name }` | A player rejoins. |
 | `player:disconnected` | `{ playerId, name }` | A player drops. |
@@ -125,7 +120,7 @@ Notes:
 
 | Event | Payload | When |
 |---|---|---|
-| `room:joined` | `{ roomCode, playerId, sessionToken }` | Join or create succeeded. Token is stored by the client. |
+| `room:joined` | `{ roomCode, playerId, sessionToken, name }` | Placement succeeded. The token is stored in `sessionStorage`. The name is assigned by the server. |
 | `player:private-state` | `PrivatePlayerState` | Any change to that player's private state. |
 | `encounter:waiting` | `{ opponentId, locked: true }` | Lock-in confirmed. Opponent not yet locked. |
 | `encounter:revealed` | `{ myValue, opponentValue, mySpecial, opponentSpecial }` | Both locked in. Sent to the two participants only. |
@@ -149,8 +144,8 @@ No public event for an encounter is sent before step 2.
 
 ## 6. Reconnect flow
 
-1. Client loads with a stored session token for the room code.
-2. Client emits `room:join` with the token.
+1. Client loads with a stored session token from `sessionStorage`.
+2. Client emits `room:enter` with the token.
 3. Server matches the token to an existing player. It returns `room:joined` and sends `room:state` and `player:private-state` to that socket only.
 4. Server emits `player:reconnected` to the room.
 5. If the token does not match an existing player and the game has started, the server returns `room:error` with code `GAME_IN_PROGRESS`.
@@ -169,7 +164,7 @@ No public event for an encounter is sent before step 2.
 | `SPECIAL_UNAVAILABLE` | Special already committed or spent, or not held. |
 | `ALREADY_LOCKED` | Player has already locked in. |
 | `RATE_LIMITED` | Too many events. |
-| `GAME_IN_PROGRESS` | Join not allowed after start, unless reconnecting. |
+| `SEAT_IN_USE` | The seat is held by another connected window. The client retries before giving up. |
 | `INTERNAL` | Unexpected server error. Details are logged, not sent. |
 
 ## 8. Rate limits

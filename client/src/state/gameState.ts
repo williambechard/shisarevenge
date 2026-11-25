@@ -5,7 +5,8 @@ import type {
   PublicRoomState,
 } from '@shisa-revenge/shared';
 
-export type Screen = 'landing' | 'join' | 'lobby' | 'round';
+// The lobby is the first screen. The round screen opens when the match starts.
+export type Screen = 'lobby' | 'round';
 
 export type ConnectionState = 'connecting' | 'waking' | 'connected' | 'reconnecting' | 'offline';
 
@@ -30,7 +31,8 @@ export type GameState = {
   room: PublicRoomState | null;
   roomCode: string | null;
   playerId: string | null;
-  prefillCode: string;
+  // The name assigned to this player. Players never choose a name.
+  name: string | null;
   notice: string | null;
   privateState: PrivatePlayerState | null;
   roundView: RoundView | null;
@@ -40,20 +42,14 @@ export type GameState = {
   selected: CardValue | null;
 };
 
-// Reads ?room=CODE from a link or QR code so the join screen can prefill it.
-export function prefillCodeFrom(search: string): string {
-  const value = new URLSearchParams(search).get('room');
-  return value ? value.trim().toUpperCase() : '';
-}
-
-export function createInitialState(search: string): GameState {
+export function createInitialState(): GameState {
   return {
-    screen: 'landing',
+    screen: 'lobby',
     connection: 'connecting',
     room: null,
     roomCode: null,
     playerId: null,
-    prefillCode: prefillCodeFrom(search),
+    name: null,
     notice: null,
     privateState: null,
     roundView: null,

@@ -1,26 +1,29 @@
-// Socket event handlers for the lobby. Each payload is parsed with its Zod schema first.
+// Socket event handlers. Each payload is parsed with its Zod schema first.
 // Errors go back in the acknowledgement. Hidden state never goes to the room.
 
 import type { Server, Socket } from 'socket.io';
 import {
   ERROR_MESSAGES,
-  RATE_LIMIT_EVENTS_PER_SECOND,
+  MAX_PLAYERS,
   encounterSubmitPayload,
-  gameStartPayload,
-  lobbyReadyPayload,
-  roomCreatePayload,
-  roomJoinPayload,
+  RATE_LIMIT_EVENTS_PER_SECOND,
+  roomEnterPayload,
   roomLeavePayload,
   type AckResponse,
   type ErrorCode,
 } from '@shisa-revenge/shared';
 import type { z } from 'zod';
-import type { RoomRegistry, RoomRecord } from '../rooms/roomRegistry.js';
 import type { MatchRunner } from '../game/matchRunner.js';
+import type { RoomRecord, RoomRegistry } from '../rooms/roomRegistry.js';
 import type { KeyedLimiter } from './rateLimit.js';
 import { SlidingWindowLimiter } from './rateLimit.js';
 
-type SeatAck = AckResponse<{ roomCode: string; playerId: string; sessionToken: string }>;
+type SeatAck = AckResponse<{
+  roomCode: string;
+  playerId: string;
+  sessionToken: string;
+  name: string;
+}>;
 type PlainAck = AckResponse;
 
 type SocketSession = {
@@ -81,34 +84,25 @@ export function registerConnectionHandlers(
       session.playerId = playerId;
     };
 
-    socket.on('room:create', (raw: unknown, ack?: (response: SeatAck) => void) => {
+    // Places the player automatically. A full lobby starts its match.
+    socket.on('room:enter', (raw: unknown, ack?: (response: SeatAck) => void) => {
       if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
-      const payload = parse(roomCreatePayload, raw);
+      const payload = parse(roomEnterPayload, raw);
       if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
-      if (!createRoomLimiter.take(clientIp(socket))) return ack?.(fail('RATE_LIMITED'));
 
-      leaveCurrentRoom();
-      const { room, player } = registry.create(payload.name);
-      attach(room.code, player.id);
-
-      const seat = { roomCode: room.code, playerId: player.id, sessionToken: player.token };
-      socket.emit('room:joined', seat);
-      ack?.({ ok: true, ...seat });
-      broadcastState(io, registry, room);
-    });
-
-    socket.on('room:join', (raw: unknown, ack?: (response: SeatAck) => void) => {
-      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
-      const payload = parse(roomJoinPayload, raw);
-      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      // The per-IP cap guards room creation only. Joining an open lobby is not limited.
+      const startsRoom = payload.sessionToken === undefined && !registry.hasOpenLobby();
+      if (startsRoom && !createRoomLimiter.take(clientIp(socket))) {
+        return ack?.(fail('RATE_LIMITED'));
+      }
 
       const previous = { ...session };
-      const result = registry.join(payload.roomCode, payload.name, payload.sessionToken);
+      const result = registry.enter(payload.sessionToken, socket.id);
       if (!result.ok) return ack?.(fail(result.error));
 
       const { room, player, reconnected } = result.value;
 
-      // Leave the previous room only after the join succeeds, so a failed join keeps the old seat.
+      // Leave the previous room only after entry succeeds, so a failed entry keeps the old seat.
       if (previous.roomCode && previous.playerId) {
         const isSameSeat = previous.roomCode === room.code && previous.playerId === player.id;
         if (!isSameSeat) {
@@ -119,7 +113,12 @@ export function registerConnectionHandlers(
       }
 
       attach(room.code, player.id);
-      const seat = { roomCode: room.code, playerId: player.id, sessionToken: player.token };
+      const seat = {
+        roomCode: room.code,
+        playerId: player.id,
+        sessionToken: player.token,
+        name: player.name,
+      };
       socket.emit('room:joined', seat);
       ack?.({ ok: true, ...seat });
 
@@ -127,7 +126,12 @@ export function registerConnectionHandlers(
         io.to(room.code).emit('player:reconnected', { playerId: player.id, name: player.name });
       }
       broadcastState(io, registry, room);
-      matches.resync(room.code, player.id);
+
+      if (reconnected) {
+        matches.resync(room.code, player.id);
+      } else if (room.phase === 'lobby' && room.players.length === MAX_PLAYERS) {
+        matches.start(room.code);
+      }
     });
 
     socket.on('room:leave', (raw: unknown, ack?: (response: PlainAck) => void) => {
@@ -136,29 +140,6 @@ export function registerConnectionHandlers(
       if (!session.roomCode) return ack?.(fail('ROOM_NOT_FOUND'));
 
       leaveCurrentRoom();
-      ack?.({ ok: true });
-    });
-
-    socket.on('lobby:ready', (raw: unknown, ack?: (response: PlainAck) => void) => {
-      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
-      const payload = parse(lobbyReadyPayload, raw);
-      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
-      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
-
-      const result = registry.setReady(session.roomCode, session.playerId, payload.ready);
-      if (!result.ok) return ack?.(fail(result.error));
-
-      broadcastState(io, registry, result.value);
-      ack?.({ ok: true });
-    });
-
-    socket.on('game:start', (raw: unknown, ack?: (response: PlainAck) => void) => {
-      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
-      if (!parse(gameStartPayload, raw)) return ack?.(fail('INVALID_PAYLOAD'));
-      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
-
-      const result = matches.start(session.roomCode, session.playerId);
-      if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });
 

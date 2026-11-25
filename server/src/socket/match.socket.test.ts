@@ -1,9 +1,10 @@
-// Socket-level test of one round: pairing, hidden lock-in, and reveal to participants only.
+// Socket-level tests of one match: automatic start, hidden lock-in, reveal to participants only,
+// and the selection timeout.
 
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { io as connect, type Socket } from 'socket.io-client';
-import type { AckResponse } from '@shisa-revenge/shared';
+import { MAX_PLAYERS, type AckResponse } from '@shisa-revenge/shared';
 import { createGameServer, type GameServer } from '../server.js';
 
 type Pairing = { a: string; b: string };
@@ -59,60 +60,52 @@ function nextEvent<T>(socket: Socket, event: string): Promise<T> {
   });
 }
 
-function recordEvents(socket: Socket, events: string[]): void {
-  for (const name of ['encounter:revealed', 'encounter:result', 'encounter:waiting']) {
-    socket.on(name, () => {
-      events.push(name);
-    });
+type Player = { socket: Socket; id: string; events: string[] };
+
+// Fills one room with eight players. The eighth entry starts the match.
+async function fillRoom(): Promise<{ players: Player[]; paired: Promise<RoundPaired> }> {
+  const first = await openSocket();
+  const created = await emitAck<{ playerId: string }>(first, 'room:enter', {});
+  if (!created.ok) throw new Error(created.error.message);
+  const paired = nextEvent<RoundPaired>(first, 'round:paired');
+
+  const players: Player[] = [{ socket: first, id: created.playerId, events: [] }];
+  for (let index = 1; index < MAX_PLAYERS; index += 1) {
+    const socket = await openSocket();
+    const entered = await emitAck<{ playerId: string }>(socket, 'room:enter', {});
+    if (!entered.ok) throw new Error(entered.error.message);
+    players.push({ socket, id: entered.playerId, events: [] });
   }
+
+  for (const player of players) {
+    for (const name of [
+      'encounter:revealed',
+      'encounter:result',
+      'encounter:waiting',
+      'player:notice',
+    ]) {
+      player.socket.on(name, () => {
+        player.events.push(name);
+      });
+    }
+  }
+  return { players, paired };
 }
 
 describe('one duel round over sockets', () => {
   it('reveals a choice only to its participants, after both lock in', async () => {
-    const host = await openSocket();
-    const created = await emitAck<{ roomCode: string; playerId: string; sessionToken: string }>(
-      host,
-      'room:create',
-      { name: 'Aiko' },
-    );
-    if (!created.ok) throw new Error(created.error.message);
-
-    const players: Array<{ socket: Socket; id: string; events: string[] }> = [
-      { socket: host, id: created.playerId, events: [] },
-    ];
-    for (const name of ['Ben', 'Cleo', 'Dai']) {
-      const socket = await openSocket();
-      const joined = await emitAck<{ roomCode: string; playerId: string; sessionToken: string }>(
-        socket,
-        'room:join',
-        { roomCode: created.roomCode, name },
-      );
-      if (!joined.ok) throw new Error(joined.error.message);
-      const ready = await emitAck(socket, 'lobby:ready', { ready: true });
-      expect(ready.ok).toBe(true);
-      players.push({ socket, id: joined.playerId, events: [] });
-    }
-    for (const player of players) recordEvents(player.socket, player.events);
-
-    const pairedPromise = nextEvent<RoundPaired>(host, 'round:paired');
-    const started = await emitAck(host, 'game:start', {});
-    expect(started.ok).toBe(true);
-    const paired = await pairedPromise;
-
-    expect(paired.pairings).toHaveLength(2);
-    const [first, second] = paired.pairings;
-    if (!first || !second) throw new Error('expected two pairs');
+    const { players, paired } = await fillRoom();
+    const round = await paired;
+    expect(round.pairings).toHaveLength(MAX_PLAYERS / 2);
 
     const byId = new Map(players.map((player) => [player.id, player]));
-    const participants = new Set([first.a, first.b]);
-    const bystander = players.find(
-      (player) => !participants.has(player.id) && player.id !== paired.warmUpPlayerId,
-    );
-    if (!bystander) throw new Error('expected a bystander outside the first pair');
+    const [first, second] = round.pairings;
+    if (!first || !second) throw new Error('expected at least two pairs');
 
     const aPlayer = byId.get(first.a);
     const bPlayer = byId.get(first.b);
-    if (!aPlayer || !bPlayer) throw new Error('missing players');
+    const bystander = byId.get(second.a);
+    if (!aPlayer || !bPlayer || !bystander) throw new Error('missing players');
 
     // The first player locks in. Nobody in the duel gets a reveal yet.
     const lockA = await emitAck(aPlayer.socket, 'encounter:submit', {
@@ -146,55 +139,29 @@ describe('one duel round over sockets', () => {
   });
 
   it('rejects a special card until plan 05 adds them', async () => {
-    const host = await openSocket();
-    const created = await emitAck(host, 'room:create', { name: 'Aiko' });
-    expect(created.ok).toBe(true);
-    const response = await emitAck(host, 'encounter:submit', { value: 2, useSpecial: true });
+    const socket = await openSocket();
+    const entered = await emitAck(socket, 'room:enter', {});
+    expect(entered.ok).toBe(true);
+    const response = await emitAck(socket, 'encounter:submit', { value: 2, useSpecial: true });
     expect(response).toMatchObject({ ok: false, error: { code: 'SPECIAL_UNAVAILABLE' } });
   });
 });
 
-describe('selection timeout and public state', () => {
-  it('auto-locks the lowest card when the timer runs out and tells that player', async () => {
-    const host = await openSocket();
-    const created = await emitAck<{ roomCode: string; playerId: string; sessionToken: string }>(
-      host,
-      'room:create',
-      { name: 'Aiko' },
-    );
-    if (!created.ok) throw new Error(created.error.message);
-
-    const guests: Socket[] = [];
-    for (const name of ['Ben', 'Cleo', 'Dai']) {
-      const socket = await openSocket();
-      const joined = await emitAck<{ roomCode: string; playerId: string; sessionToken: string }>(
-        socket,
-        'room:join',
-        { roomCode: created.roomCode, name },
-      );
-      if (!joined.ok) throw new Error(joined.error.message);
-      await emitAck(socket, 'lobby:ready', { ready: true });
-      guests.push(socket);
-    }
-
-    const notices: unknown[] = [];
-    for (const socket of [host, ...guests]) {
-      socket.on('player:notice', (notice: unknown) => {
-        notices.push(notice);
-      });
-    }
-
+describe('selection timeout', () => {
+  it('auto-locks the lowest card when the timer runs out and tells each player', async () => {
+    const { players, paired } = await fillRoom();
+    await paired;
     const publicStates: string[] = [];
-    host.on('room:state', (state: unknown) => {
+    players[0]?.socket.on('room:state', (state: unknown) => {
       publicStates.push(JSON.stringify(state));
     });
 
-    const paired = nextEvent<RoundPaired>(host, 'round:paired');
-    await emitAck(host, 'game:start', {});
-    await paired;
     await new Promise((resolve) => setTimeout(resolve, 5500));
 
-    expect(notices).toContainEqual({ kind: 'auto-locked' });
+    for (const player of players) {
+      expect(player.events).toContain('encounter:revealed');
+      expect(player.events).toContain('player:notice');
+    }
     for (const serialized of publicStates) {
       expect(serialized).not.toContain('"hand"');
       expect(serialized).not.toContain('"locked"');
