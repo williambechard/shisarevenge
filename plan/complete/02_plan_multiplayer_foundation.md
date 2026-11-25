@@ -42,8 +42,8 @@
 
 - [x] Socket test: a bad payload returns `INVALID_PAYLOAD` and no state change.
 - [x] Socket test: a rejoin with a known token reuses the seat.
-- [ ] Manual test: eight browser windows or phones open the game and land in the same lobby.
-- [ ] Manual test: refreshing one window keeps the same seat and name.
+- [x] Manual test: eight browser windows or phones open the game and land in the same lobby.
+- [x] Manual test: refreshing one window keeps the same seat and name.
 
 ## Done when
 
