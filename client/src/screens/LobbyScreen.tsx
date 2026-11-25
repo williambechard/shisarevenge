@@ -7,10 +7,11 @@ type LobbyScreenProps = {
   selfId: string | null;
   name: string | null;
   notice: string | null;
+  onStartNow: () => void;
   onLeave: () => void;
 };
 
-export function LobbyScreen({ room, selfId, name, notice, onLeave }: LobbyScreenProps) {
+export function LobbyScreen({ room, selfId, name, notice, onStartNow, onLeave }: LobbyScreenProps) {
   if (!room) {
     return (
       <section className="flex flex-1 items-center justify-center">
@@ -26,7 +27,7 @@ export function LobbyScreen({ room, selfId, name, notice, onLeave }: LobbyScreen
           You are <span className="font-semibold text-navy">{name}</span>
         </p>
       ) : null}
-      <LobbyPanel room={room} selfId={selfId} onLeave={onLeave} />
+      <LobbyPanel room={room} selfId={selfId} onStartNow={onStartNow} onLeave={onLeave} />
       <div className="mt-auto">
         {notice ? <StatusMessage tone="error">{notice}</StatusMessage> : null}
       </div>

@@ -4,7 +4,9 @@
 
 import type { Server } from 'socket.io';
 import {
+  LOBBY_START_WAIT_SECONDS,
   MAX_PLAYERS,
+  MIN_PLAYERS,
   ROUND_COUNT,
   SELECTION_SECONDS,
   type CardValue,
@@ -35,12 +37,14 @@ export type MatchTiming = {
   announceMs: number;
   selectionMs: number;
   resultMs: number;
+  lobbyWaitMs: number;
 };
 
 export const DEFAULT_TIMING: MatchTiming = {
   announceMs: 3000,
   selectionMs: SELECTION_SECONDS * 1000,
   resultMs: 6000,
+  lobbyWaitMs: LOBBY_START_WAIT_SECONDS * 1000,
 };
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -72,6 +76,7 @@ export type MatchResult = { ok: true } | { ok: false; error: ErrorCode };
 
 export class MatchRunner {
   private readonly matches = new Map<string, RoomMatch>();
+  private readonly lobbyTimers = new Map<string, Timer>();
   private readonly timing: MatchTiming;
   private readonly random: RandomFn;
   private readonly clock: Clock;
@@ -91,7 +96,10 @@ export class MatchRunner {
     const room = this.registry.find(code);
     if (!room) return { ok: false, error: 'ROOM_NOT_FOUND' };
     if (room.phase !== 'lobby') return { ok: false, error: 'WRONG_PHASE' };
-    if (room.players.length !== MAX_PLAYERS) return { ok: false, error: 'WRONG_PHASE' };
+    if (room.players.length < MIN_PLAYERS || room.players.length > MAX_PLAYERS) {
+      return { ok: false, error: 'WRONG_PHASE' };
+    }
+    this.clearLobbyTimer(code);
 
     const originIndex = Math.floor(this.random() * room.players.length);
     const origin = room.players[originIndex];
@@ -129,7 +137,62 @@ export class MatchRunner {
     return this.registry.find(code)?.phase;
   }
 
+  // Called after anyone enters or leaves a lobby. A full room starts now. A room of at least
+  // MIN_PLAYERS starts a wait, and when it ends, any player may start the room.
+  lobbyChanged(code: string): void {
+    const room = this.registry.find(code);
+    if (!room) {
+      this.clearLobbyTimer(code);
+      return;
+    }
+    if (room.phase !== 'lobby') return;
+
+    const count = room.players.length;
+    if (count >= MAX_PLAYERS) {
+      this.start(code);
+      return;
+    }
+
+    if (count < MIN_PLAYERS) {
+      this.clearLobbyTimer(code);
+      this.registry.setStartState(code, null, false);
+      this.broadcastRoomByCode(code);
+      return;
+    }
+
+    if (this.lobbyTimers.has(code)) return;
+
+    const startsAt = Date.now() + this.timing.lobbyWaitMs;
+    this.registry.setStartState(code, startsAt, false);
+    this.broadcastRoomByCode(code);
+    const handle = this.clock.setTimeout(() => {
+      this.lobbyTimers.delete(code);
+      this.registry.setStartState(code, startsAt, true);
+      this.broadcastRoomByCode(code);
+    }, this.timing.lobbyWaitMs);
+    this.lobbyTimers.set(code, handle);
+  }
+
+  // A player chose to start a room with fewer than MAX_PLAYERS. Only allowed after the wait.
+  startNow(code: string): MatchResult {
+    const room = this.registry.find(code);
+    if (!room) return { ok: false, error: 'ROOM_NOT_FOUND' };
+    if (room.phase !== 'lobby' || !room.startAvailable) return { ok: false, error: 'WRONG_PHASE' };
+    return this.start(code);
+  }
+
+  private clearLobbyTimer(code: string): void {
+    const handle = this.lobbyTimers.get(code);
+    if (handle) this.clock.clearTimeout(handle);
+    this.lobbyTimers.delete(code);
+  }
+
+  private broadcastRoomByCode(code: string): void {
+    const room = this.registry.find(code);
+    if (room) this.broadcastRoom(code, room);
+  }
   dispose(code: string): void {
+    this.clearLobbyTimer(code);
     const match = this.matches.get(code);
     if (match?.timer) this.clock.clearTimeout(match.timer);
     this.matches.delete(code);
@@ -154,6 +217,7 @@ export class MatchRunner {
     this.syncPrivate(code);
   }
   disposeAll(): void {
+    for (const code of [...this.lobbyTimers.keys()]) this.clearLobbyTimer(code);
     for (const code of [...this.matches.keys()]) this.dispose(code);
   }
 

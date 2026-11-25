@@ -4,10 +4,10 @@
 import type { Server, Socket } from 'socket.io';
 import {
   ERROR_MESSAGES,
-  MAX_PLAYERS,
   encounterSubmitPayload,
   RATE_LIMIT_EVENTS_PER_SECOND,
   roomEnterPayload,
+  lobbyStartNowPayload,
   roomLeavePayload,
   type AckResponse,
   type ErrorCode,
@@ -75,6 +75,7 @@ export function registerConnectionHandlers(
       session.roomCode = null;
       session.playerId = null;
       if (room) broadcastState(io, registry, room);
+      matches.lobbyChanged(code);
     };
 
     const attach = (code: string, playerId: string): void => {
@@ -109,6 +110,7 @@ export function registerConnectionHandlers(
           const oldRoom = registry.leave(previous.roomCode, previous.playerId);
           void socket.leave(previous.roomCode);
           if (oldRoom) broadcastState(io, registry, oldRoom);
+          matches.lobbyChanged(previous.roomCode);
         }
       }
 
@@ -129,8 +131,8 @@ export function registerConnectionHandlers(
 
       if (reconnected) {
         matches.resync(room.code, player.id);
-      } else if (room.phase === 'lobby' && room.players.length === MAX_PLAYERS) {
-        matches.start(room.code);
+      } else {
+        matches.lobbyChanged(room.code);
       }
     });
 
@@ -140,6 +142,16 @@ export function registerConnectionHandlers(
       if (!session.roomCode) return ack?.(fail('ROOM_NOT_FOUND'));
 
       leaveCurrentRoom();
+      ack?.({ ok: true });
+    });
+
+    socket.on('lobby:start-now', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      if (!parse(lobbyStartNowPayload, raw)) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode) return ack?.(fail('ROOM_NOT_FOUND'));
+
+      const result = matches.startNow(session.roomCode);
+      if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });
 

@@ -31,6 +31,8 @@ type PublicRoomState = {
   round: number;
   roundCount: 5;
   players: PublicPlayer[];
+  startsAt: number | null;      // epoch ms when the lobby wait ends
+  startAvailable: boolean;      // true once the wait has passed with 4 or more players
   pairings: Array<{ a: string; b: string }>;
   warmUpPlayerId: string | null;
   teamCounts: { survivors: number; infected: number }; // values from the last round summary, never mid-round
@@ -89,6 +91,7 @@ Notes:
 |---|---|---|---|
 | `room:enter` | `{ sessionToken?: uuid }` | Any | Place this window in a room. With a token, reclaim that seat. Without one, join the oldest open lobby or start a new room. The server assigns the name. |
 | `room:leave` | `{}` | Any | Leave the room. The window is then placed again. |
+| `lobby:start-now` | `{}` | `lobby` | Start the room with 4 to 7 players. Allowed only once the lobby wait has ended (`startAvailable`). |
 | `encounter:submit` | `{ value: CardValue, useSpecial: boolean }` | `selecting` | Lock in a card. Once only. |
 | `emote:send` | `{ emoteId: string }` | `ended` | Send one preset emote to the room. Rate limited. |
 
@@ -110,7 +113,7 @@ Notes:
 | `room:error` | `{ code, message }` | Invalid room action for that socket only. |
 | `round:paired` | `{ round, pairings, warmUpPlayerId }` | Pairing done. Shows opponents. |
 | `round:ended` | `{ round, teamCounts, caughtCount, recoveredCount }` | After resolution. Public counts and their change this round. Drives the announcement banner. |
-| `game:started` | `{ originPlayerId }` | Match starts when the room reaches 8 players. Origin is public. |
+| `game:started` | `{ originPlayerId }` | Match starts when the room is full, or after an early start. Origin is public. |
 | `game:ended` | `EndgameSummary` | Win check says the game is over. |
 | `player:reconnected` | `{ playerId, name }` | A player rejoins. |
 | `player:disconnected` | `{ playerId, name }` | A player drops. |

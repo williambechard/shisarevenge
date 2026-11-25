@@ -20,6 +20,9 @@ export const MAGIC_BONUS = 2;
 export const MAX_EFFECTIVE_STRENGTH = 5;
 
 export const SELECTION_SECONDS = 45;
+
+// Once a room has MIN_PLAYERS, this long before anyone may start it early. See design/01-game-design.md section 8.
+export const LOBBY_START_WAIT_SECONDS = 60;
 export const RECONNECT_GRACE_SECONDS = 120;
 
 // Room codes avoid ambiguous characters (no 0, O, 1, I).

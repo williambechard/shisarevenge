@@ -18,7 +18,11 @@ const sockets: Socket[] = [];
 beforeEach(async () => {
   game = createGameServer(
     { CLIENT_ORIGIN: 'http://localhost:5173' },
-    { matches: { timing: { announceMs: 5, selectionMs: 60_000, resultMs: 60_000 } } },
+    {
+      matches: {
+        timing: { announceMs: 5, selectionMs: 60_000, resultMs: 60_000, lobbyWaitMs: 50 },
+      },
+    },
   );
   await new Promise<void>((resolve) => {
     game.httpServer.listen(0, '127.0.0.1', () => {
@@ -183,5 +187,52 @@ describe('room:leave', () => {
     const response = await emitAck<Record<string, never>>(guest.socket, 'room:leave', {});
     expect(response.ok).toBe(true);
     expect(game.registry.find(host.seat.roomCode)?.players).toHaveLength(1);
+  });
+});
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+describe('lobby wait', () => {
+  it('offers an early start after the wait when four players are in the room', async () => {
+    const first = await enter();
+    for (let index = 1; index < 4; index += 1) await enter();
+    await pause(150);
+
+    expect(game.registry.find(first.seat.roomCode)?.startAvailable).toBe(true);
+
+    const started = new Promise<{ originPlayerId: string }>((resolve) => {
+      first.socket.once('game:started', (payload: { originPlayerId: string }) => {
+        resolve(payload);
+      });
+    });
+    const response = await emitAck(first.socket, 'lobby:start-now', {});
+    expect(response.ok).toBe(true);
+    await started;
+
+    const players = game.registry.find(first.seat.roomCode)?.players.length;
+    expect(players).toBe(4);
+  });
+
+  it('does not offer an early start with three players', async () => {
+    const first = await enter();
+    for (let index = 1; index < 3; index += 1) await enter();
+    await pause(150);
+
+    expect(game.registry.find(first.seat.roomCode)?.startAvailable).toBe(false);
+    const response = await emitAck(first.socket, 'lobby:start-now', {});
+    expect(response).toMatchObject({ ok: false, error: { code: 'WRONG_PHASE' } });
+  });
+
+  it('cancels the wait when the room drops below four players', async () => {
+    const first = await enter();
+    const guests = [];
+    for (let index = 1; index < 4; index += 1) guests.push(await enter());
+
+    const room = game.registry.find(first.seat.roomCode);
+    expect(room?.startsAt).not.toBeNull();
+
+    await emitAck(guests[0]?.socket ?? first.socket, 'room:leave', {});
+    await emitAck(guests[1]?.socket ?? first.socket, 'room:leave', {});
+    expect(game.registry.find(first.seat.roomCode)?.startsAt).toBeNull();
   });
 });

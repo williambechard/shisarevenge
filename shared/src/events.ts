@@ -38,6 +38,9 @@ export const roomEnterPayload = z.strictObject({
 
 export const roomLeavePayload = z.strictObject({});
 
+// Any player in a lobby of 4 to 7 may start it once the wait has passed.
+export const lobbyStartNowPayload = z.strictObject({});
+
 export const encounterSubmitPayload = z.strictObject({
   value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   useSpecial: z.boolean(),

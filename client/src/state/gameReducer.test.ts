@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { PublicRoomState } from '@shisa-revenge/shared';
 import { createInitialState } from './gameState.js';
 import { gameReducer } from './gameReducer.js';
@@ -10,6 +10,8 @@ function room(code: string): PublicRoomState {
     round: 0,
     roundCount: 5,
     players: [],
+    startsAt: null,
+    startAvailable: false,
     pairings: [],
     warmUpPlayerId: null,
     teamCounts: { survivors: 0, infected: 0 },

@@ -26,7 +26,7 @@
 
 ## 3. Setup
 
-1. The match starts when the room reaches `MAX_PLAYERS` (8) players. There is no ready step and no host. Players are placed automatically (see `01-game-design.md` section 8).
+1. The match starts when the room reaches `MAX_PLAYERS` (8) players, or when a player starts it after the 60-second lobby wait with `MIN_PLAYERS` (4) to 7 players present. There is no ready step and no host. Players are placed automatically (see `01-game-design.md` section 8).
 2. Pick one player at random as origin. Give that player team `infected` and special `shisa-mask`, status `available`.
 3. Every other player gets team `survivor`.
 4. Give each survivor one special at random: `protection-talisman` or `ramen`, status `available`.

@@ -30,6 +30,9 @@ export type RoomRecord = {
   phase: Phase;
   players: PlayerRecord[];
   lastActivityAt: number;
+  // Lobby wait: when it ends, and whether any player may start the room now.
+  startsAt: number | null;
+  startAvailable: boolean;
 };
 
 export type EnterOutcome = {
@@ -113,6 +116,13 @@ export class RoomRegistry {
     return room;
   }
 
+  setStartState(code: string, startsAt: number | null, startAvailable: boolean): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    room.startsAt = startsAt;
+    room.startAvailable = startAvailable;
+  }
+
   setPhase(code: string, phase: Phase): void {
     const room = this.rooms.get(code);
     if (!room) return;
@@ -162,6 +172,8 @@ export class RoomRegistry {
       phase: room.phase,
       round: 0,
       roundCount: ROUND_COUNT,
+      startsAt: room.startsAt,
+      startAvailable: room.startAvailable,
       players: room.players.map((player) => ({
         id: player.id,
         name: player.name,
@@ -195,7 +207,14 @@ export class RoomRegistry {
 
   private createRoom(): RoomRecord {
     const code = this.uniqueRoomCode();
-    const room: RoomRecord = { code, phase: 'lobby', players: [], lastActivityAt: this.now() };
+    const room: RoomRecord = {
+      code,
+      phase: 'lobby',
+      players: [],
+      lastActivityAt: this.now(),
+      startsAt: null,
+      startAvailable: false,
+    };
     this.rooms.set(code, room);
     return room;
   }

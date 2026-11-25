@@ -76,6 +76,7 @@ function enterRoom(
 
 export type GameActions = {
   leaveRoom: () => void;
+  startNow: () => void;
   selectCard: (value: CardValue) => void;
   submitCard: (value: CardValue) => void;
   clearNotice: () => void;
@@ -207,6 +208,12 @@ export function useGame(): { state: GameState } & GameActions {
     enterRoom(socket, storage, dispatch);
   }, []);
 
+  const startNow = useCallback((): void => {
+    getSocket().emit('lobby:start-now', {}, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
   const selectCard = useCallback((value: CardValue): void => {
     dispatch({ type: 'select', value });
   }, []);
@@ -221,5 +228,5 @@ export function useGame(): { state: GameState } & GameActions {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return { state, leaveRoom, selectCard, submitCard, clearNotice };
+  return { state, leaveRoom, startNow, selectCard, submitCard, clearNotice };
 }

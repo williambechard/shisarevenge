@@ -33,6 +33,10 @@ export type PublicRoomState = {
   round: number;
   roundCount: number;
   players: PublicPlayer[];
+  // Epoch ms when the lobby wait ends. Null when no wait is running.
+  startsAt: number | null;
+  // True once the wait has passed and the room has at least MIN_PLAYERS. Any player may start it.
+  startAvailable: boolean;
   pairings: Array<{ a: string; b: string }>;
   warmUpPlayerId: string | null;
   teamCounts: { survivors: number; infected: number };

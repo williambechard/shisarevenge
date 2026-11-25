@@ -6,7 +6,7 @@ import { RoundScreen } from './screens/RoundScreen.js';
 
 // Players are placed in a room on load. The screen follows the match state.
 export function App() {
-  const { state, leaveRoom, selectCard, submitCard, clearNotice } = useGame();
+  const { state, leaveRoom, startNow, selectCard, submitCard, clearNotice } = useGame();
 
   return (
     <PhoneFrame>
@@ -31,6 +31,7 @@ export function App() {
           selfId={state.playerId}
           name={state.name}
           notice={state.notice}
+          onStartNow={startNow}
           onLeave={() => {
             clearNotice();
             leaveRoom();
