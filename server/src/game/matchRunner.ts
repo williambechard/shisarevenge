@@ -7,9 +7,9 @@ import {
   LOBBY_START_WAIT_SECONDS,
   MAX_PLAYERS,
   MIN_PLAYERS,
-  ROUND_COUNT,
   SELECTION_SECONDS,
   type CardValue,
+  type EndgameSummary,
   type ErrorCode,
   type Phase,
   type PublicRoomState,
@@ -32,6 +32,7 @@ import {
   type Pair,
 } from './gameEngine.js';
 import type { RandomFn } from './pairing.js';
+import { checkWin } from './winConditions.js';
 
 export type MatchTiming = {
   announceMs: number;
@@ -113,7 +114,10 @@ export class MatchRunner {
       team: player.id === origin.id ? ('infected' as const) : ('survivor' as const),
     }));
 
-    this.matches.set(code, { state: createMatch(players), timer: null });
+    const matchState = createMatch(players);
+    this.matches.set(code, { state: matchState, timer: null });
+    this.registry.setTeamCounts(code, teamCounts(matchState));
+    this.registry.setMatchResult(code, origin.id, null);
     this.io.to(code).emit('game:started', { originPlayerId: origin.id });
     this.startRound(code);
     return { ok: true };
@@ -350,30 +354,62 @@ export class MatchRunner {
     );
   }
 
-  // Every duel is resolved. Announce the round, then start the next one or end the match.
+  // Every duel is resolved. Announce the round, apply the win check, then start the next round
+  // or end the match.
   private finishRound(code: string): void {
     this.cancelTimer(code);
     const state = this.current(code);
-    const caughtCount = state.results.filter((entry) => entry.outcome.caughtCold !== null).length;
+    const counts = teamCounts(state);
+    const caught = state.results.filter((entry) => entry.outcome.caughtCold !== null);
 
+    this.registry.setTeamCounts(code, counts);
     this.io.to(code).emit('round:ended', {
       round: state.round,
-      teamCounts: teamCounts(state),
-      caughtCount,
+      teamCounts: counts,
+      caughtCount: caught.length,
       recoveredCount: 0,
     });
+    for (const entry of caught) {
+      const caughtId = entry.outcome.caughtCold;
+      if (caughtId) {
+        this.emitToPlayer(code, caughtId, 'player:notice', {
+          kind: 'caught-cold',
+          lostSpecial: null,
+          newSpecial: 'shisa-mask',
+        });
+      }
+    }
     this.setPhase(code, 'resolved');
 
-    // Team changes and the endgame are added in plan 04.
+    const win = checkWin(state.players, state.round);
     this.schedule(code, this.timing.resultMs, () => {
-      if (state.round >= ROUND_COUNT) {
-        this.setPhase(code, 'ended');
+      if (win) {
+        this.endMatch(code, win.winner);
         return;
       }
       this.startRound(code);
     });
   }
 
+  // Sends the endgame summary to the room and moves it to the ended phase.
+  private endMatch(code: string, winner: Team): void {
+    const state = this.current(code);
+    const room = this.registry.find(code);
+    const counts = teamCounts(state);
+    const endgame: EndgameSummary = {
+      winner,
+      survivors: counts.survivors,
+      infected: counts.infected,
+      originPlayerId: room?.originPlayerId ?? '',
+      history: state.players.map((player) => ({
+        playerId: player.id,
+        transformations: [...(state.transformations[player.id] ?? [])],
+      })),
+    };
+    this.registry.setMatchResult(code, room?.originPlayerId ?? null, endgame);
+    this.setPhase(code, 'ended');
+    this.io.to(code).emit('game:ended', endgame);
+  }
   private syncPrivate(code: string): void {
     const room = this.registry.find(code);
     const match = this.matches.get(code);

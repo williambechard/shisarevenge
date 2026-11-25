@@ -4,6 +4,7 @@ import {
   type AckResponse,
   type CardValue,
   type DuelOutcome,
+  type EndgameSummary,
   type PrivatePlayerState,
   type PublicRoomState,
 } from '@shisa-revenge/shared';
@@ -143,6 +144,15 @@ export function useGame(): { state: GameState } & GameActions {
 
     const onNotice = (notice: { kind: string }): void => {
       if (notice.kind === 'auto-locked') dispatch({ type: 'auto-locked' });
+      if (notice.kind === 'caught-cold') dispatch({ type: 'caught' });
+    };
+
+    const onRoundEnded = (payload: { round: number; caughtCount: number }): void => {
+      dispatch({ type: 'round-ended', round: payload.round, caughtCount: payload.caughtCount });
+    };
+
+    const onGameEnded = (summary: EndgameSummary): void => {
+      dispatch({ type: 'game-ended', summary });
     };
 
     const subscriptions: Array<() => void> = [];
@@ -185,6 +195,14 @@ export function useGame(): { state: GameState } & GameActions {
     socket.on('player:notice', onNotice);
     subscriptions.push(() => {
       socket.off('player:notice', onNotice);
+    });
+    socket.on('round:ended', onRoundEnded);
+    subscriptions.push(() => {
+      socket.off('round:ended', onRoundEnded);
+    });
+    socket.on('game:ended', onGameEnded);
+    subscriptions.push(() => {
+      socket.off('game:ended', onGameEnded);
     });
 
     const wakingTimer = setTimeout(() => {

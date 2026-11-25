@@ -7,6 +7,7 @@ import { type CardValue, type Phase, type Result, type Team } from '@shisa-reven
 import { createHand } from './deck.js';
 import { pairKey, pairPlayers, type RandomFn } from './pairing.js';
 import { resolveDuel, type DuelOutcome } from './encounterResolver.js';
+import { catchCold } from './teamChanges.js';
 
 export type MatchPlayer = {
   id: string;
@@ -36,6 +37,8 @@ export type MatchState = {
   resolvedPairs: ReadonlySet<string>;
   // Results from the current round, in the order duels resolved.
   results: ReadonlyArray<DuelResult>;
+  // Round numbers in which each player changed team, for the endgame history.
+  transformations: Readonly<Record<string, readonly number[]>>;
 };
 
 export function createMatch(players: ReadonlyArray<{ id: string; team: Team }>): MatchState {
@@ -54,6 +57,7 @@ export function createMatch(players: ReadonlyArray<{ id: string; team: Team }>):
     locked: new Map(),
     resolvedPairs: new Set(),
     results: [],
+    transformations: {},
   };
 }
 
@@ -166,12 +170,23 @@ export function revealPair(state: MatchState, pair: Pair): MatchState {
     return { ...player, hand: player.hand.filter((card) => card !== used) };
   });
 
+  // A Survivor who lost to the Army catches a cold. The team change takes effect now.
+  const caught = outcome.caughtCold;
+  const finalPlayers = caught ? catchCold(players, caught) : players;
+  const transformations = caught
+    ? {
+        ...state.transformations,
+        [caught]: [...(state.transformations[caught] ?? []), state.round],
+      }
+    : state.transformations;
+
   const resolvedPairs = new Set(state.resolvedPairs);
   resolvedPairs.add(pairKey(a, b));
   const result: DuelResult = { pair, outcome, values: [valueA, valueB] };
   const next: MatchState = {
     ...state,
-    players,
+    players: finalPlayers,
+    transformations,
     resolvedPairs,
     results: [...state.results, result],
   };

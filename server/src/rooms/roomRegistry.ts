@@ -8,6 +8,7 @@ import {
   PLAYER_NAMES,
   ROOM_INACTIVITY_HOURS,
   ROUND_COUNT,
+  type EndgameSummary,
   type Phase,
   type PublicRoomState,
   type Result,
@@ -33,6 +34,10 @@ export type RoomRecord = {
   // Lobby wait: when it ends, and whether any player may start the room now.
   startsAt: number | null;
   startAvailable: boolean;
+  // Public counts, updated at each round summary. Start at 1 Army member and the rest Survivors.
+  teamCounts: { survivors: number; infected: number };
+  originPlayerId: string | null;
+  endgame: EndgameSummary | null;
 };
 
 export type EnterOutcome = {
@@ -123,6 +128,22 @@ export class RoomRegistry {
     room.startAvailable = startAvailable;
   }
 
+  setTeamCounts(code: string, teamCounts: { survivors: number; infected: number }): void {
+    const room = this.rooms.get(code);
+    if (room) room.teamCounts = teamCounts;
+  }
+
+  setMatchResult(
+    code: string,
+    originPlayerId: string | null,
+    endgame: EndgameSummary | null,
+  ): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    room.originPlayerId = originPlayerId;
+    room.endgame = endgame;
+  }
+
   setPhase(code: string, phase: Phase): void {
     const room = this.rooms.get(code);
     if (!room) return;
@@ -183,7 +204,7 @@ export class RoomRegistry {
       warmUpPlayerId: null,
       teamCounts: { survivors: 0, infected: 0 },
       secondsLeft: null,
-      winner: null,
+      winner: room.endgame?.winner ?? null,
       originPlayerId: null,
       endgame: null,
     };
@@ -214,6 +235,9 @@ export class RoomRegistry {
       lastActivityAt: this.now(),
       startsAt: null,
       startAvailable: false,
+      teamCounts: { survivors: 0, infected: 0 },
+      originPlayerId: null,
+      endgame: null,
     };
     this.rooms.set(code, room);
     return room;

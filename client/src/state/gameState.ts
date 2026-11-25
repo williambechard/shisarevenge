@@ -1,12 +1,14 @@
 import type {
   CardValue,
   DuelOutcome,
+  EndgameSummary,
   PrivatePlayerState,
   PublicRoomState,
 } from '@shisa-revenge/shared';
 
-// The lobby is the first screen. The round screen opens when the match starts.
-export type Screen = 'lobby' | 'round';
+// The lobby is the first screen. The round screen opens when the match starts, and the endgame
+// overview opens when it ends.
+export type Screen = 'lobby' | 'round' | 'endgame';
 
 export type ConnectionState = 'connecting' | 'waking' | 'connected' | 'reconnecting' | 'offline';
 
@@ -25,6 +27,11 @@ export type Reveal = {
   opponentValue: CardValue;
 };
 
+export type RoundSummary = {
+  round: number;
+  caughtCount: number;
+};
+
 export type GameState = {
   screen: Screen;
   connection: ConnectionState;
@@ -40,6 +47,10 @@ export type GameState = {
   duel: DuelOutcome | null;
   autoLocked: boolean;
   selected: CardValue | null;
+  roundSummary: RoundSummary | null;
+  // True after this player catches a cold. Cleared when the next round starts.
+  caughtNotice: boolean;
+  endgame: EndgameSummary | null;
 };
 
 export function createInitialState(): GameState {
@@ -57,5 +68,8 @@ export function createInitialState(): GameState {
     duel: null,
     autoLocked: false,
     selected: null,
+    roundSummary: null,
+    caughtNotice: false,
+    endgame: null,
   };
 }

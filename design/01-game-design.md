@@ -508,5 +508,6 @@ The build is ready for the jam when:
 - **1.5:** Automatic room placement replaces the landing, join, and ready steps. Names are assigned from a list of eight. A room starts when it has eight players. The QR code is removed. Seats are saved per tab.
 - **1.7:** Lobby wait. A lobby of 4 starts a timer. After it ends, any player may start the match with 4 to 7 players. A full room of 8 still starts at once.
 - **1.9:** Early start requires an even player count (4 or 6). An odd count waits for another player or a full room of 8. The sit-out problem is avoided.
+- **1.10:** Card art wired for the numbered cards. Team progress bar, round announcement, caught notice, and endgame overview with Back to start. Team changes apply when a duel resolves. Win checks run after each round.
 - **1.8:** Lobby wait set to 15 seconds for testing (restore to 60 before the party). Any player's press starts the match for the whole room.
 - **1.6:** Renamed cards. Value 4 is Squall and value 5 is Typhoon. Renamed specials. Bingata Shawl is now Protection Talisman, and Hot Shikuwasa is now Ramen. Renamed the future card Typhoon Cannon to Tsunami Cannon to avoid a clash.

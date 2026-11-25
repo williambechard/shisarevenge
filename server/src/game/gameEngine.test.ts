@@ -10,6 +10,8 @@ import {
   type MatchState,
 } from './gameEngine.js';
 import type { RandomFn } from './pairing.js';
+import type { CardValue } from '@shisa-revenge/shared';
+import { revealPair } from './gameEngine.js';
 
 function seeded(seed: number): RandomFn {
   let state = seed;
@@ -140,5 +142,42 @@ describe('card use invariants', () => {
       state = resolveRound(autoLockUnlocked(state));
     }
     expect(new Set(warmUps).size).toBe(5);
+  });
+});
+
+describe('catching a cold', () => {
+  it('turns a Survivor into an Army member when the Army wins the duel', () => {
+    const base = startedMatch(4);
+    const armyPlayer = base.players.find((p) => p.team === 'infected')?.id;
+    const pair = base.pairs.find(([a, b]) => a === armyPlayer || b === armyPlayer);
+    if (!armyPlayer || !pair) throw new Error('setup');
+    const survivorId = pair[0] === armyPlayer ? pair[1] : pair[0];
+
+    const locked = new Map<string, CardValue>([
+      [armyPlayer, 5],
+      [survivorId, 1],
+    ]);
+    const next = revealPair({ ...base, locked }, pair);
+
+    expect(next.players.find((p) => p.id === survivorId)?.team).toBe('infected');
+    expect(next.transformations[survivorId]).toEqual([base.round]);
+    expect(next.players.find((p) => p.id === armyPlayer)?.team).toBe('infected');
+  });
+
+  it('changes no team when the Survivor wins the duel', () => {
+    const base = startedMatch(4);
+    const armyPlayer = base.players.find((p) => p.team === 'infected')?.id;
+    const pair = base.pairs.find(([a, b]) => a === armyPlayer || b === armyPlayer);
+    if (!armyPlayer || !pair) throw new Error('setup');
+    const survivorId = pair[0] === armyPlayer ? pair[1] : pair[0];
+
+    const locked = new Map<string, CardValue>([
+      [armyPlayer, 1],
+      [survivorId, 5],
+    ]);
+    const next = revealPair({ ...base, locked }, pair);
+
+    expect(next.players.find((p) => p.id === survivorId)?.team).toBe('survivor');
+    expect(next.transformations).toEqual({});
   });
 });

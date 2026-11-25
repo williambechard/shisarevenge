@@ -3,6 +3,7 @@
 import type {
   CardValue,
   DuelOutcome,
+  EndgameSummary,
   PrivatePlayerState,
   PublicRoomState,
 } from '@shisa-revenge/shared';
@@ -31,7 +32,10 @@ export type GameAction =
   | { type: 'revealed'; myValue: CardValue; opponentValue: CardValue }
   | { type: 'duel-result'; outcome: DuelOutcome }
   | { type: 'auto-locked' }
-  | { type: 'select'; value: CardValue };
+  | { type: 'select'; value: CardValue }
+  | { type: 'round-ended'; round: number; caughtCount: number }
+  | { type: 'caught' }
+  | { type: 'game-ended'; summary: EndgameSummary };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -69,6 +73,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
+        roundSummary: null,
+        caughtNotice: false,
+        endgame: null,
       };
 
     case 'round-paired':
@@ -84,6 +91,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
+        roundSummary: null,
+        caughtNotice: false,
       };
 
     case 'private-state':
@@ -100,5 +109,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'select':
       return { ...state, selected: action.value };
+
+    case 'round-ended':
+      return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };
+
+    case 'caught':
+      return { ...state, caughtNotice: true };
+
+    case 'game-ended':
+      return { ...state, screen: 'endgame', endgame: action.summary };
   }
 }

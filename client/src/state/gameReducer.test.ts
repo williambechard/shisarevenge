@@ -87,3 +87,36 @@ describe('round state', () => {
     expect(revealed.reveal).toEqual({ myValue: 5, opponentValue: 2 });
   });
 });
+
+describe('endgame and round summary', () => {
+  it('records the round summary for the announcement', () => {
+    const next = gameReducer(joinedState(), { type: 'round-ended', round: 2, caughtCount: 1 });
+    expect(next.roundSummary).toEqual({ round: 2, caughtCount: 1 });
+  });
+
+  it('opens the endgame overview when the game ends', () => {
+    const summary = {
+      winner: 'infected' as const,
+      survivors: 0,
+      infected: 4,
+      originPlayerId: 'p1',
+      history: [{ playerId: 'p1', transformations: [] }],
+    };
+    const next = gameReducer(joinedState(), { type: 'game-ended', summary });
+    expect(next.screen).toBe('endgame');
+    expect(next.endgame).toEqual(summary);
+  });
+
+  it('shows the caught notice until the next round is paired', () => {
+    const caught = gameReducer(joinedState(), { type: 'caught' });
+    expect(caught.caughtNotice).toBe(true);
+    const next = gameReducer(caught, {
+      type: 'round-paired',
+      round: 2,
+      pairings: [],
+      warmUpPlayerId: null,
+      deadline: 1,
+    });
+    expect(next.caughtNotice).toBe(false);
+  });
+});
