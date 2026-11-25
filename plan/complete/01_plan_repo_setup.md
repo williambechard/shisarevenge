@@ -20,7 +20,7 @@
 - [x] Add `README.md` and `CREDITS.md`.
 - [x] Add a placeholder test in each workspace so `npm test` passes.
 - [x] Run `npm install`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`. All must pass.
-- [ ] Commit and push.
+- [x] Commit and push.
 
 ## Done when
 
