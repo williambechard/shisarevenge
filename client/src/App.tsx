@@ -10,6 +10,11 @@ export function App() {
 
   return (
     <PhoneFrame>
+      {state.name ? (
+        <p className="text-center text-sm text-navy/70" aria-label="Your name">
+          You are <span className="font-semibold text-navy">{state.name}</span>
+        </p>
+      ) : null}
       {state.connection === 'waking' ? (
         <StatusMessage showSpinner>
           Server waking up. The first connection can take up to a minute.
@@ -29,7 +34,6 @@ export function App() {
         <LobbyScreen
           room={state.room}
           selfId={state.playerId}
-          name={state.name}
           notice={state.notice}
           onStartNow={startNow}
           onLeave={() => {
