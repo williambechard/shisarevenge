@@ -41,11 +41,11 @@
 
 - [x] Test: the payloads sent before both players of a duel lock in contain no opponent `value` or `useSpecial`.
 - [x] Test: `room:state` never contains `hand` or lock-in data. Checked during the timeout test.
-- [ ] Manual test: two phones or two windows play a duel. Neither sees the other's choice early.
+- [x] Manual test: two phones or two windows play a duel. Neither sees the other's choice early.
 
 ## Done when
 
-All steps are checked. Two clients complete a blind duel, the reveal is simultaneous, and no early leak appears in the tests. The manual check is still open, so this plan stays in `wip/` until someone plays a duel on two devices.
+All steps are checked. Two clients complete a blind duel, the reveal is simultaneous, and no early leak appears in the tests. The manual check passed.
 
 ## Notes
 
