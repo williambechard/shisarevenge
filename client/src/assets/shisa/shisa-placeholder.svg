@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder Shisa">
+  <!-- Placeholder silhouette of a shisa (lion-dog guardian). Replace with final art. -->
+  <g fill="#c8553d" stroke="#1d3557" stroke-width="4" stroke-linejoin="round">
+    <path d="M40 120 C40 80 70 60 105 62 C135 64 150 80 152 100 L166 112 L152 118 C150 140 140 160 120 164 L120 184 L104 184 L104 166 L84 166 L84 184 L68 184 L68 160 C50 152 40 140 40 120 Z"/>
+    <path d="M70 62 C66 40 80 30 92 40 C98 46 96 60 90 64 Z"/>
+  </g>
+  <circle cx="128" cy="96" r="5" fill="#1d3557"/>
+  <path d="M90 84 C98 90 110 90 118 84" fill="none" stroke="#1d3557" stroke-width="4" stroke-linecap="round"/>
+</svg>

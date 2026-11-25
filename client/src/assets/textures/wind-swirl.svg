@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder wind swirl">
+  <!-- Placeholder wind swirl. -->
+  <g fill="none" stroke="#1d3557" stroke-width="6" stroke-linecap="round">
+    <path d="M20 120 C60 80 120 80 150 110 C170 130 150 160 124 150 C104 142 112 116 130 120"/>
+    <path d="M30 80 C70 40 130 40 170 70"/>
+  </g>
+</svg>

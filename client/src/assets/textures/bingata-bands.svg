@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder bingata color bands">
+  <!-- Placeholder bingata texture: repeating color bands. -->
+  <rect width="200" height="200" fill="#f4e4c1"/>
+  <rect y="0" width="200" height="40" fill="#c8553d"/>
+  <rect y="40" width="200" height="20" fill="#e9a23b"/>
+  <rect y="80" width="200" height="40" fill="#1d3557"/>
+  <rect y="120" width="200" height="20" fill="#2a9d8f"/>
+  <rect y="160" width="200" height="40" fill="#c8553d"/>
+</svg>
