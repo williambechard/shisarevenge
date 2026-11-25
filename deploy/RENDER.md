@@ -29,7 +29,7 @@ Deploy the server first. Vercel needs its URL.
 | Start Command  | `npm start`                                                             |
 | Instance Type  | `Free`                                                                  |
 
-The build command runs from the repo root. That is needed because `server` depends on the `shared` workspace, and `shared` must be built first. `cd ..` moves out of `server/` for that step.
+The build command runs from the repo root. Render runs every command from the Root Directory (`server`), so Render's prefilled build command will not work. Replace whatever it shows with the command above. The start command already runs inside `server/`, so `npm start` is correct as given. `cd ..` moves out of `server/` so the install covers all workspaces and `shared` builds first.
 
 ## Part 2: Environment variables
 
