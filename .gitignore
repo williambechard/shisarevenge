@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp.*
+.npm/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Test and coverage
+coverage/
+.nyc_output/
+
+# Tooling caches
+.eslintcache
+.prettiercache
+.vite/
+.cache/
+.turbo/
+
+# Environment and secrets. Commit .env.example only.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+
+# Logs and debug output
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor and IDE settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Local tool configuration that can hold credentials
+.kiro/settings/mcp.json
+
+# Editable art and audio sources are tracked. Large files can move to Git LFS later.
