@@ -6,6 +6,8 @@
 
 The game lives at the workspace root, `C:\Users\ury2o\okiwinter`. The root is the Git repository and the npm workspace root.
 
+**Decision:** The backend stays in this repository, under `server/`. It is not a separate repo. Render deploys it with the service's Root Directory set to `server`, and Vercel deploys the client with Root Directory set to `client`. `shared/` stays in one place, so the socket contract cannot drift between repos.
+
 ```text
 okiwinter/
 ├── client/                 React and Vite app (deployed to Vercel)

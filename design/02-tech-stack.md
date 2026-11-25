@@ -40,7 +40,7 @@ The stack is chosen for speed of delivery, low hosting cost, and strict server a
 - **Free Render tier sleeps after inactivity.** Before the party, open the server health URL a few minutes ahead to wake it. If sleep is a problem on the day, upgrade the service for the event window only.
 - **Environment variables:** `CLIENT_ORIGIN` (the Vercel URL, used for CORS), `PORT` (set by Render), `NODE_ENV`. Never commit `.env` files.
 - **Client environment variable:** `VITE_SERVER_URL`, the HTTPS URL of the server.
-- **Server host:** Render, as a Node web service. The free tier sleeps after inactivity, so the first connection can take up to about a minute. The client must show a "Server waking up" message with a spinner until the connection opens. If the party needs no wait at all, upgrade the service for the event window only.
+- **Server host:** Render, as a Node web service with Root Directory `server`. The free tier sleeps after inactivity, so the first connection can take up to about a minute. The client must show a "Server waking up" message with a spinner until the connection opens. If the party needs no wait at all, upgrade the service for the event window only.
 
 ## Version policy
 
