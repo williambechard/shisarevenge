@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import { ROOM_CREATE_PER_IP_PER_MINUTE } from '@shisa-revenge/shared';
 import { createApp } from './app.js';
 import type { ServerConfig } from './config.js';
+import { MatchRunner, type MatchRunnerOptions } from './game/matchRunner.js';
 import { RoomRegistry, type RegistryOptions } from './rooms/roomRegistry.js';
 import { registerConnectionHandlers } from './socket/registerHandlers.js';
 import { KeyedLimiter } from './socket/rateLimit.js';
@@ -16,11 +17,13 @@ export type GameServer = {
   httpServer: HttpServer;
   io: Server;
   registry: RoomRegistry;
+  matches: MatchRunner;
   close: () => Promise<void>;
 };
 
 export type GameServerOptions = {
   registry?: RegistryOptions;
+  matches?: MatchRunnerOptions;
 };
 
 export function createGameServer(
@@ -33,7 +36,13 @@ export function createGameServer(
   });
 
   const registry = new RoomRegistry(options.registry);
-  registerConnectionHandlers(io, registry, new KeyedLimiter(ROOM_CREATE_PER_IP_PER_MINUTE, 60_000));
+  const matches = new MatchRunner(io, registry, options.matches);
+  registerConnectionHandlers(
+    io,
+    registry,
+    new KeyedLimiter(ROOM_CREATE_PER_IP_PER_MINUTE, 60_000),
+    matches,
+  );
 
   const sweeper = setInterval(() => {
     registry.expireIdle();
@@ -42,6 +51,7 @@ export function createGameServer(
 
   const close = async (): Promise<void> => {
     clearInterval(sweeper);
+    matches.disposeAll();
     if (httpServer.listening) {
       await io.close();
     } else {
@@ -49,5 +59,5 @@ export function createGameServer(
     }
   };
 
-  return { httpServer, io, registry, close };
+  return { httpServer, io, registry, matches, close };
 }

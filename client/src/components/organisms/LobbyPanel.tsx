@@ -9,6 +9,7 @@ type LobbyPanelProps = {
   room: PublicRoomState;
   selfId: string | null;
   onToggleReady: (ready: boolean) => void;
+  onStart: () => void;
   onLeave: () => void;
 };
 
@@ -17,7 +18,10 @@ export function joinLinkFor(origin: string, code: string): string {
   return `${origin}/?room=${encodeURIComponent(code)}`;
 }
 
-export function LobbyPanel({ room, selfId, onToggleReady, onLeave }: LobbyPanelProps) {
+export function LobbyPanel({ room, selfId, onToggleReady, onStart, onLeave }: LobbyPanelProps) {
+  const isHost = room.players.some((player) => player.id === selfId && player.isHost);
+  const everyoneReady = room.players.every((player) => player.ready);
+  const enoughPlayers = room.players.length >= 4;
   const [qrSrc, setQrSrc] = useState<string | null>(null);
   const me = room.players.find((player) => player.id === selfId);
   const link = joinLinkFor(window.location.origin, room.roomCode);
@@ -65,6 +69,15 @@ export function LobbyPanel({ room, selfId, onToggleReady, onLeave }: LobbyPanelP
         >
           {me?.ready ? 'Not ready' : 'Ready'}
         </Button>
+        {isHost ? (
+          <Button onClick={onStart} disabled={!everyoneReady || !enoughPlayers}>
+            {enoughPlayers
+              ? everyoneReady
+                ? 'Start game'
+                : 'Waiting for everyone to be ready'
+              : 'Need at least 4 players'}
+          </Button>
+        ) : null}
         <Button variant="secondary" onClick={onLeave}>
           Leave room
         </Button>

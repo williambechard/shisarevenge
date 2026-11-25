@@ -1,0 +1,144 @@
+import { describe, expect, it } from 'vitest';
+import {
+  allLockedIn,
+  autoLockUnlocked,
+  beginRound,
+  createMatch,
+  pairRound,
+  resolveRound,
+  submitSelection,
+  type MatchState,
+} from './gameEngine.js';
+import type { RandomFn } from './pairing.js';
+
+function seeded(seed: number): RandomFn {
+  let state = seed;
+  return () => {
+    state = (Math.imul(state, 1103515245) + 12345) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function startedMatch(count: number): MatchState {
+  const players = Array.from({ length: count }, (_, index) => ({
+    id: `p${String(index)}`,
+    team: index === 0 ? ('infected' as const) : ('survivor' as const),
+  }));
+  return pairRound(beginRound(createMatch(players)), seeded(7));
+}
+
+describe('round flow', () => {
+  it('moves from announce to selecting after pairing', () => {
+    const state = startedMatch(4);
+    expect(state.phase).toBe('selecting');
+    expect(state.round).toBe(1);
+    expect(state.pairs).toHaveLength(2);
+  });
+
+  it('rejects a selection outside the selecting phase', () => {
+    const state = beginRound(
+      createMatch([
+        { id: 'a', team: 'survivor' },
+        { id: 'b', team: 'survivor' },
+      ]),
+    );
+    expect(submitSelection(state, 'a', 3)).toEqual({ ok: false, error: 'WRONG_PHASE' });
+  });
+
+  it('rejects a player who is not in an encounter', () => {
+    const state = startedMatch(5);
+    const warmUp = state.warmUpId;
+    expect(warmUp).not.toBeNull();
+    if (warmUp === null) return;
+    expect(submitSelection(state, warmUp, 2)).toEqual({ ok: false, error: 'NOT_IN_ENCOUNTER' });
+  });
+
+  it('rejects a card not in the hand', () => {
+    const state = startedMatch(4);
+    const [a] = state.pairs[0] ?? [];
+    if (!a) throw new Error('no pair');
+    const limited: MatchState = {
+      ...state,
+      players: state.players.map((p) => (p.id === a ? { ...p, hand: [1, 2] } : p)),
+    };
+    expect(submitSelection(limited, a, 5)).toEqual({ ok: false, error: 'CARD_UNAVAILABLE' });
+  });
+
+  it('rejects a second lock-in from the same player', () => {
+    const state = startedMatch(4);
+    const [a] = state.pairs[0] ?? [];
+    if (!a) throw new Error('no pair');
+    const first = submitSelection(state, a, 2);
+    if (!first.ok) throw new Error('first lock failed');
+    expect(submitSelection(first.value, a, 3)).toEqual({ ok: false, error: 'ALREADY_LOCKED' });
+  });
+
+  it('resolves only after every choice is locked in', () => {
+    const state = startedMatch(4);
+    const [a, b] = state.pairs[0] ?? [];
+    const [c, d] = state.pairs[1] ?? [];
+    if (!a || !b || !c || !d) throw new Error('need two pairs');
+
+    let current = state;
+    for (const id of [a, b, c]) {
+      const result = submitSelection(current, id, 1);
+      if (!result.ok) throw new Error('lock failed');
+      current = result.value;
+    }
+    expect(allLockedIn(current)).toBe(false);
+
+    const last = submitSelection(current, d, 1);
+    if (!last.ok) throw new Error('lock failed');
+    expect(allLockedIn(last.value)).toBe(true);
+    expect(resolveRound(last.value).phase).toBe('resolved');
+  });
+
+  it('auto-locks the lowest card for players who did not lock in', () => {
+    const state = startedMatch(4);
+    const locked = autoLockUnlocked(state);
+    expect(allLockedIn(locked)).toBe(true);
+    for (const player of state.players) {
+      if (!state.pairs.flat().includes(player.id)) continue;
+      expect(locked.locked.get(player.id)).toBe(Math.min(...player.hand));
+    }
+  });
+});
+
+describe('card use invariants', () => {
+  it('removes a played card from the hand and never returns it', () => {
+    let state = startedMatch(4);
+    state = autoLockUnlocked(state);
+    const resolved = resolveRound(state);
+
+    for (const player of resolved.players) {
+      const played = state.locked.get(player.id);
+      expect(player.hand).not.toContain(played);
+      expect(new Set(player.hand).size).toBe(player.hand.length);
+    }
+  });
+
+  it('gives the Warm-Up player no card change', () => {
+    let state = startedMatch(5);
+    const warmUp = state.warmUpId;
+    const before = state.players.find((player) => player.id === warmUp)?.hand;
+    state = resolveRound(autoLockUnlocked(state));
+    const after = state.players.find((player) => player.id === warmUp)?.hand;
+    expect(after).toEqual(before);
+  });
+
+  it('keeps the rotating bye fair over five rounds', () => {
+    let state = createMatch(
+      Array.from({ length: 5 }, (_, index) => ({
+        id: `p${String(index)}`,
+        team: 'survivor' as const,
+      })),
+    );
+    const warmUps: Array<string | null> = [];
+    for (let round = 0; round < 5; round += 1) {
+      state = pairRound(beginRound(state), seeded(100 + round));
+      warmUps.push(state.warmUpId);
+      state = resolveRound(autoLockUnlocked(state));
+    }
+    expect(new Set(warmUps).size).toBe(5);
+  });
+});

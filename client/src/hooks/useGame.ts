@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useReducer } from 'react';
-import type { AckResponse, PublicRoomState } from '@shisa-revenge/shared';
+import {
+  SELECTION_SECONDS,
+  type AckResponse,
+  type CardValue,
+  type DuelOutcome,
+  type PrivatePlayerState,
+  type PublicRoomState,
+} from '@shisa-revenge/shared';
 import { getSocket } from '../socket/socketClient.js';
-import { createInitialState, type GameState } from '../state/gameState.js';
+import {
+  createInitialState,
+  type GameState,
+  type Pairing,
+  type Screen,
+} from '../state/gameState.js';
 import { gameReducer } from '../state/gameReducer.js';
 import { clearSession, readSession, writeSession, type KeyValueStorage } from '../state/session.js';
 
@@ -20,9 +32,15 @@ export type GameActions = {
   joinRoom: (code: string, name: string) => void;
   leaveRoom: () => void;
   setReady: (ready: boolean) => void;
-  navigate: (screen: GameState['screen']) => void;
+  startGame: () => void;
+  selectCard: (value: CardValue) => void;
+  submitCard: (value: CardValue) => void;
+  navigate: (screen: Screen) => void;
   clearNotice: () => void;
 };
+
+type RoundPairedPayload = { round: number; pairings: Pairing[]; warmUpPlayerId: string | null };
+type RevealedPayload = { myValue: CardValue; opponentValue: CardValue };
 
 export function useGame(): { state: GameState } & GameActions {
   const [state, dispatch] = useReducer(gameReducer, window.location.search, createInitialState);
@@ -34,7 +52,6 @@ export function useGame(): { state: GameState } & GameActions {
 
     const onConnect = (): void => {
       hasConnected = true;
-      clearTimeout(wakingTimer);
       dispatch({ type: 'connection', connection: 'connected' });
 
       // Rejoin the stored seat after a refresh or reconnect.
@@ -61,28 +78,92 @@ export function useGame(): { state: GameState } & GameActions {
     };
 
     const onDisconnect = (): void => {
-      dispatch({
-        type: 'connection',
-        connection: hasConnected ? 'reconnecting' : 'connecting',
-      });
+      dispatch({ type: 'connection', connection: hasConnected ? 'reconnecting' : 'connecting' });
     };
 
     const onConnectError = (): void => {
-      dispatch({
-        type: 'connection',
-        connection: hasConnected ? 'reconnecting' : 'waking',
-      });
+      dispatch({ type: 'connection', connection: hasConnected ? 'reconnecting' : 'waking' });
     };
 
     const onRoomState = (room: PublicRoomState): void => {
       dispatch({ type: 'room-state', room });
     };
 
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('connect_error', onConnectError);
-    socket.on('room:state', onRoomState);
+    const onGameStarted = (): void => {
+      dispatch({ type: 'game-started' });
+    };
 
+    const onRoundPaired = (payload: RoundPairedPayload): void => {
+      dispatch({
+        type: 'round-paired',
+        round: payload.round,
+        pairings: payload.pairings,
+        warmUpPlayerId: payload.warmUpPlayerId,
+        deadline: Date.now() + SELECTION_SECONDS * 1000,
+      });
+    };
+
+    const onPrivateState = (payload: PrivatePlayerState): void => {
+      dispatch({ type: 'private-state', state: payload });
+    };
+
+    const onRevealed = (payload: RevealedPayload): void => {
+      dispatch({
+        type: 'revealed',
+        myValue: payload.myValue,
+        opponentValue: payload.opponentValue,
+      });
+    };
+
+    const onResult = (outcome: DuelOutcome): void => {
+      dispatch({ type: 'duel-result', outcome });
+    };
+
+    const onNotice = (notice: { kind: string }): void => {
+      if (notice.kind === 'auto-locked') dispatch({ type: 'auto-locked' });
+    };
+
+    const subscriptions: Array<() => void> = [];
+    socket.on('connect', onConnect);
+    subscriptions.push(() => {
+      socket.off('connect', onConnect);
+    });
+    socket.on('disconnect', onDisconnect);
+    subscriptions.push(() => {
+      socket.off('disconnect', onDisconnect);
+    });
+    socket.on('connect_error', onConnectError);
+    subscriptions.push(() => {
+      socket.off('connect_error', onConnectError);
+    });
+    socket.on('room:state', onRoomState);
+    subscriptions.push(() => {
+      socket.off('room:state', onRoomState);
+    });
+    socket.on('game:started', onGameStarted);
+    subscriptions.push(() => {
+      socket.off('game:started', onGameStarted);
+    });
+    socket.on('round:paired', onRoundPaired);
+    subscriptions.push(() => {
+      socket.off('round:paired', onRoundPaired);
+    });
+    socket.on('player:private-state', onPrivateState);
+    subscriptions.push(() => {
+      socket.off('player:private-state', onPrivateState);
+    });
+    socket.on('encounter:revealed', onRevealed);
+    subscriptions.push(() => {
+      socket.off('encounter:revealed', onRevealed);
+    });
+    socket.on('encounter:result', onResult);
+    subscriptions.push(() => {
+      socket.off('encounter:result', onResult);
+    });
+    socket.on('player:notice', onNotice);
+    subscriptions.push(() => {
+      socket.off('player:notice', onNotice);
+    });
     const wakingTimer = setTimeout(() => {
       if (!hasConnected) dispatch({ type: 'connection', connection: 'waking' });
     }, WAKING_AFTER_MS);
@@ -91,10 +172,7 @@ export function useGame(): { state: GameState } & GameActions {
 
     return () => {
       clearTimeout(wakingTimer);
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('connect_error', onConnectError);
-      socket.off('room:state', onRoomState);
+      for (const unsubscribe of subscriptions) unsubscribe();
     };
   }, []);
 
@@ -133,8 +211,7 @@ export function useGame(): { state: GameState } & GameActions {
   }, []);
 
   const leaveRoom = useCallback((): void => {
-    const storage = browserStorage();
-    clearSession(storage);
+    clearSession(browserStorage());
     dispatch({ type: 'left' });
     getSocket().emit('room:leave', {});
   }, []);
@@ -145,7 +222,23 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
-  const navigate = useCallback((screen: GameState['screen']): void => {
+  const startGame = useCallback((): void => {
+    getSocket().emit('game:start', {}, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
+  const selectCard = useCallback((value: CardValue): void => {
+    dispatch({ type: 'select', value });
+  }, []);
+
+  const submitCard = useCallback((value: CardValue): void => {
+    getSocket().emit('encounter:submit', { value, useSpecial: false }, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
+  const navigate = useCallback((screen: Screen): void => {
     dispatch({ type: 'navigate', screen });
   }, []);
 
@@ -153,5 +246,16 @@ export function useGame(): { state: GameState } & GameActions {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return { state, createRoom, joinRoom, leaveRoom, setReady, navigate, clearNotice };
+  return {
+    state,
+    createRoom,
+    joinRoom,
+    leaveRoom,
+    setReady,
+    startGame,
+    selectCard,
+    submitCard,
+    navigate,
+    clearNotice,
+  };
 }

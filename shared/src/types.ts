@@ -43,3 +43,33 @@ export type PublicRoomState = {
   originPlayerId: string | null;
   endgame: EndgameSummary | null;
 };
+
+// Private state for one player, from design/08-socket-contract.md section 2.
+// It is sent only to that player's socket.
+export type PrivatePlayerState = {
+  playerId: string;
+  team: Team;
+  hand: CardValue[];
+  special: { kind: SpecialKind; status: SpecialStatus } | null;
+  encounter: {
+    opponentId: string;
+    selectionLocked: boolean;
+    lastResult: DuelOutcome | null;
+  } | null;
+  notices: PrivateNotice[];
+};
+
+export type DuelOutcome = {
+  round: number;
+  opponentId: string;
+  myValue: CardValue;
+  opponentValue: CardValue;
+  mySpecial: SpecialKind | null;
+  opponentSpecial: SpecialKind | null;
+  result: 'won' | 'lost' | 'tie' | 'blocked' | 'repelled' | 'recovered';
+};
+
+export type PrivateNotice =
+  | { kind: 'caught-cold'; lostSpecial: SpecialKind | null; newSpecial: 'shisa-mask' }
+  | { kind: 'recovered'; lostSpecial: 'shisa-mask' | null; newSpecial: SpecialKind }
+  | { kind: 'auto-locked' };

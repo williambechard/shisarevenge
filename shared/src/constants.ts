@@ -7,6 +7,15 @@ export const ROUND_COUNT = 5;
 
 export const CARD_VALUES = [1, 2, 3, 4, 5] as const;
 
+// Names from design/01-game-design.md section 2.
+export const CARD_NAMES: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: 'Mist',
+  2: 'Breeze',
+  3: 'Gust',
+  4: 'Kitakaze',
+  5: 'Squall',
+};
+
 export const MAGIC_BONUS = 2;
 export const MAX_EFFECTIVE_STRENGTH = 5;
 

@@ -71,3 +71,32 @@ describe('prefillCodeFrom', () => {
     expect(prefillCodeFrom('')).toBe('');
   });
 });
+
+describe('round actions', () => {
+  it('opens the round screen on game start and clears the selection', () => {
+    const selected = { ...createInitialState(''), selected: 3 as const };
+    const next = gameReducer(selected, { type: 'game-started' });
+    expect(next.screen).toBe('round');
+    expect(next.selected).toBeNull();
+  });
+
+  it('keeps a selected card until the next round is paired', () => {
+    const state = { ...createInitialState(''), selected: 4 as const };
+    expect(gameReducer(state, { type: 'select', value: 2 }).selected).toBe(2);
+    const paired = gameReducer(
+      { ...state, selected: 2 },
+      { type: 'round-paired', round: 1, pairings: [], warmUpPlayerId: null, deadline: 1 },
+    );
+    expect(paired.selected).toBeNull();
+    expect(paired.roundView?.round).toBe(1);
+  });
+
+  it('records a reveal and the duel result', () => {
+    const revealed = gameReducer(createInitialState(''), {
+      type: 'revealed',
+      myValue: 5,
+      opponentValue: 2,
+    });
+    expect(revealed.reveal).toEqual({ myValue: 5, opponentValue: 2 });
+  });
+});

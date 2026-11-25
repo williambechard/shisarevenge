@@ -5,6 +5,8 @@ import type { Server, Socket } from 'socket.io';
 import {
   ERROR_MESSAGES,
   RATE_LIMIT_EVENTS_PER_SECOND,
+  encounterSubmitPayload,
+  gameStartPayload,
   lobbyReadyPayload,
   roomCreatePayload,
   roomJoinPayload,
@@ -14,6 +16,7 @@ import {
 } from '@shisa-revenge/shared';
 import type { z } from 'zod';
 import type { RoomRegistry, RoomRecord } from '../rooms/roomRegistry.js';
+import type { MatchRunner } from '../game/matchRunner.js';
 import type { KeyedLimiter } from './rateLimit.js';
 import { SlidingWindowLimiter } from './rateLimit.js';
 
@@ -53,6 +56,7 @@ export function registerConnectionHandlers(
   io: Server,
   registry: RoomRegistry,
   createRoomLimiter: KeyedLimiter,
+  matches: MatchRunner,
 ): void {
   io.on('connection', (socket) => {
     const session: SocketSession = { roomCode: null, playerId: null };
@@ -123,6 +127,7 @@ export function registerConnectionHandlers(
         io.to(room.code).emit('player:reconnected', { playerId: player.id, name: player.name });
       }
       broadcastState(io, registry, room);
+      matches.resync(room.code, player.id);
     });
 
     socket.on('room:leave', (raw: unknown, ack?: (response: PlainAck) => void) => {
@@ -144,6 +149,29 @@ export function registerConnectionHandlers(
       if (!result.ok) return ack?.(fail(result.error));
 
       broadcastState(io, registry, result.value);
+      ack?.({ ok: true });
+    });
+
+    socket.on('game:start', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      if (!parse(gameStartPayload, raw)) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+
+      const result = matches.start(session.roomCode, session.playerId);
+      if (!result.ok) return ack?.(fail(result.error));
+      ack?.({ ok: true });
+    });
+
+    socket.on('encounter:submit', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      const payload = parse(encounterSubmitPayload, raw);
+      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+      // Special cards are added in plan 05. Until then, committing one is rejected.
+      if (payload.useSpecial) return ack?.(fail('SPECIAL_UNAVAILABLE'));
+
+      const result = matches.submit(session.roomCode, session.playerId, payload.value);
+      if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });
 

@@ -140,6 +140,13 @@ export class RoomRegistry {
     return { ok: true, value: room };
   }
 
+  setPhase(code: string, phase: Phase): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    room.phase = phase;
+    room.lastActivityAt = this.now();
+  }
+
   // Records which socket now holds the seat.
   bindSocket(code: string, playerId: string, socketId: string): void {
     const room = this.rooms.get(code);

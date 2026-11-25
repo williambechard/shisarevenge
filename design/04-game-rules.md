@@ -188,3 +188,4 @@ These fill gaps in `01-game-design.md` and the original doc. Review them after p
 11. Opponents never repeat in consecutive rounds. The check runs after the Warm-Up is chosen.
 12. Pairing is fully random. There is no opposite-team priority.
 13. Round announcements are built from public counts at the round summary only. They never name a player.
+14. If no pairing avoids every repeat in 50 shuffles, the engine keeps the attempt with the fewest repeats. It does not pick the least recently faced opponent as section 4.1 states. Revisit after playtests (known gap, plan 03).
