@@ -22,6 +22,9 @@ export type VendedCard =
 // One accusation, shown to everyone (design/10 section 4 and 13.1).
 export type AccusationEntry = { accuserId: string; targetId: string; correct: boolean };
 
+// The latest time two players met on a tile. Shown as a short bounce, so no token sits on another.
+export type Meeting = { moverId: string; from: Position; to: Position; at: number };
+
 export type VillageState = {
   cells: Cell[][];
   columns: number;
@@ -43,6 +46,7 @@ export type VillageState = {
   log: AccusationEntry[];
   // Roles revealed to everyone by correct accusations.
   revealed: Record<string, Team>;
+  meeting: Meeting | null;
   settings: GameSettings['village'];
 };
 
@@ -102,6 +106,7 @@ export function createVillage(
     partners: [],
     log: [],
     revealed: {},
+    meeting: null,
     settings,
   };
 }
@@ -139,12 +144,19 @@ export function moveTo(
   if (last !== undefined && now - last < state.settings.moveCooldownMs) {
     return { ok: false, error: 'MOVE_COOLDOWN' };
   }
+  // Stepping onto a tile where someone already stands is a meeting.
+  const met = Object.entries(state.positions).some(
+    ([id, at]) => id !== playerId && at.x === target.x && at.y === target.y,
+  );
   return {
     ok: true,
     value: {
       ...state,
       positions: { ...state.positions, [playerId]: { x: target.x, y: target.y } },
       lastMoveAt: { ...state.lastMoveAt, [playerId]: now },
+      meeting: met
+        ? { moverId: playerId, from: { ...from }, to: { x: target.x, y: target.y }, at: now }
+        : state.meeting,
     },
   };
 }

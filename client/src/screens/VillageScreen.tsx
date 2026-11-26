@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CARD_NAMES,
   SPECIAL_NAMES,
@@ -15,6 +15,9 @@ import { VendingPanel } from '../components/organisms/VendingPanel.js';
 import { VillageBoard } from '../components/organisms/VillageBoard.js';
 import { VILLAGE_BACKGROUND_ART } from '../assets/village/index.js';
 import type { GameState } from '../state/gameState.js';
+
+// How long the bounce after a meeting lasts, before the overlay opens.
+const MEETING_BOUNCE_MS = 700;
 
 type VillageScreenProps = {
   state: GameState;
@@ -80,6 +83,18 @@ export function VillageScreen({
 }: VillageScreenProps) {
   // Which meeting the player has already dismissed. A new arrival on the tile opens the overlay again.
   const [walkedOn, setWalkedOn] = useState<string | null>(null);
+  // The overlay waits for the bounce after a meeting to finish.
+  const meetingAt = room.village?.meeting?.at ?? 0;
+  const [readyFor, setReadyFor] = useState(0);
+  useEffect(() => {
+    if (meetingAt === 0) return;
+    const handle = setTimeout(() => {
+      setReadyFor(meetingAt);
+    }, MEETING_BOUNCE_MS);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [meetingAt]);
   const village = room.village;
   const self = state.privateState;
   const selfId = state.playerId;
@@ -97,7 +112,11 @@ export function VillageScreen({
     return at !== undefined && at.x === here.x && at.y === here.y;
   });
   const meetingKey = `${String(here?.x)},${String(here?.y)}:${onTile.map((player) => player.id).join(',')}`;
-  const overlayOpen = !out && onTile.length > 0 && walkedOn !== meetingKey;
+  const overlayOpen =
+    !out &&
+    onTile.length > 0 &&
+    walkedOn !== meetingKey &&
+    (meetingAt === 0 || readyFor === meetingAt);
   const onVending = here !== undefined && village.board[here.y]?.[here.x] === 'V';
   const hand = self?.hand ?? [];
   const special = self?.special?.status === 'available' ? self.special.kind : null;
@@ -145,6 +164,7 @@ export function VillageScreen({
 
       <VillageBoard
         board={village.board}
+        meeting={village.meeting}
         positions={village.positions}
         players={room.players}
         selfId={selfId}

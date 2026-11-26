@@ -295,3 +295,24 @@ describe('public accusations (design/10 section 13.1)', () => {
     expect(result.value.state.log).toHaveLength(1);
   });
 });
+
+describe('meetings on the walkway', () => {
+  it('records a meeting when a player steps onto another player', () => {
+    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 2, y: 0 } }, {});
+    const result = moveTo(state, 'a', { x: 2, y: 0 }, 1000);
+    if (!result.ok) throw new Error('move failed');
+    expect(result.value.meeting).toEqual({
+      moverId: 'a',
+      from: { x: 1, y: 0 },
+      to: { x: 2, y: 0 },
+      at: 1000,
+    });
+  });
+
+  it('records no meeting for a step onto an empty tile', () => {
+    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 3, y: 0 } }, {});
+    const result = moveTo(state, 'a', { x: 2, y: 0 }, 1000);
+    if (!result.ok) throw new Error('move failed');
+    expect(result.value.meeting).toBeNull();
+  });
+});

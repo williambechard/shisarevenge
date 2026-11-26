@@ -44,6 +44,13 @@ export type PublicVillage = {
   // Roles revealed to everyone by correct accusations.
   revealed: Record<string, Team>;
   // Open challenges (who challenged whom) are sent only as the partner result, not to others.
+  // The latest meeting: the mover bounces back to where they came from. Null when none.
+  meeting: {
+    moverId: string;
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    at: number;
+  } | null;
   // Epoch ms when the village closes and the next match starts.
   endsAt: number;
 };

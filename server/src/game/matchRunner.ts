@@ -655,6 +655,7 @@ export class MatchRunner {
         tags: village.tags,
         log: village.log,
         revealed: village.revealed,
+        meeting: village.meeting,
         endsAt,
       });
     }
