@@ -4,6 +4,8 @@ import { Countdown } from '../atoms/Countdown.js';
 import { PlayingCard } from '../molecules/PlayingCard.js';
 
 type PickPanelProps = {
+  // The player whose card is taken.
+  loserName: string;
   // How many face-down cards the winner may take from. The values stay hidden.
   poolSize: number;
   // Epoch ms when the server takes a card at random.
@@ -13,7 +15,7 @@ type PickPanelProps = {
 
 // The blind pick: the loser's remaining cards, all face down. The winner taps one. Its value is
 // shown only after it is taken, and only to the winner.
-export function PickPanel({ poolSize, deadline, onPick }: PickPanelProps) {
+export function PickPanel({ loserName, poolSize, deadline, onPick }: PickPanelProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -32,8 +34,9 @@ export function PickPanel({ poolSize, deadline, onPick }: PickPanelProps) {
           Take a card
         </h2>
         <p className="text-center text-sm text-sand">
-          Choose one of their {String(poolSize)} cards. You will not see its value until you take
-          it.
+          {loserName} holds <span className="text-2xl font-bold">{String(poolSize)}</span> number{' '}
+          {poolSize === 1 ? 'card' : 'cards'} you can take. You will not see their values until you
+          take one.
         </p>
         <div className="text-sand">
           <Countdown deadline={deadline} label="Choose before" />

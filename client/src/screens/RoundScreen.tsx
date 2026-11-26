@@ -1,4 +1,4 @@
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   CARD_NAMES,
   ROUND_COUNT,
@@ -70,10 +70,18 @@ function CardCounts({ room }: { room: PublicRoomState }) {
       <p className="font-semibold">Cards left</p>
       <ul className="flex flex-wrap gap-x-3 gap-y-1">
         {room.players.map((player) => (
-          <li key={player.id} className={player.eliminated ? 'line-through opacity-60' : ''}>
+          <motion.li
+            key={player.id}
+            animate={{
+              opacity: player.eliminated ? 0.45 : 1,
+              filter: player.eliminated ? 'grayscale(1)' : 'grayscale(0)',
+            }}
+            transition={{ duration: 0.8 }}
+            className={player.eliminated ? 'line-through' : ''}
+          >
             {player.name}:{' '}
             {player.eliminated ? 'out' : player.cardCount === null ? '-' : String(player.cardCount)}
-          </li>
+          </motion.li>
         ))}
       </ul>
     </section>
@@ -189,6 +197,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
         {pending ? (
           <PickPanel
             key="pick"
+            loserName={opponentName}
             poolSize={pending.poolSize}
             deadline={pending.deadline}
             onPick={onPick}
