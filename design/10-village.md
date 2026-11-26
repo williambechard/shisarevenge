@@ -33,13 +33,13 @@ Players who are out of cards at the end of a match are still in the village. The
 
 ## 4. Accusation
 
-- **Who:** any player who holds at least one number card and shares a tile with the target. Eliminated players cannot accuse.
+- **Who:** any player who shares a tile with the target. A player who holds number cards pays one to accuse. A player who is out accuses for free (see section 9).
 - **Limit:** one accusation per player per village. A target can receive many accusations.
-- **Cost:** the accuser chooses one of their number cards and gives it up. The card is removed for good, and the cost is paid whatever the outcome (design 2 from the earlier discussion).
-- **Resolution, against the final roles of the match that just ended:**
+- **Cost:** the accuser chooses any one of their cards and gives it up. The card is removed for good, and the cost is paid whatever the outcome.
+- **Resolution, against the final roles of the match that just ended, which stay hidden until an accusation resolves:**
   - **Correct** (the target was Shisa's Army): the accuser receives a random number card, from 1 to 5. The card is not drawn from the target's hand, so the prize does not depend on what the target holds.
   - **Wrong:** nothing is gained. The cost is already paid.
-- **Privacy:** only the accuser learns whether the accusation was correct. The target is told that someone accused them, with no name and no result.
+- **Privacy:** only the accuser learns whether the accusation was correct, and the accused's role is shown to the accuser alone. The target is told that someone accused them, with no name and no result.
 - **Public tag:** every accusation adds a public tag to the target, shown on the walkway as a count per player, for example "Habu: 2 tags". The tag shows who was accused, not who accused them or whether it was right.
 
 ## 5. Vending machine
@@ -81,12 +81,23 @@ Sizes are for a portrait phone at 3x (1170×2532 for the full screen). The art c
 
 If you'd rather not draw these yet, I can build placeholder SVG versions in the same sizes, so the layout can be checked first.
 
-## 9. Open questions
+## 9. Decisions (from review)
 
-1. **Accusations target the match that just ended.** Roles reset each match, so an accusation can only be about the roles of the match just ended. Is that the right target, or should accusations be about the next match? (The current proposal is "the match just ended".)
-2. **Reveal at the end of the village.** Final roles are revealed after the village. Should they be revealed at all, or kept hidden for the rest of the game?
-3. **Carry-over of cards.** Are village cards kept into the next match as extra cards (the current proposal), or does each match start from a fixed hand?
-4. **Vending odds and limits.** Are 16% / 20% and one use per village right for a party-sized room?
-5. **Accusation cost.** Should the cost be any number card (current proposal), a special card, or a choice of the accuser's cheapest card?
-6. **Village length.** 90 seconds for testing and 120 for the party. Is that enough time to walk and act with 8 players?
-7. **Elimination in the village.** Out players can accuse and read, but cannot spend cards. Should they be able to join the next match, or stay out for good?
+1. **Accusations are about the match that just ended.** Roles reset each match, so an accusation checks the final roles of the match just played.
+2. **Roles stay hidden** after the village, except that a correct accusation reveals the accused's role to the accuser.
+3. **Village cards carry into the next match** as extra cards, on top of that match's starting hand.
+4. **Vending odds and limits are adjustable.** They live in a settings file (section 10), so they can be changed without code.
+5. **The accusation cost is any card**, number or special.
+6. **Village length:** `VILLAGE_SECONDS`. Testing value to be confirmed (see section 11).
+7. **Out players can accuse for free and cannot join the next match.** Their accusations still resolve. Whether a correct accusation still pays a card is open (section 11).
+
+## 10. Settings file
+
+Tunable values for the village (and later, other tuning) live in one JSON file, `data/settings.json`, that you can edit without touching code. The server reads it at startup. Values the client needs to display (such as the village timer) are sent by the server in room state, so the client never holds its own copy.
+
+Settings covered: `villageSeconds`, `moveCooldownMs`, vending odds, vending limit per village, and accusation limit per village.
+
+## 11. Open questions for the next review
+
+1. **Village length for testing.** "Keep at 15 seconds" could mean the village timer or the lobby wait. The lobby wait is already 15 seconds for testing, and it returns to 60 before the party. Is the village timer also 15 seconds for testing?
+2. **Free accusations for out players.** If an out player makes a correct accusation, do they still get a card? They can't join the next match, so the card would have no use. Proposal: no card, but the correct result is still shown privately.
