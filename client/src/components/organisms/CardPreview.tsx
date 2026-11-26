@@ -60,7 +60,7 @@ export function CardPreview({ front, info, layoutId, onLock, onBack }: CardPrevi
 
         <div className="flex w-full gap-2">
           <div className="flex-1">
-            <Button variant="secondary" onClick={onBack}>
+            <Button variant="onDark" onClick={onBack}>
               Back
             </Button>
           </div>
