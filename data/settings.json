@@ -1,0 +1,13 @@
+﻿{
+  "_comment": "Tunable game settings. Edit values here, then restart the server. W = walkway, X = blocked tile, V = vending machine (exactly one).",
+  "village": {
+    "villageSeconds": 60,
+    "moveCooldownMs": 400,
+    "accusationsPerPlayer": 1,
+    "vending": {
+      "specialChance": 0.2,
+      "usesPerVillage": 1
+    },
+    "board": ["XWWWWWX", "WWXWXWW", "WWWVWWW", "WXWWWXW", "XWWWWWX"]
+  }
+}

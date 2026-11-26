@@ -101,3 +101,11 @@ Settings covered: `villageSeconds`, `moveCooldownMs`, vending odds, vending limi
 
 1. **Village timer:** 60 seconds for testing. Set in `data/settings.json` as `villageSeconds`, so it can be changed without code. (The lobby wait stays at 15 seconds for testing, and returns to 60 before the party.)
 2. **Out players get no card.** A correct accusation by an out player shows the result privately, and nothing else changes.
+
+## 12. Carry-over rule for specials (implementation decision)
+
+Every player is dealt a special at the start of a match (section 3 of  4-game-rules.md), so the rule in section 6 cannot keep a special gained in the village as written. The rule is now:
+
+- A special gained by vending (Protection Talisman or Ramen) replaces the Survivor special the player would be dealt at the next start.
+- If that player is the origin (dealt a Shisa Mask), the gained special becomes one extra number card instead.
+- A Shisa Mask carried out of a match is never kept: it becomes one extra number card, because the mask is Army-only.
