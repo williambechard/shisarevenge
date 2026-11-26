@@ -159,7 +159,7 @@ export function VillageBoard({
           {vendingHint && machine ? (
             <div
               role="status"
-              className="absolute -mt-2 w-44 -translate-x-1/2 -translate-y-full rounded-md bg-navy px-2 py-1 text-center text-xs text-sand shadow-md"
+              className="absolute -mt-2 w-44 -translate-x-1/2 -translate-y-full rounded-md bg-navy px-2 py-1 text-center text-xs text-white shadow-md"
               style={{
                 left: `${String(((machine.x + 0.5) / columns) * 100)}%`,
                 top: `${String((machine.y / rows) * 100)}%`,

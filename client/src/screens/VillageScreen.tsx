@@ -21,6 +21,8 @@ const MEETING_BOUNCE_MS = 800;
 const ACCUSATION_NOTE_MS = 6000;
 // How long the vending hint stays above the machine.
 const VENDING_HINT_MS = 3000;
+// Village messages sit on a dark card, so white text stays readable over the background.
+const noticeCard = 'rounded-xl bg-navy/90 px-4 py-3 text-sm text-white shadow-md';
 
 type VillageScreenProps = {
   state: GameState;
@@ -170,7 +172,11 @@ export function VillageScreen({
         <Countdown deadline={village.endsAt} label="Next round in" />
       </header>
 
-      {note ? <StatusMessage>{note}</StatusMessage> : null}
+      {note ? (
+        <div role="status" aria-live="polite" className={noticeCard}>
+          {note}
+        </div>
+      ) : null}
 
       <VillageBoard
         board={village.board}
@@ -197,7 +203,11 @@ export function VillageScreen({
         }}
       />
 
-      {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}
+      {notice ? (
+        <div role="status" aria-live="polite" className={noticeCard}>
+          {notice.text}
+        </div>
+      ) : null}
 
       {overlayOpen ? (
         <div
