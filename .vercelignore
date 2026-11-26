@@ -1,0 +1,9 @@
+# Files the Vercel CLI should not upload. Vercel installs and builds on its own servers.
+# Git ignores these through .gitignore, but the CLI reads only this file.
+node_modules
+.git
+.vercel
+.testprofiles
+dist
+**/dist
+design/art-source

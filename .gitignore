@@ -57,3 +57,6 @@ ehthumbs.db
 .kiro/settings/mcp.json
 
 # Editable art and audio sources are tracked. Large files can move to Git LFS later.
+
+.vercel
+.env*
