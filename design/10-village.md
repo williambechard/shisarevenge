@@ -125,3 +125,9 @@ Open questions for review:
 3. **Accusations during the match.** If the village runs after every round, the accusation can target any player's current role, not only the match that just ended. Would a correct accusation reveal that player's role to everyone, or only to the accuser?
 4. **Cards.** Accusation costs and vending rewards carry into the next round, as they do into the next match now.
 5. **Eliminated players** still accuse for free, and can still walk the village between rounds. Do they keep watching during matches, or can they accuse each round?
+### 13.1 Decisions (from review)
+
+1. **Partner choice:** when two players stand on the same tile, a modal opens for each of them. It offers **Challenge** (propose a duel for the next round), **Accuse**, or **Walk on**. A challenge is mutual: if both players challenge each other, they are paired for the next round. Otherwise the player is paired at random.
+2. **Random partners** are drawn from the players still in play. Eliminated players are never paired.
+3. **Accusations are public.** Everyone sees who accused whom, and the result of the accusation. A correct accusation also reveals the accused player's role to everyone. A wrong accusation reveals nothing about the accused's role.
+4. **Eliminated players are observers.** They can walk and read the village, but they cannot accuse or challenge.
