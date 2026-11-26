@@ -1,6 +1,6 @@
-import { Avatar } from '../molecules/Avatar.js';
-import { VENDING_ART } from '../../assets/village/index.js';
 import type { PublicPlayer } from '@shisa-revenge/shared';
+import { VENDING_ART } from '../../assets/village/index.js';
+import { Avatar } from '../molecules/Avatar.js';
 
 type Position = { x: number; y: number };
 
@@ -18,7 +18,8 @@ function isNeighbour(a: Position | undefined, b: Position): boolean {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
 }
 
-// The walkway grid. The background shows through the walkable tiles. Blocked tiles are shaded, and each player's token sits on its tile.
+// The walkway grid. Tiles are see-through, so the village background shows through. The only mark on a
+// tile is its available highlight, and the vending machine on its tile. Each player's token sits on its tile.
 export function VillageBoard({ board, positions, players, selfId, onStep }: VillageBoardProps) {
   const own = selfId === null ? undefined : positions[selfId];
   const seats = players.filter((player) => positions[player.id] !== undefined);
@@ -47,9 +48,7 @@ export function VillageBoard({ board, positions, players, selfId, onStep }: Vill
               onClick={() => {
                 onStep(x, y);
               }}
-              className={`relative aspect-[1/2] overflow-hidden border border-navy/20 focus-visible:outline-3 focus-visible:outline-gold ${
-                char === 'X' ? 'bg-navy/25' : ''
-              } ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
+              className={`relative aspect-square overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
             >
               {char === 'V' ? (
                 <img

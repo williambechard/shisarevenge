@@ -14,7 +14,7 @@ const settingsSchema = z.object({
       specialChance: z.number().min(0).max(1),
       usesPerVillage: z.number().int().min(0).max(10),
     }),
-    board: z.array(boardRow).length(5),
+    board: z.array(boardRow).min(3).max(12),
   }),
 });
 
