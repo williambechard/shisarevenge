@@ -148,6 +148,7 @@ export function VillageScreen({
       [here.x, here.y - 1],
     ].some(([x, y]) => x !== undefined && y !== undefined && isMachine(x, y));
   const hand = self?.hand ?? [];
+  const hasDuplicate = new Set(hand).size < hand.length;
   const special = self?.special?.status === 'available' ? self.special.kind : null;
 
   return (
@@ -169,7 +170,8 @@ export function VillageScreen({
           onStep(x, y);
         }}
         onVendingTap={() => {
-          setVendingOpen(true);
+          // The panel opens only when the player holds a duplicate card to insert.
+          if (hasDuplicate) setVendingOpen(true);
         }}
       />
 
@@ -219,17 +221,24 @@ export function VillageScreen({
       ) : null}
 
       {vendingOpen && nextToMachine && !out ? (
-        <section className="flex flex-col gap-2 rounded-xl bg-sand/90 p-3">
-          <VendingPanel hand={hand} onInsert={onInsert} />
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setVendingOpen(false);
-            }}
-          >
-            Close
-          </Button>
-        </section>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vending machine"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 p-4"
+        >
+          <div className="flex w-full max-w-sm flex-col gap-3 rounded-xl bg-sand p-4 text-navy">
+            <VendingPanel hand={hand} onInsert={onInsert} />
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setVendingOpen(false);
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       ) : null}
     </section>
   );
