@@ -5,6 +5,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   MAX_PLAYERS,
+  PLAYER_ICON_COUNT,
   PLAYER_NAMES,
   ROOM_INACTIVITY_HOURS,
   ROUND_COUNT,
@@ -20,6 +21,8 @@ import { createSessionToken } from './sessionTokens.js';
 export type PlayerRecord = {
   id: string;
   name: string;
+  // Index of the player's icon. Unique within the room.
+  icon: number;
   token: string;
   connected: boolean;
   joinedAt: number;
@@ -96,7 +99,7 @@ export class RoomRegistry {
     }
 
     const room = this.openLobby() ?? this.createRoom();
-    const player = this.buildPlayer(this.assignName(room));
+    const player = this.buildPlayer(this.assignName(room), this.assignIcon(room));
     room.players.push(player);
     room.lastActivityAt = this.now();
     return { ok: true, value: { room, player, reconnected: false } };
@@ -218,6 +221,7 @@ export class RoomRegistry {
       players: room.players.map((player) => ({
         id: player.id,
         name: player.name,
+        icon: player.icon,
         connected: player.connected,
         cardCount: player.cardCount,
         eliminated: player.eliminated,
@@ -267,10 +271,11 @@ export class RoomRegistry {
     return room;
   }
 
-  private buildPlayer(name: string): PlayerRecord {
+  private buildPlayer(name: string, icon: number): PlayerRecord {
     return {
       id: this.newId(),
       name,
+      icon,
       token: this.newToken(),
       connected: true,
       joinedAt: this.now(),
@@ -278,6 +283,17 @@ export class RoomRegistry {
       cardCount: null,
       eliminated: false,
     };
+  }
+
+  // Picks an icon no one in the room has. A room holds at most MAX_PLAYERS, and there are as many icons, so one is always free.
+  private assignIcon(room: RoomRecord): number {
+    const taken = new Set(room.players.map((player) => player.icon));
+    const free = Array.from({ length: PLAYER_ICON_COUNT }, (_, index) => index).filter(
+      (index) => !taken.has(index),
+    );
+    const icon = free[this.randomInt(free.length)];
+    if (icon === undefined) throw new Error('No free player icon');
+    return icon;
   }
 
   // Picks a name no one in the room has. A room holds at most MAX_PLAYERS, and there are

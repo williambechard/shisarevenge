@@ -79,3 +79,6 @@ export const EMOTE_IDS = [
   'gasp',
   'bye',
 ] as const;
+
+// Player icons: one per seat, at most MAX_PLAYERS. Each room gives every player a different one. See client/src/assets/playericons.
+export const PLAYER_ICON_COUNT = 8;

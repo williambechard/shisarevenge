@@ -17,6 +17,8 @@ export type Phase =
 export type PublicPlayer = {
   id: string;
   name: string;
+  // Index of this player's icon, from 0 to PLAYER_ICON_COUNT minus one. Unique within the room.
+  icon: number;
   connected: boolean;
   // Cards held, shared at the round summary only. Null before the match starts.
   cardCount: number | null;

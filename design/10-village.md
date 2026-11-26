@@ -27,7 +27,7 @@ Players who are out of cards at the end of a match are still in the village. The
 - **Board:** 7 columns by 10 rows of tiles, all walkway except the vending machine. The board in data/settings.json may still use blocked tiles (X), but the MVP board has none, so every tile can be reached.
 - **Landmark:** the vending machine occupies one walkway tile. It is the only landmark in the MVP.
 - **Movement:** tap an adjacent walkway tile (up, down, left, right, not diagonal). The four tiles next to the player's token are enabled and show a direction arrow pointing at them. The server validates each move and records the position. A player may move once every `MOVE_COOLDOWN_MS` (proposed: 400 ms) to keep the server quiet.
-- **Avatars:** each player is a token with their name's first letter and one of eight colours. The token is code-drawn, so it needs no art.
+- **Avatars:** each player is a token showing their player icon (one of eight 128x128 pictures in client/src/assets/playericons/). The server gives each seat a different icon in the room, at random, and a reconnecting player keeps theirs. The same icon shows left of the name in the header and in the lobby list.
 - **Meeting:** two players are on the same tile when they stand together. The player who stepped on stays there. The token glides in, then recoils once, and the overlay opens after about 0.8 s. The arrows follow that tile.
 Accusations need the accuser and the target on the same tile. This is why the grid matters: you have to walk to the person you suspect.
 - **Start positions:** each player starts on a walkway tile spread across the board, chosen by the server.

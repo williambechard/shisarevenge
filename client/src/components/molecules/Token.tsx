@@ -7,7 +7,8 @@ export type Bounce = { dx: number; dy: number; at: number } | null;
 
 type TokenProps = {
   name: string;
-  colour: number;
+  // Index of the player's icon.
+  icon: number;
   self: boolean;
   // Tile position on the board.
   x: number;
@@ -30,7 +31,7 @@ const BOUNCE_FRESH_MS = 2000;
 
 // A player's token. It glides from tile to tile with ease-in/out, and squashes and stretches along the
 // way of travel: stretched as it leaves, squashed as it lands.
-export function Token({ name, colour, self, x, y, cols, rows, spread, bounce, badge }: TokenProps) {
+export function Token({ name, icon, self, x, y, cols, rows, spread, bounce, badge }: TokenProps) {
   const [scope, animateInner] = useAnimate<HTMLDivElement>();
   const last = useRef({ x, y });
   const bounceAt = bounce?.at;
@@ -82,7 +83,7 @@ export function Token({ name, colour, self, x, y, cols, rows, spread, bounce, ba
       transition={{ duration: MOVE_MS / 1000, ease: 'easeInOut' }}
     >
       <div ref={scope} className="flex items-center justify-center">
-        <Avatar name={name} colour={colour} self={self} />
+        <Avatar name={name} icon={icon} self={self} />
       </div>
       {badge ? <div className="absolute -top-4 left-1/2 -translate-x-1/2">{badge}</div> : null}
     </motion.div>

@@ -146,7 +146,7 @@ export function VillageBoard({
               <Token
                 key={player.id}
                 name={player.name}
-                colour={players.indexOf(player)}
+                icon={player.icon}
                 self={player.id === selfId}
                 x={at.x}
                 y={at.y}

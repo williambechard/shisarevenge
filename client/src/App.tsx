@@ -55,12 +55,13 @@ export function App() {
     clearNotice,
   } = useGame();
   const role = roleOf(state.privateState);
+  const self = state.room?.players.find((player) => player.id === state.playerId);
 
   const view = viewOf(state);
 
   return (
     <PhoneFrame background={view === 'village' ? VILLAGE_BACKGROUND_ART : undefined}>
-      {state.name ? <PlayerBanner name={state.name} role={role} /> : null}
+      {state.name ? <PlayerBanner name={state.name} icon={self?.icon ?? null} role={role} /> : null}
       {state.connection === 'waking' ? (
         <WaitingIndicator
           title="Server waking up"

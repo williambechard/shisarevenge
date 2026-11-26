@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_PLAYERS, PLAYER_NAMES, ROOM_INACTIVITY_HOURS } from '@shisa-revenge/shared';
+import {
+  MAX_PLAYERS,
+  PLAYER_ICON_COUNT,
+  PLAYER_NAMES,
+  ROOM_INACTIVITY_HOURS,
+} from '@shisa-revenge/shared';
 import { RoomRegistry } from './roomRegistry.js';
 
 // Deterministic registry: fixed codes, sequential ids and tokens, and a controllable clock.
@@ -181,5 +186,28 @@ describe('RoomRegistry.toPublicState', () => {
     const { room, player } = enterOk(registry, 's1');
     const serialized = JSON.stringify(registry.toPublicState(room));
     expect(serialized).not.toContain(player.token);
+  });
+});
+
+describe('RoomRegistry player icons', () => {
+  it('gives every player in a room a different icon', () => {
+    const { registry } = makeRegistry();
+    const icons = Array.from(
+      { length: MAX_PLAYERS },
+      (_, index) => enterOk(registry, `s${String(index)}`).player.icon,
+    );
+    expect(new Set(icons).size).toBe(MAX_PLAYERS);
+    for (const icon of icons) {
+      expect(icon).toBeGreaterThanOrEqual(0);
+      expect(icon).toBeLessThan(PLAYER_ICON_COUNT);
+    }
+  });
+
+  it('keeps the icon when a player reclaims their seat', () => {
+    const { registry } = makeRegistry();
+    const first = enterOk(registry, 's1');
+    registry.markDisconnected(first.room.code, first.player.id, 's1');
+    const again = enterOk(registry, 's2', first.player.token);
+    expect(again.player.icon).toBe(first.player.icon);
   });
 });
