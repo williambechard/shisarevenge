@@ -24,6 +24,8 @@ export type GameServer = {
 export type GameServerOptions = {
   registry?: RegistryOptions;
   matches?: MatchRunnerOptions;
+  // How long a lobby seat is kept after its player disconnects. Tests shorten this.
+  lobbyDisconnectMs?: number;
 };
 
 export function createGameServer(
@@ -42,6 +44,7 @@ export function createGameServer(
     registry,
     new KeyedLimiter(ROOM_CREATE_PER_IP_PER_MINUTE, 60_000),
     matches,
+    options.lobbyDisconnectMs,
   );
 
   const sweeper = setInterval(() => {

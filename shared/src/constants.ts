@@ -36,6 +36,8 @@ export const SELECTION_SECONDS = 45;
 // Once a room has MIN_PLAYERS, this long before anyone may start it early. See design/01-game-design.md section 8.
 // TESTING VALUE: 15 seconds. Restore to 60 before the party.
 export const LOBBY_START_WAIT_SECONDS = 15;
+// A player who drops out of a lobby keeps their seat this long. After that the seat is released.
+export const LOBBY_DISCONNECT_GRACE_SECONDS = 30;
 export const RECONNECT_GRACE_SECONDS = 120;
 
 // Room codes avoid ambiguous characters (no 0, O, 1, I).

@@ -9,6 +9,7 @@ import {
   roomEnterPayload,
   lobbyStartNowPayload,
   roomLeavePayload,
+  LOBBY_DISCONNECT_GRACE_SECONDS,
   type AckResponse,
   type ErrorCode,
 } from '@shisa-revenge/shared';
@@ -60,7 +61,25 @@ export function registerConnectionHandlers(
   registry: RoomRegistry,
   createRoomLimiter: KeyedLimiter,
   matches: MatchRunner,
+  lobbyDisconnectMs: number = LOBBY_DISCONNECT_GRACE_SECONDS * 1000,
 ): void {
+  // Frees a lobby seat whose player never came back. A player who reconnected to the seat, or who
+  // left, is not affected.
+  const releaseLobbySeatLater = (code: string, playerId: string, socketId: string): void => {
+    const timer = setTimeout(() => {
+      const room = registry.find(code);
+      const seat = room?.players.find((candidate) => candidate.id === playerId);
+      if (!room || !seat || seat.connected || seat.socketId !== socketId) return;
+      if (room.phase !== 'lobby') return;
+
+      const remaining = registry.leave(code, playerId);
+      if (remaining) broadcastState(io, registry, remaining);
+      matches.lobbyChanged(code);
+    }, lobbyDisconnectMs);
+    // A pending release must not keep the process alive.
+    timer.unref();
+  };
+
   io.on('connection', (socket) => {
     const session: SocketSession = { roomCode: null, playerId: null };
     const eventLimiter = new SlidingWindowLimiter(RATE_LIMIT_EVENTS_PER_SECOND, 1000);
@@ -175,6 +194,7 @@ export function registerConnectionHandlers(
 
       io.to(code).emit('player:disconnected', { playerId: player.id, name: player.name });
       broadcastState(io, registry, room);
+      if (room.phase === 'lobby') releaseLobbySeatLater(code, player.id, socket.id);
     });
   });
 }
