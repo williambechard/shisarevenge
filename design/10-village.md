@@ -109,3 +109,19 @@ Every player is dealt a special at the start of a match (section 3 of  4-game-ru
 - A special gained by vending (Protection Talisman or Ramen) replaces the Survivor special the player would be dealt at the next start.
 - If that player is the origin (dealt a Shisa Mask), the gained special becomes one extra number card instead.
 - A Shisa Mask carried out of a match is never kept: it becomes one extra number card, because the mask is Army-only.
+## 13. Revision: village between rounds (proposed, not built)
+
+This revises sections 1 and 2. The village opens at the start of the match and after every round, not only between matches.
+
+1. **Start:** the match begins in the village, before round 1. Players walk, accuse, use the vending machine, and choose partners.
+2. **After each round:** the round summary is followed by the village, for `villageSeconds`. Round 5 is followed by the overview, then the village between matches, as now.
+3. **Timer:** 30 seconds for testing, set in `data/settings.json`. This applies to every village.
+4. **Partners:** the village is where a player picks who they duel next. If nobody picks, the server assigns a partner at random from those still in the game, as the round pairing does now.
+
+Open questions for review:
+
+1. **What does "partner" mean?** Option A: each player taps one player on their tile, and a mutual choice pairs them for the next round. Option B: a partner is fixed for the whole match. Option B conflicts with the random pairing and the no-repeat rule in `04-game-rules.md` section 4.1, so I recommend Option A.
+2. **Unmatched players.** Under Option A, anyone who doesn't match is paired at random. Does a player on a tile with nobody else get a random partner from the whole game, or only from those on the tile?
+3. **Accusations during the match.** If the village runs after every round, the accusation can target any player's current role, not only the match that just ended. Would a correct accusation reveal that player's role to everyone, or only to the accuser?
+4. **Cards.** Accusation costs and vending rewards carry into the next round, as they do into the next match now.
+5. **Eliminated players** still accuse for free, and can still walk the village between rounds. Do they keep watching during matches, or can they accuse each round?
