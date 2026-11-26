@@ -1,4 +1,4 @@
-﻿// Loads data/settings.json at startup and checks every value. A bad value stops the server with a clear message.
+// Loads data/settings.json at startup and checks every value. A bad value stops the server with a clear message.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
@@ -37,5 +37,7 @@ export function parseSettings(raw: unknown): GameSettings {
 }
 
 export function loadSettings(path: string = SETTINGS_PATH): GameSettings {
-  return parseSettings(JSON.parse(readFileSync(path, 'utf8')) as unknown);
+  // A byte-order mark from some editors would break JSON.parse, so it is removed first.
+  const text = readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
+  return parseSettings(JSON.parse(text) as unknown);
 }

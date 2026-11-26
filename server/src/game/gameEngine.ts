@@ -15,6 +15,7 @@ import { createHand } from './deck.js';
 import { pairKey, pairPlayers, type RandomFn } from './pairing.js';
 import { resolveDuel, type DuelOutcome } from './encounterResolver.js';
 import { catchCold, randomSurvivorSpecial, recover, type PlayerSpecial } from './teamChanges.js';
+import type { VillageCards } from '../village/village.js';
 
 export type MatchPlayer = {
   id: string;
@@ -81,24 +82,41 @@ export function strengthOf(card: Played): CardValue {
 }
 
 // Setup (design section 3): the origin holds a Shisa Mask. Each Survivor gets a random Survivor special.
+// Cards carried out of the village (design/10 section 6 and 12) are added to the starting hand. A carried
+// Protection Talisman or Ramen replaces a Survivor's random special. Any other carried special becomes a number.
 export function createMatch(
   players: ReadonlyArray<{ id: string; team: Team }>,
   random: RandomFn = Math.random,
+  carry: Readonly<Record<string, VillageCards>> = {},
 ): MatchState {
   return {
     phase: 'lobby',
     round: 0,
-    players: players.map((player) => ({
-      id: player.id,
-      team: player.team,
-      hand: createHand(),
-      byeCount: 0,
-      special:
+    players: players.map((player) => {
+      const extra = carry[player.id];
+      const hand: CardValue[] = [...createHand(), ...(extra?.hand ?? [])];
+      let special: PlayerSpecial =
         player.team === 'infected'
           ? { kind: 'shisa-mask', status: 'available' }
-          : { kind: randomSurvivorSpecial(random), status: 'available' },
-      eliminated: false,
-    })),
+          : { kind: randomSurvivorSpecial(random), status: 'available' };
+      if (extra?.special) {
+        const survivorSpecial =
+          extra.special === 'protection-talisman' || extra.special === 'ramen';
+        if (player.team === 'survivor' && survivorSpecial) {
+          special = { kind: extra.special, status: 'available' };
+        } else {
+          hand.push((Math.floor(random() * 5) + 1) as CardValue);
+        }
+      }
+      return {
+        id: player.id,
+        team: player.team,
+        hand,
+        byeCount: 0,
+        special,
+        eliminated: false,
+      };
+    }),
     pairs: [],
     warmUpId: null,
     previousPairs: new Set(),
@@ -109,7 +127,6 @@ export function createMatch(
     transformations: {},
   };
 }
-
 export function beginRound(state: MatchState): MatchState {
   if (state.phase !== 'lobby' && state.phase !== 'resolved') {
     throw new Error(`Cannot begin a round from phase ${state.phase}`);

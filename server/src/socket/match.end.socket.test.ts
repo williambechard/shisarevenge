@@ -72,7 +72,7 @@ describe('a full match', () => {
     expect(summary.infected).toBeGreaterThanOrEqual(1);
 
     const room = game.registry.find(firstSeat.roomCode);
-    expect(room?.phase).toBe('ended');
+    expect(room?.phase).toBe('village');
     expect(room?.endgame?.winner).toBe(summary.winner);
     expect(room?.teamCounts).toEqual({ survivors: summary.survivors, infected: summary.infected });
   }, 20_000);

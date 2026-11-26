@@ -57,5 +57,29 @@ export const cardPickPayload = z.strictObject({
 
 export type CardPickPayload = z.infer<typeof cardPickPayload>;
 
+// Village actions (design/10-village.md). Positions are checked against the board on the server.
+export const villageMovePayload = z.strictObject({
+  x: z.number().int().min(0).max(99),
+  y: z.number().int().min(0).max(99),
+});
+
+export const villageAccusePayload = z.strictObject({
+  targetId: z.string().min(1).max(64),
+  // The card given up. Null only when the accuser holds no cards (they are out).
+  card: z
+    .union([
+      z.strictObject({
+        type: z.literal('number'),
+        value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+      }),
+      z.strictObject({ type: z.literal('special') }),
+    ])
+    .nullable(),
+});
+
+export const villageVendPayload = z.strictObject({
+  value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+});
+
 export type EncounterSubmitPayload = z.infer<typeof encounterSubmitPayload>;
 export type RoomEnterPayload = z.infer<typeof roomEnterPayload>;

@@ -6,6 +6,9 @@ import {
   ERROR_MESSAGES,
   cardPickPayload,
   encounterSubmitPayload,
+  villageAccusePayload,
+  villageMovePayload,
+  villageVendPayload,
   RATE_LIMIT_EVENTS_PER_SECOND,
   roomEnterPayload,
   lobbyStartNowPayload,
@@ -194,6 +197,41 @@ export function registerConnectionHandlers(
       if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
 
       const result = matches.pick(session.roomCode, session.playerId, payload.index);
+      if (!result.ok) return ack?.(fail(result.error));
+      ack?.({ ok: true });
+    });
+    // Village actions between matches (design/10-village.md).
+    socket.on('village:move', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      const payload = parse(villageMovePayload, raw);
+      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+      const result = matches.villageMove(session.roomCode, session.playerId, payload.x, payload.y);
+      if (!result.ok) return ack?.(fail(result.error));
+      ack?.({ ok: true });
+    });
+
+    socket.on('village:accuse', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      const payload = parse(villageAccusePayload, raw);
+      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+      const result = matches.villageAccuse(
+        session.roomCode,
+        session.playerId,
+        payload.targetId,
+        payload.card,
+      );
+      if (!result.ok) return ack?.(fail(result.error));
+      ack?.({ ok: true });
+    });
+
+    socket.on('village:vend', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      const payload = parse(villageVendPayload, raw);
+      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+      const result = matches.villageVend(session.roomCode, session.playerId, payload.value);
       if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });

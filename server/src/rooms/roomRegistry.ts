@@ -11,6 +11,7 @@ import {
   type EndgameSummary,
   type Phase,
   type PublicRoomState,
+  type PublicVillage,
   type Result,
 } from '@shisa-revenge/shared';
 import { generateRoomCode } from './roomCode.js';
@@ -41,6 +42,7 @@ export type RoomRecord = {
   teamCounts: { survivors: number; infected: number };
   originPlayerId: string | null;
   endgame: EndgameSummary | null;
+  village: PublicVillage | null;
 };
 
 export type EnterOutcome = {
@@ -145,6 +147,12 @@ export class RoomRegistry {
     if (room) room.teamCounts = teamCounts;
   }
 
+  // Sets the village shown to every player. Null when no village is open.
+  setVillage(code: string, village: PublicVillage | null): void {
+    const room = this.rooms.get(code);
+    if (room) room.village = village;
+  }
+
   setMatchResult(
     code: string,
     originPlayerId: string | null,
@@ -221,6 +229,7 @@ export class RoomRegistry {
       winner: room.endgame?.winner ?? null,
       originPlayerId: null,
       endgame: null,
+      village: room.village,
     };
   }
 
@@ -252,6 +261,7 @@ export class RoomRegistry {
       teamCounts: { survivors: 0, infected: 0 },
       originPlayerId: null,
       endgame: null,
+      village: null,
     };
     this.rooms.set(code, room);
     return room;

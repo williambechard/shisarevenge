@@ -29,8 +29,12 @@ export type VillageState = {
 export type VillageResult<T = VillageState> =
   { ok: true; value: T } | { ok: false; error: ErrorCode };
 
-// A card a player gives up or receives in the village.
+// A card a player gives up in the village.
 export type CardChoice = { type: 'number'; value: CardValue } | { type: 'special' };
+
+// A card the vending machine gives out. A special shows its kind.
+export type VendedCard =
+  { type: 'number'; value: CardValue } | { type: 'special'; kind: SpecialKind };
 
 export function parseCells(rows: readonly string[]): Cell[][] {
   return rows.map((row) =>
@@ -190,7 +194,7 @@ export function vend(
   playerId: string,
   duplicate: CardValue,
   random: RandomFn,
-): VillageResult<{ state: VillageState; received: CardChoice }> {
+): VillageResult<{ state: VillageState; received: VendedCard }> {
   const at = state.positions[playerId];
   if (!at) return { ok: false, error: 'NOT_IN_VILLAGE' };
   if (cellAt(state, at) !== 'vending') return { ok: false, error: 'NOT_ON_VENDING' };
@@ -204,13 +208,13 @@ export function vend(
   const hand = [...cards.hand];
   hand.splice(hand.indexOf(duplicate), 1);
 
-  let received: CardChoice;
+  let received: VendedCard;
   let next: VillageCards;
   const wantsSpecial = random() < state.settings.vending.specialChance && cards.special === null;
   if (wantsSpecial) {
     // Survivor specials only: Protection Talisman or Ramen.
     const kind: SpecialKind = random() < 0.5 ? 'protection-talisman' : 'ramen';
-    received = { type: 'special' };
+    received = { type: 'special', kind };
     next = { hand, special: kind };
   } else {
     const value = (Math.floor(random() * 5) + 1) as CardValue;

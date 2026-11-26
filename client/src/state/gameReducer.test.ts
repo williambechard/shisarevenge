@@ -19,6 +19,7 @@ function room(code: string): PublicRoomState {
     winner: null,
     originPlayerId: null,
     endgame: null,
+    village: null,
   };
 }
 

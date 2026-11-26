@@ -12,7 +12,7 @@ export type SpecialKind = 'protection-talisman' | 'ramen' | 'shisa-mask';
 export type SpecialStatus = 'available' | 'committed' | 'spent' | 'lost';
 
 export type Phase =
-  'lobby' | 'announce' | 'pairing' | 'selecting' | 'revealed' | 'resolved' | 'ended';
+  'lobby' | 'announce' | 'pairing' | 'selecting' | 'revealed' | 'resolved' | 'village' | 'ended';
 
 export type PublicPlayer = {
   id: string;
@@ -34,6 +34,15 @@ export type EndgameSummary = {
 
 // Public room state, from design/08-socket-contract.md section 2.
 // Only public fields appear here. Hands, specials, and tokens never do.
+// The village as every player sees it: the board, where everyone stands, and the public tags.
+export type PublicVillage = {
+  board: string[];
+  positions: Record<string, { x: number; y: number }>;
+  tags: Record<string, number>;
+  // Epoch ms when the village closes and the next match starts.
+  endsAt: number;
+};
+
 export type PublicRoomState = {
   roomCode: string;
   phase: Phase;
@@ -51,6 +60,8 @@ export type PublicRoomState = {
   winner: Team | null;
   originPlayerId: string | null;
   endgame: EndgameSummary | null;
+  // The village between matches. Null outside the village.
+  village: PublicVillage | null;
 };
 
 // Private state for one player, from design/08-socket-contract.md section 2.
@@ -92,4 +103,7 @@ export type PrivateNotice =
   | { kind: 'auto-locked' }
   | { kind: 'card-gained'; value: CardValue }
   | { kind: 'card-lost' }
-  | { kind: 'eliminated' };
+  | { kind: 'eliminated' }
+  | { kind: 'accused' }
+  | { kind: 'accusation-result'; correct: boolean }
+  | { kind: 'vended'; value: CardValue | null; special: SpecialKind | null };

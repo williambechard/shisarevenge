@@ -37,6 +37,17 @@ import {
   type Pair,
 } from './gameEngine.js';
 import type { RandomFn } from './pairing.js';
+import { loadSettings, type GameSettings } from '../config/settings.js';
+import {
+  accuse,
+  carriedCards,
+  createVillage,
+  moveTo,
+  vend,
+  type CardChoice,
+  type VillageCards,
+  type VillageState,
+} from '../village/village.js';
 import { checkWin } from './winConditions.js';
 
 export type MatchTiming = {
@@ -45,6 +56,7 @@ export type MatchTiming = {
   resultMs: number;
   lobbyWaitMs: number;
   pickMs: number;
+  villageMs: number;
 };
 
 export const DEFAULT_TIMING: MatchTiming = {
@@ -53,6 +65,7 @@ export const DEFAULT_TIMING: MatchTiming = {
   resultMs: 6000,
   lobbyWaitMs: LOBBY_START_WAIT_SECONDS * 1000,
   pickMs: PICK_SECONDS * 1000,
+  villageMs: 60_000,
 };
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -60,6 +73,8 @@ type Timer = ReturnType<typeof setTimeout>;
 type RoomMatch = {
   state: MatchState;
   timer: Timer | null;
+  // Open between matches (design/10-village.md). Null during a match.
+  village: VillageState | null;
 };
 
 type Clock = {
@@ -69,6 +84,8 @@ type Clock = {
 
 export type MatchRunnerOptions = {
   timing?: Partial<MatchTiming>;
+  // Village settings from data/settings.json. Read from the file when omitted.
+  settings?: GameSettings['village'];
   random?: RandomFn;
   clock?: Clock;
 };
@@ -90,6 +107,9 @@ export class MatchRunner {
   // One take timer per winner, keyed by pickKey(). Deadlines are shared with clients as epoch ms.
   private readonly pickTimers = new Map<string, Timer>();
   private readonly pickDeadlines = new Map<string, number>();
+  private readonly villageTimers = new Map<string, Timer>();
+  private readonly villageEndsAt = new Map<string, number>();
+  private readonly village: GameSettings['village'];
   private readonly timing: MatchTiming;
   private readonly random: RandomFn;
   private readonly clock: Clock;
@@ -99,7 +119,13 @@ export class MatchRunner {
     private readonly registry: RoomRegistry,
     options: MatchRunnerOptions = {},
   ) {
-    this.timing = { ...DEFAULT_TIMING, ...options.timing };
+    const settings = options.settings ?? loadSettings().village;
+    this.village = settings;
+    this.timing = {
+      ...DEFAULT_TIMING,
+      villageMs: settings.villageSeconds * 1000,
+      ...options.timing,
+    };
     this.random = options.random ?? Math.random;
     this.clock = options.clock ?? defaultClock;
   }
@@ -114,22 +140,33 @@ export class MatchRunner {
     }
     this.clearLobbyTimer(code);
     this.waitElapsed.delete(code);
+    return this.beginMatch(
+      code,
+      room.players.map((player) => player.id),
+      {},
+    );
+  }
 
-    const originIndex = Math.floor(this.random() * room.players.length);
-    const origin = room.players[originIndex];
-    if (!origin) return { ok: false, error: 'INTERNAL' };
+  // Starts a match with the given players. Cards carried out of the village are added to their hands.
+  private beginMatch(
+    code: string,
+    ids: string[],
+    carry: Record<string, VillageCards>,
+  ): MatchResult {
+    const originId = ids[Math.floor(this.random() * ids.length)];
+    if (originId === undefined) return { ok: false, error: 'INTERNAL' };
 
-    const players = room.players.map((player) => ({
-      id: player.id,
-      team: player.id === origin.id ? ('infected' as const) : ('survivor' as const),
+    const players = ids.map((id) => ({
+      id,
+      team: id === originId ? ('infected' as const) : ('survivor' as const),
     }));
 
-    const matchState = createMatch(players, this.random);
-    this.matches.set(code, { state: matchState, timer: null });
+    const matchState = createMatch(players, this.random, carry);
+    this.matches.set(code, { state: matchState, timer: null, village: null });
     this.registry.setTeamCounts(code, teamCounts(matchState));
     this.publishCards(code, matchState);
-    this.registry.setMatchResult(code, origin.id, null);
-    this.io.to(code).emit('game:started', { originPlayerId: origin.id });
+    this.registry.setMatchResult(code, originId, null);
+    this.io.to(code).emit('game:started', { originPlayerId: originId });
     this.startRound(code);
     return { ok: true };
   }
@@ -229,6 +266,7 @@ export class MatchRunner {
   }
   dispose(code: string): void {
     this.clearLobbyTimer(code);
+    this.clearVillage(code);
     for (const key of [...this.pickTimers.keys()]) {
       if (key.startsWith(`${code}|`)) this.clearPickTimer(key);
     }
@@ -503,6 +541,155 @@ export class MatchRunner {
   }
 
   // Sends the endgame summary to the room and moves it to the ended phase.
+  // ---- Village between matches (design/10-village.md) ----
+
+  // Opens the village after a match. Players stay in the room for villageMs.
+  private openVillage(code: string): void {
+    const match = this.matches.get(code);
+    if (!match) return;
+    match.village = createVillage(
+      this.village,
+      match.state.players.map((player) => ({
+        id: player.id,
+        cards: {
+          hand: [...player.hand],
+          special: player.special?.status === 'available' ? player.special.kind : null,
+        },
+      })),
+      this.random,
+    );
+    this.setPhase(code, 'village');
+    this.villageEndsAt.set(code, Date.now() + this.timing.villageMs);
+    const handle = this.clock.setTimeout(() => {
+      this.villageTimers.delete(code);
+      this.closeVillage(code);
+    }, this.timing.villageMs);
+    this.villageTimers.set(code, handle);
+    this.publishVillage(code);
+    this.syncPrivate(code);
+  }
+
+  // The village time is up. Players who are out are left out. The rest start the next match
+  // with the cards they carried out (design/10 section 6). With too few players, the room ends.
+  private closeVillage(code: string): void {
+    const match = this.matches.get(code);
+    if (!match?.village) return;
+    const carry = carriedCards(match.village);
+    this.clearVillage(code);
+
+    const room = this.registry.find(code);
+    const next = match.state.players
+      .filter((player) => !player.eliminated)
+      .map((player) => player.id)
+      .filter((id) => room?.players.some((seat) => seat.id === id) ?? false);
+    if (next.length < MIN_PLAYERS) {
+      this.setPhase(code, 'ended');
+      this.syncPrivate(code);
+      return;
+    }
+    this.beginMatch(code, next, carry);
+  }
+
+  private clearVillage(code: string): void {
+    const handle = this.villageTimers.get(code);
+    if (handle) this.clock.clearTimeout(handle);
+    this.villageTimers.delete(code);
+    this.villageEndsAt.delete(code);
+    const match = this.matches.get(code);
+    if (match) match.village = null;
+    this.registry.setVillage(code, null);
+  }
+
+  // Shares the village with the whole room: the board, where everyone stands, and the public tags.
+  private publishVillage(code: string): void {
+    const village = this.matches.get(code)?.village;
+    const endsAt = this.villageEndsAt.get(code);
+    if (!village || endsAt === undefined) {
+      this.registry.setVillage(code, null);
+    } else {
+      this.registry.setVillage(code, {
+        board: village.settings.board,
+        positions: village.positions,
+        tags: village.tags,
+        endsAt,
+      });
+    }
+    this.broadcastRoomByCode(code);
+  }
+
+  // Each player's own cards in the village. Nothing else is private during the village.
+  private syncVillagePrivate(village: VillageState, room: RoomRecord): void {
+    for (const seat of room.players) {
+      if (seat.socketId === null) continue;
+      const cards = village.cards[seat.id] ?? { hand: [], special: null };
+      this.io.to(seat.socketId).emit('player:private-state', {
+        playerId: seat.id,
+        team: 'survivor',
+        origin: room.originPlayerId === seat.id,
+        hand: cards.hand,
+        special: cards.special ? { kind: cards.special, status: 'available' } : null,
+        pendingPick: null,
+        encounter: null,
+        notices: [],
+      });
+    }
+  }
+
+  // A step to a neighbouring walkway tile.
+  villageMove(code: string, playerId: string, x: number, y: number): MatchResult {
+    const match = this.matches.get(code);
+    if (!match?.village) return { ok: false, error: 'NOT_IN_VILLAGE' };
+    const result = moveTo(match.village, playerId, { x, y }, Date.now());
+    if (!result.ok) return result;
+    match.village = result.value;
+    this.publishVillage(code);
+    return { ok: true };
+  }
+
+  // Accuses another player on the same tile, paying a card (design/10 section 4).
+  villageAccuse(
+    code: string,
+    playerId: string,
+    targetId: string,
+    card: CardChoice | null,
+  ): MatchResult {
+    const match = this.matches.get(code);
+    if (!match?.village) return { ok: false, error: 'NOT_IN_VILLAGE' };
+    const finalTeams = Object.fromEntries(
+      match.state.players.map((player) => [player.id, player.team]),
+    );
+    const result = accuse(match.village, playerId, targetId, card, finalTeams, this.random);
+    if (!result.ok) return result;
+
+    match.village = result.value.state;
+    this.emitToPlayer(code, targetId, 'player:notice', { kind: 'accused' });
+    this.emitToPlayer(code, playerId, 'player:notice', {
+      kind: 'accusation-result',
+      correct: result.value.correct,
+    });
+    this.publishVillage(code);
+    this.syncPrivate(code);
+    return { ok: true };
+  }
+
+  // Uses the vending machine with one duplicate number card (design/10 section 5).
+  villageVend(code: string, playerId: string, value: CardValue): MatchResult {
+    const match = this.matches.get(code);
+    if (!match?.village) return { ok: false, error: 'NOT_IN_VILLAGE' };
+    const result = vend(match.village, playerId, value, this.random);
+    if (!result.ok) return result;
+
+    match.village = result.value.state;
+    const received = result.value.received;
+    this.emitToPlayer(code, playerId, 'player:notice', {
+      kind: 'vended',
+      value: received.type === 'number' ? received.value : null,
+      special: received.type === 'special' ? received.kind : null,
+    });
+    this.publishVillage(code);
+    this.syncPrivate(code);
+    return { ok: true };
+  }
   private endMatch(code: string, winner: Team): void {
     const state = this.current(code);
     const room = this.registry.find(code);
@@ -518,13 +705,18 @@ export class MatchRunner {
       })),
     };
     this.registry.setMatchResult(code, room?.originPlayerId ?? null, endgame);
-    this.setPhase(code, 'ended');
     this.io.to(code).emit('game:ended', endgame);
+    this.openVillage(code);
   }
   private syncPrivate(code: string): void {
     const room = this.registry.find(code);
     const match = this.matches.get(code);
     if (!room || !match) return;
+
+    if (match.village) {
+      this.syncVillagePrivate(match.village, room);
+      return;
+    }
 
     for (const player of match.state.players) {
       const opponentId = opponentOf(match.state, player.id);
