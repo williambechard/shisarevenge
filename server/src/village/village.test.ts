@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseSettings } from '../config/settings.js';
 import type { CardValue } from '@shisa-revenge/shared';
 import type { RandomFn } from '../game/pairing.js';
-import { accuse, createVillage, moveTo, vend, type VillageState } from './village.js';
+import { accuse, challenge, createVillage, moveTo, vend, type VillageState } from './village.js';
 
 function seeded(seed: number): RandomFn {
   let state = seed;
@@ -141,15 +141,16 @@ describe('accusations (design/10 section 4)', () => {
     });
   });
 
-  it('lets an out player accuse for free, and pays them nothing even when correct', () => {
+  it('stops an out player from accusing: observers only', () => {
     const state = villageAt(
       { a: { x: 1, y: 0 }, b: { x: 1, y: 0 } },
       { a: { hand: [], special: null } },
     );
-    const result = accuse(state, 'a', 'b', null, finalTeams, seeded(1));
-    if (!result.ok) throw new Error('accuse failed');
-    expect(result.value.correct).toBe(true);
-    expect(result.value.state.cards.a?.hand).toEqual([]);
+    const withOut = { ...state, out: { a: true as const } };
+    expect(accuse(withOut, 'a', 'b', null, finalTeams, seeded(1))).toEqual({
+      ok: false,
+      error: 'OBSERVER_ONLY',
+    });
   });
 
   it('allows one accusation per player', () => {
@@ -219,5 +220,78 @@ describe('vending machine (design/10 section 5)', () => {
       if (!result.ok) throw new Error('vend failed');
       expect(result.value.received.type).toBe('number');
     }
+  });
+});
+
+describe('partner challenges (design/10 section 13.1)', () => {
+  it('pairs two players when they challenge each other on the same tile', () => {
+    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 } }, {});
+    const first = challenge(state, 'a', 'b');
+    if (!first.ok) throw new Error('first challenge failed');
+    expect(first.value.matched).toBe(false);
+    const second = challenge(first.value.state, 'b', 'a');
+    if (!second.ok) throw new Error('second challenge failed');
+    expect(second.value.matched).toBe(true);
+    expect(second.value.state.partners).toHaveLength(1);
+    expect([...(second.value.state.partners[0] ?? [])].sort()).toEqual(['a', 'b']);
+  });
+
+  it('does not pair a one-sided challenge', () => {
+    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 } }, {});
+    const result = challenge(state, 'a', 'b');
+    if (!result.ok) throw new Error('challenge failed');
+    expect(result.value.matched).toBe(false);
+    expect(result.value.state.partners).toEqual([]);
+  });
+
+  it('needs both players on the same tile', () => {
+    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 2, y: 0 } }, {});
+    expect(challenge(state, 'a', 'b')).toEqual({ ok: false, error: 'NOT_SAME_TILE' });
+  });
+
+  it('does not let an observer challenge', () => {
+    const state = {
+      ...villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 } }, {}),
+      out: { a: true as const },
+    };
+    expect(challenge(state, 'a', 'b')).toEqual({ ok: false, error: 'OBSERVER_ONLY' });
+  });
+});
+
+describe('public accusations (design/10 section 13.1)', () => {
+  it('records every accusation in the public log, and reveals the role when correct', () => {
+    const state = villageAt(
+      { a: { x: 1, y: 0 }, b: { x: 1, y: 0 } },
+      { a: { hand: [1], special: null } },
+    );
+    const result = accuse(
+      state,
+      'a',
+      'b',
+      { type: 'number', value: 1 },
+      { a: 'survivor', b: 'infected' },
+      seeded(1),
+    );
+    if (!result.ok) throw new Error('accuse failed');
+    expect(result.value.state.log).toEqual([{ accuserId: 'a', targetId: 'b', correct: true }]);
+    expect(result.value.state.revealed).toEqual({ b: 'infected' });
+  });
+
+  it('does not reveal a role after a wrong accusation', () => {
+    const state = villageAt(
+      { a: { x: 1, y: 0 }, b: { x: 1, y: 0 } },
+      { a: { hand: [1], special: null } },
+    );
+    const result = accuse(
+      state,
+      'a',
+      'b',
+      { type: 'number', value: 1 },
+      { a: 'survivor', b: 'survivor' },
+      seeded(1),
+    );
+    if (!result.ok) throw new Error('accuse failed');
+    expect(result.value.state.revealed).toEqual({});
+    expect(result.value.state.log).toHaveLength(1);
   });
 });

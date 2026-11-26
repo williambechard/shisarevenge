@@ -40,6 +40,7 @@ import type { RandomFn } from './pairing.js';
 import { loadSettings, type GameSettings } from '../config/settings.js';
 import {
   accuse,
+  challenge,
   carriedCards,
   createVillage,
   moveTo,
@@ -73,6 +74,10 @@ type Timer = ReturnType<typeof setTimeout>;
 type RoomMatch = {
   state: MatchState;
   timer: Timer | null;
+  // What follows the open village: the next round, or the next match.
+  afterVillage: 'round' | 'match';
+  // Partners chosen in the village, paired for the next round.
+  partners: Pair[];
   // Open between matches (design/10-village.md). Null during a match.
   village: VillageState | null;
 };
@@ -162,12 +167,18 @@ export class MatchRunner {
     }));
 
     const matchState = createMatch(players, this.random, carry);
-    this.matches.set(code, { state: matchState, timer: null, village: null });
+    this.matches.set(code, {
+      state: matchState,
+      timer: null,
+      village: null,
+      afterVillage: 'round',
+      partners: [],
+    });
     this.registry.setTeamCounts(code, teamCounts(matchState));
     this.publishCards(code, matchState);
     this.registry.setMatchResult(code, originId, null);
     this.io.to(code).emit('game:started', { originPlayerId: originId });
-    this.startRound(code);
+    this.openVillage(code, 'round');
     return { ok: true };
   }
   // Records one lock-in. When both players of a duel have locked in, that duel reveals.
@@ -330,7 +341,9 @@ export class MatchRunner {
   }
 
   private openSelection(code: string): void {
-    this.setState(code, pairRound(this.current(code), this.random));
+    const match = this.matches.get(code);
+    this.setState(code, pairRound(this.current(code), this.random, match?.partners ?? []));
+    if (match) match.partners = [];
     const state = this.current(code);
     this.io.to(code).emit('round:paired', {
       round: state.round,
@@ -542,17 +555,19 @@ export class MatchRunner {
         this.endMatch(code, win.winner);
         return;
       }
-      this.startRound(code);
+      this.openVillage(code, 'round');
     });
   }
 
   // Sends the endgame summary to the room and moves it to the ended phase.
-  // ---- Village between matches (design/10-village.md) ----
+  // ---- Village (design/10-village.md) ----
+  // The village opens before round 1, after every round, and after the last round of a match.
 
-  // Opens the village after a match. Players stay in the room for villageMs.
-  private openVillage(code: string): void {
+  // Opens the village. `after` says what follows it: the next round, or the next match.
+  private openVillage(code: string, after: 'round' | 'match'): void {
     const match = this.matches.get(code);
     if (!match) return;
+    match.afterVillage = after;
     match.village = createVillage(
       this.village,
       match.state.players.map((player) => ({
@@ -561,6 +576,7 @@ export class MatchRunner {
           hand: [...player.hand],
           special: player.special?.status === 'available' ? player.special.kind : null,
         },
+        out: player.eliminated,
       })),
       this.random,
     );
@@ -575,14 +591,34 @@ export class MatchRunner {
     this.syncPrivate(code);
   }
 
-  // The village time is up. Players who are out are left out. The rest start the next match
-  // with the cards they carried out (design/10 section 6). With too few players, the room ends.
+  // The village time is up. Cards are kept. Then the next round starts, or the next match does.
+  // Players who are out are left out of the next match (design/10 section 6).
   private closeVillage(code: string): void {
     const match = this.matches.get(code);
     if (!match?.village) return;
-    const carry = carriedCards(match.village);
+    const village = match.village;
+    const after = match.afterVillage;
     this.clearVillage(code);
 
+    if (after === 'round') {
+      const players = match.state.players.map((player) => {
+        const cards = village.cards[player.id] ?? { hand: [], special: null };
+        const special =
+          cards.special !== null
+            ? { kind: cards.special, status: 'available' as const }
+            : player.special?.status === 'available'
+              ? null
+              : player.special;
+        return { ...player, hand: [...cards.hand], special };
+      });
+      match.state = { ...match.state, players };
+      match.partners = village.partners.map(([a, b]) => [a, b] as Pair);
+      this.publishCards(code, match.state);
+      this.startRound(code);
+      return;
+    }
+
+    const carry = carriedCards(village);
     const room = this.registry.find(code);
     const next = match.state.players
       .filter((player) => !player.eliminated)
@@ -606,7 +642,7 @@ export class MatchRunner {
     this.registry.setVillage(code, null);
   }
 
-  // Shares the village with the whole room: the board, where everyone stands, and the public tags.
+  // Shares the village with the whole room: the board, where everyone stands, the tags, and the public log.
   private publishVillage(code: string): void {
     const village = this.matches.get(code)?.village;
     const endsAt = this.villageEndsAt.get(code);
@@ -617,6 +653,8 @@ export class MatchRunner {
         board: village.settings.board,
         positions: village.positions,
         tags: village.tags,
+        log: village.log,
+        revealed: village.revealed,
         endsAt,
       });
     }
@@ -652,7 +690,26 @@ export class MatchRunner {
     return { ok: true };
   }
 
-  // Accuses another player on the same tile, paying a card (design/10 section 4).
+  // A challenge to a partner on the same tile. A mutual challenge pairs the two for the next round.
+  villageChallenge(code: string, playerId: string, target: string | null): MatchResult {
+    const match = this.matches.get(code);
+    if (!match?.village) return { ok: false, error: 'NOT_IN_VILLAGE' };
+    const previous = match.village.challenges[playerId];
+    const result = challenge(match.village, playerId, target);
+    if (!result.ok) return result;
+
+    match.village = result.value.state;
+    if (result.value.matched && target !== null) {
+      this.emitToPlayer(code, playerId, 'player:notice', { kind: 'partnered', partnerId: target });
+      this.emitToPlayer(code, target, 'player:notice', { kind: 'partnered', partnerId: playerId });
+    } else if (target !== null && target !== previous) {
+      this.emitToPlayer(code, target, 'player:notice', { kind: 'challenged', byId: playerId });
+    }
+    this.publishVillage(code);
+    return { ok: true };
+  }
+
+  // Accuses another player on the same tile, paying a card (design/10 section 4). The result is public.
   villageAccuse(
     code: string,
     playerId: string,
@@ -661,10 +718,8 @@ export class MatchRunner {
   ): MatchResult {
     const match = this.matches.get(code);
     if (!match?.village) return { ok: false, error: 'NOT_IN_VILLAGE' };
-    const finalTeams = Object.fromEntries(
-      match.state.players.map((player) => [player.id, player.team]),
-    );
-    const result = accuse(match.village, playerId, targetId, card, finalTeams, this.random);
+    const teams = Object.fromEntries(match.state.players.map((player) => [player.id, player.team]));
+    const result = accuse(match.village, playerId, targetId, card, teams, this.random);
     if (!result.ok) return result;
 
     match.village = result.value.state;
@@ -696,6 +751,7 @@ export class MatchRunner {
     this.syncPrivate(code);
     return { ok: true };
   }
+
   private endMatch(code: string, winner: Team): void {
     const state = this.current(code);
     const room = this.registry.find(code);
@@ -712,7 +768,7 @@ export class MatchRunner {
     };
     this.registry.setMatchResult(code, room?.originPlayerId ?? null, endgame);
     this.io.to(code).emit('game:ended', endgame);
-    this.openVillage(code);
+    this.openVillage(code, 'match');
   }
   private syncPrivate(code: string): void {
     const room = this.registry.find(code);

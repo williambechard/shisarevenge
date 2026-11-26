@@ -17,7 +17,7 @@ const sockets: Socket[] = [];
 beforeEach(async () => {
   game = createGameServer(
     { CLIENT_ORIGIN: 'http://localhost:5173' },
-    { matches: { timing: { announceMs: 5, selectionMs: 5000, resultMs: 5000 } } },
+    { matches: { timing: { villageMs: 5, announceMs: 5, selectionMs: 5000, resultMs: 5000 } } },
   );
   await new Promise<void>((resolve) => {
     game.httpServer.listen(0, '127.0.0.1', () => {

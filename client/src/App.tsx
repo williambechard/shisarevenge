@@ -50,6 +50,7 @@ export function App() {
     villageStep,
     villageAccuse,
     villageInsert,
+    villageChallenge,
     clearNotice,
   } = useGame();
   const role = roleOf(state.privateState);
@@ -128,6 +129,7 @@ export function App() {
               state={state}
               room={state.room}
               onStep={villageStep}
+              onChallenge={villageChallenge}
               onAccuse={villageAccuse}
               onInsert={villageInsert}
             />

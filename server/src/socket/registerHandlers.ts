@@ -7,6 +7,7 @@ import {
   cardPickPayload,
   encounterSubmitPayload,
   villageAccusePayload,
+  villageChallengePayload,
   villageMovePayload,
   villageVendPayload,
   RATE_LIMIT_EVENTS_PER_SECOND,
@@ -226,6 +227,15 @@ export function registerConnectionHandlers(
       ack?.({ ok: true });
     });
 
+    socket.on('village:challenge', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      const payload = parse(villageChallengePayload, raw);
+      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+      const result = matches.villageChallenge(session.roomCode, session.playerId, payload.targetId);
+      if (!result.ok) return ack?.(fail(result.error));
+      ack?.({ ok: true });
+    });
     socket.on('village:vend', (raw: unknown, ack?: (response: PlainAck) => void) => {
       if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
       const payload = parse(villageVendPayload, raw);

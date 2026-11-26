@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   CARD_NAMES,
   SPECIAL_NAMES,
@@ -7,6 +8,7 @@ import {
   type PublicRoomState,
   type SpecialKind,
 } from '@shisa-revenge/shared';
+import { Button } from '../components/atoms/Button.js';
 import { Countdown } from '../components/atoms/Countdown.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { AccusePanel } from '../components/organisms/AccusePanel.js';
@@ -19,22 +21,39 @@ type VillageScreenProps = {
   state: GameState;
   room: PublicRoomState;
   onStep: (x: number, y: number) => void;
+  onChallenge: (targetId: string | null) => void;
   onAccuse: (targetId: string, card: PlayedCard | null) => void;
   onInsert: (value: CardValue) => void;
 };
 
-// What the village notices say, in words. Accusations never name the accuser.
-function villageNoticeText(notice: PrivateNotice): { text: string; tone: 'info' | 'error' } | null {
+function nameOf(room: PublicRoomState, playerId: string): string {
+  return room.players.find((player) => player.id === playerId)?.name ?? 'A player';
+}
+
+// What the village notices say, in words. Only the people involved see their own notices.
+function villageNoticeText(
+  notice: PrivateNotice,
+  room: PublicRoomState,
+): { text: string; tone: 'info' | 'error' } | null {
   if (notice.kind === 'accused') {
-    return {
-      text: 'Someone has accused you. The tags on the walkway show how many.',
-      tone: 'error',
-    };
+    return { text: 'Someone has accused you. The log shows who.', tone: 'error' };
   }
   if (notice.kind === 'accusation-result') {
     return notice.correct
-      ? { text: "Correct. They served Shisa's Army.", tone: 'info' }
+      ? { text: "Correct. They served Shisa's Army, and everyone now knows.", tone: 'info' }
       : { text: 'Not them. Your card is gone.', tone: 'info' };
+  }
+  if (notice.kind === 'challenged') {
+    return {
+      text: `${nameOf(room, notice.byId)} challenged you. Challenge them back to pair up.`,
+      tone: 'info',
+    };
+  }
+  if (notice.kind === 'partnered') {
+    return {
+      text: `You are partners with ${nameOf(room, notice.partnerId)} for the next round.`,
+      tone: 'info',
+    };
   }
   if (notice.kind === 'vended') {
     if (notice.special !== null) {
@@ -56,13 +75,23 @@ function cardLabel(hand: CardValue[], special: SpecialKind | null): string {
   return parts.length > 0 ? parts.join(', ') : 'none';
 }
 
-// The village between matches: the walkway, the tags, the timer, and the actions for the tile you stand on.
-export function VillageScreen({ state, room, onStep, onAccuse, onInsert }: VillageScreenProps) {
+// The village between rounds and between matches: the walkway, the public log, the timer, and the
+// meeting overlay when two or more players share a tile.
+export function VillageScreen({
+  state,
+  room,
+  onStep,
+  onChallenge,
+  onAccuse,
+  onInsert,
+}: VillageScreenProps) {
+  // Which meeting the player has already dismissed. A new arrival on the tile opens the overlay again.
+  const [walkedOn, setWalkedOn] = useState<string | null>(null);
   const village = room.village;
   const self = state.privateState;
   const selfId = state.playerId;
   const out = room.players.find((player) => player.id === selfId)?.eliminated === true;
-  const notice = state.specialNotice ? villageNoticeText(state.specialNotice) : null;
+  const notice = state.specialNotice ? villageNoticeText(state.specialNotice, room) : null;
 
   if (village === null) {
     return <StatusMessage showSpinner>Opening the village...</StatusMessage>;
@@ -70,13 +99,16 @@ export function VillageScreen({ state, room, onStep, onAccuse, onInsert }: Villa
 
   const here = selfId === null ? undefined : village.positions[selfId];
   const onTile = room.players.filter((player) => {
-    if (player.id === selfId || here === undefined) return false;
+    if (player.id === selfId || here === undefined || player.eliminated) return false;
     const at = village.positions[player.id];
     return at !== undefined && at.x === here.x && at.y === here.y;
   });
+  const meetingKey = `${String(here?.x)},${String(here?.y)}:${onTile.map((player) => player.id).join(',')}`;
+  const overlayOpen = !out && onTile.length > 0 && walkedOn !== meetingKey;
   const onVending = here !== undefined && village.board[here.y]?.[here.x] === 'V';
   const hand = self?.hand ?? [];
   const special = self?.special?.status === 'available' ? self.special.kind : null;
+  const recent = village.log.slice(-5);
 
   return (
     <section
@@ -91,21 +123,39 @@ export function VillageScreen({ state, room, onStep, onAccuse, onInsert }: Villa
           The village
         </h1>
         <p className="text-sm text-navy/80">
-          Walk the walkway between matches. Stand with someone to accuse them, or use the vending
-          machine.
+          {out
+            ? 'You are out of the match. You can watch, but not accuse or challenge.'
+            : 'Walk the walkway. Stand with someone to challenge or accuse them. Use the vending machine.'}
         </p>
-        <Countdown deadline={village.endsAt} label="Next match in" />
+        <Countdown deadline={village.endsAt} label="Next round in" />
       </header>
 
-      <section aria-label="Tags" className="text-xs text-navy/80">
+      <section
+        aria-label="Tags and accusations"
+        className="flex flex-col gap-1 text-xs text-navy/80"
+      >
         <p className="font-semibold">Tags on the walkway</p>
         <ul className="flex flex-wrap gap-x-3 gap-y-1">
           {room.players.map((player) => (
-            <li key={player.id}>
+            <li key={player.id} className={player.eliminated ? 'line-through' : ''}>
               {player.name}: {String(village.tags[player.id] ?? 0)}
+              {village.revealed[player.id] === 'infected' ? " (Shisa's Army)" : ''}
             </li>
           ))}
         </ul>
+        {recent.length > 0 ? (
+          <>
+            <p className="pt-1 font-semibold">Accusations</p>
+            <ul className="flex flex-col gap-0.5">
+              {recent.map((entry, index) => (
+                <li key={index}>
+                  {nameOf(room, entry.accuserId)} accused {nameOf(room, entry.targetId)}:{' '}
+                  {entry.correct ? "correct, they served Shisa's Army" : 'not them'}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </section>
 
       <VillageBoard
@@ -118,20 +168,50 @@ export function VillageScreen({ state, room, onStep, onAccuse, onInsert }: Villa
 
       {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}
 
-      {out ? (
-        <StatusMessage>
-          You are out of the match. You can accuse for free, but you cannot join the next match.
-        </StatusMessage>
-      ) : (
-        <p className="text-xs text-navy/80">Your cards: {cardLabel(hand, special)}</p>
-      )}
+      {out ? null : <p className="text-xs text-navy/80">Your cards: {cardLabel(hand, special)}</p>}
 
-      <AccusePanel
-        targets={onTile.map((player) => ({ id: player.id, name: player.name }))}
-        hand={hand}
-        special={special}
-        onAccuse={onAccuse}
-      />
+      {overlayOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Someone is here"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 p-4"
+        >
+          <div className="flex w-full max-w-sm flex-col gap-3 rounded-xl bg-sand p-4 text-navy">
+            <h2 className="text-lg font-bold">
+              {onTile.length === 1 ? `${onTile[0]?.name ?? 'Someone'} is here` : 'Others are here'}
+            </h2>
+            {onTile.map((player) => {
+              return (
+                <div key={player.id} className="flex flex-col gap-2 border-b border-navy/20 pb-2">
+                  <p className="font-semibold">{player.name}</p>
+                  <Button
+                    onClick={() => {
+                      onChallenge(player.id);
+                    }}
+                  >
+                    Challenge {player.name} to a duel next round
+                  </Button>
+                  <AccusePanel
+                    targets={[{ id: player.id, name: player.name }]}
+                    hand={hand}
+                    special={special}
+                    onAccuse={onAccuse}
+                  />
+                </div>
+              );
+            })}
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setWalkedOn(meetingKey);
+              }}
+            >
+              Walk on
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {onVending && !out ? <VendingPanel hand={hand} onInsert={onInsert} /> : null}
     </section>

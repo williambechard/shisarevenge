@@ -26,6 +26,7 @@ export const ERROR_CODES = [
   'NOT_ON_VENDING',
   'NO_DUPLICATE',
   'VENDING_USED',
+  'OBSERVER_ONLY',
   'INTERNAL',
 ] as const;
 
@@ -58,6 +59,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   NOT_ON_VENDING: 'Stand on the vending machine to use it.',
   NO_DUPLICATE: 'You need two copies of a card to use the machine.',
   VENDING_USED: 'You have already used the vending machine this village.',
+  OBSERVER_ONLY: 'Players who are out can only watch.',
   INTERNAL: 'Something went wrong. Please try again.',
 };
 

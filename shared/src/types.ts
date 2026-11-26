@@ -39,6 +39,11 @@ export type PublicVillage = {
   board: string[];
   positions: Record<string, { x: number; y: number }>;
   tags: Record<string, number>;
+  // Everyone sees every accusation: who made it, who was targeted, and whether it was correct.
+  log: Array<{ accuserId: string; targetId: string; correct: boolean }>;
+  // Roles revealed to everyone by correct accusations.
+  revealed: Record<string, Team>;
+  // Open challenges (who challenged whom) are sent only as the partner result, not to others.
   // Epoch ms when the village closes and the next match starts.
   endsAt: number;
 };
@@ -105,5 +110,7 @@ export type PrivateNotice =
   | { kind: 'card-lost' }
   | { kind: 'eliminated' }
   | { kind: 'accused' }
+  | { kind: 'challenged'; byId: string }
+  | { kind: 'partnered'; partnerId: string }
   | { kind: 'accusation-result'; correct: boolean }
   | { kind: 'vended'; value: CardValue | null; special: SpecialKind | null };

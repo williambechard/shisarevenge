@@ -142,34 +142,45 @@ export function beginRound(state: MatchState): MatchState {
   };
 }
 
-// Pairs the players and opens selection. Byes rotate and pairs do not repeat in a row.
-export function pairRound(state: MatchState, random: RandomFn): MatchState {
+// Pairs the players and opens selection. Partners chosen in the village (`partners`) are paired first.
+// The remaining players are paired at random: byes rotate and pairs do not repeat in a row. Eliminated
+// players are not paired (design/04 section 4.1, design/10 section 13.1).
+export function pairRound(
+  state: MatchState,
+  random: RandomFn,
+  partners: ReadonlyArray<Pair> = [],
+): MatchState {
   if (state.phase !== 'announce') {
     throw new Error(`Cannot pair from phase ${state.phase}`);
   }
 
-  const byeCounts = Object.fromEntries(state.players.map((player) => [player.id, player.byeCount]));
-  const result = pairPlayers({
-    playerIds: state.players.filter((player) => !player.eliminated).map((player) => player.id),
-    byeCounts,
-    previousPairs: state.previousPairs,
-    random,
-  });
+  const chosen = new Set(partners.flat());
+  const active = state.players.filter((player) => !player.eliminated && !chosen.has(player.id));
+  const byeCounts = Object.fromEntries(active.map((player) => [player.id, player.byeCount]));
+  const rest =
+    active.length >= 2
+      ? pairPlayers({
+          playerIds: active.map((player) => player.id),
+          byeCounts,
+          previousPairs: state.previousPairs,
+          random,
+        })
+      : { pairs: [], warmUpId: active[0]?.id ?? null, byeCounts };
 
+  const byeById = new Map<string, number>(Object.entries(rest.byeCounts));
   const players = state.players.map((player) => ({
     ...player,
-    byeCount: result.byeCounts[player.id] ?? player.byeCount,
+    byeCount: byeById.get(player.id) ?? player.byeCount,
   }));
 
   return {
     ...state,
     phase: 'selecting',
     players,
-    pairs: result.pairs,
-    warmUpId: result.warmUpId,
+    pairs: [...partners.map(([a, b]) => [a, b] as Pair), ...rest.pairs],
+    warmUpId: rest.warmUpId,
   };
 }
-
 function playerFor(state: MatchState, playerId: string): MatchPlayer | undefined {
   return state.players.find((player) => player.id === playerId);
 }

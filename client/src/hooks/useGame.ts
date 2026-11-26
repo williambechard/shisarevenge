@@ -92,6 +92,7 @@ export type GameActions = {
   villageStep: (x: number, y: number) => void;
   villageAccuse: (targetId: string, card: PlayedCard | null) => void;
   villageInsert: (value: CardValue) => void;
+  villageChallenge: (targetId: string | null) => void;
   clearNotice: () => void;
 };
 
@@ -308,6 +309,13 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
+  // Challenge a player on the same tile to a duel next round. Null withdraws the challenge.
+  const villageChallenge = useCallback((targetId: string | null): void => {
+    getSocket().emit('village:challenge', { targetId }, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
@@ -324,6 +332,7 @@ export function useGame(): { state: GameState } & GameActions {
     villageStep,
     villageAccuse,
     villageInsert,
+    villageChallenge,
     clearNotice,
   };
 }

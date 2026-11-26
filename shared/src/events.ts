@@ -77,6 +77,11 @@ export const villageAccusePayload = z.strictObject({
     .nullable(),
 });
 
+// Challenge a player on the same tile to a duel next round. A null target withdraws the challenge.
+export const villageChallengePayload = z.strictObject({
+  targetId: z.string().min(1).max(64).nullable(),
+});
+
 export const villageVendPayload = z.strictObject({
   value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
 });
