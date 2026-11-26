@@ -5,11 +5,16 @@ import type { TeamMember } from './teamChanges.js';
 
 export type WinResult = {
   winner: Team;
-  reason: 'all-infected' | 'no-infected' | 'round-limit';
+  reason: 'all-infected' | 'no-infected' | 'round-limit' | 'shared-elimination';
 };
 
-// The caller passes only active players (design section 4.7). With no active survivor, the Army wins.
+// The caller passes only active players (design section 4.7).
+// If every player is out in the same round, the Survivors win (design section 9).
+// Otherwise, with no active survivor, the Army wins.
 export function checkWin(players: readonly TeamMember[], round: number): WinResult | null {
+  if (players.length === 0) {
+    return { winner: 'survivor', reason: 'shared-elimination' };
+  }
   if (!players.some((player) => player.team === 'survivor')) {
     return { winner: 'infected', reason: 'all-infected' };
   }

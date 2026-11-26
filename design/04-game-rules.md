@@ -169,7 +169,7 @@ Recovery applies only to the duel's Shisa's Army member, and only when the Survi
 
 Run after every round's resolution, in this order:
 
-1. Only active players count (players not eliminated). If no active player is a survivor, Shisa's Army wins immediately.
+1. Only active players count (players not eliminated). If no active player remains at all, the Survivors win immediately (a shared elimination). Otherwise, if no active player is a survivor, Shisa's Army wins immediately.
 2. If no active player is `infected`, Survivors win immediately.
 3. If `round === ROUND_COUNT`, Survivors win if any active player is `survivor`, otherwise Shisa's Army wins.
 4. Otherwise, increment `round` and go to the next round.
@@ -229,4 +229,4 @@ These fill gaps in `01-game-design.md` and the original doc. Review them after p
 23. The pick has a timeout of `PICK_SECONDS`. On timeout the server takes a random card. The round summary waits for every pick.
 24. A player who holds no cards at the round summary is eliminated. Eliminated players are not paired and watch the rest of the match.
 25. Public card counts and eliminated flags are shared at the round summary only. Hand contents are never shared.
-26. Team counts and win checks count only active players. If no active player is a survivor, Shisa's Army wins.
+26. Team counts and win checks count only active players. If every player is out in the same round, the Survivors win. This covers the last two players when their final duel removes both. If some player remains and no active player is a survivor, Shisa's Army wins.

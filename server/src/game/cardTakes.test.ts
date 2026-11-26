@@ -201,7 +201,7 @@ describe('win checks with elimination (design section 9)', () => {
     expect(checkWin(active, 2)).toEqual({ winner: 'infected', reason: 'all-infected' });
   });
 
-  it('gives the Army the win when every player is out', () => {
-    expect(checkWin([], 2)).toEqual({ winner: 'infected', reason: 'all-infected' });
+  it('gives the Survivors the win when every player is out in the same round', () => {
+    expect(checkWin([], 2)).toEqual({ winner: 'survivor', reason: 'shared-elimination' });
   });
 });
