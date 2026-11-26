@@ -82,10 +82,10 @@ export function Token({ name, icon, self, x, y, cols, rows, spread, bounce, badg
       }}
       transition={{ duration: MOVE_MS / 1000, ease: 'easeInOut' }}
     >
-      <div ref={scope} className="flex items-center justify-center">
+      <div ref={scope} className="relative flex items-center justify-center">
         <Avatar name={name} icon={icon} self={self} />
+        {badge ? <div className="absolute -top-2 -right-3">{badge}</div> : null}
       </div>
-      {badge ? <div className="absolute -top-4 left-1/2 -translate-x-1/2">{badge}</div> : null}
     </motion.div>
   );
 }

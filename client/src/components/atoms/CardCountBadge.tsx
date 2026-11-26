@@ -1,17 +1,14 @@
-import { CARD_BACK_ART } from '../../assets/cards/index.js';
-
 type CardCountBadgeProps = {
   // Cards the player holds, as shared at the last round summary.
   count: number;
 };
 
-// A small card back with the number of cards held printed on it. Shown above a player's token on the walkway.
+// The number of cards a player holds, on a small plain card. Shown at the upper right of a player's icon.
 export function CardCountBadge({ count }: CardCountBadgeProps) {
   return (
     <span
       aria-label={`${String(count)} ${count === 1 ? 'card' : 'cards'}`}
-      className="flex h-7 w-5 items-center justify-center rounded-[3px] border border-navy bg-cover bg-center text-xs font-extrabold text-white shadow-md [text-shadow:0_1px_2px_rgb(0_0_0/0.9)]"
-      style={{ backgroundImage: `url(${CARD_BACK_ART})` }}
+      className="flex h-7 min-w-7 items-center justify-center rounded-md border-2 border-navy bg-sand px-1 text-sm font-black text-navy shadow-md"
     >
       {String(count)}
     </span>
