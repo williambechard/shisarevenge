@@ -19,7 +19,7 @@ type RoundScreenProps = {
   state: GameState;
   room: PublicRoomState | null;
   onSelect: (card: PlayedCard) => void;
-  onLockIn: () => void;
+  onLockIn: (card: PlayedCard) => void;
 };
 
 function nameOf(room: PublicRoomState | null, playerId: string | null): string {
@@ -114,6 +114,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
 
       {!isWarmUp && reveal === null && self ? (
         <HandTray
+          key={round}
           hand={self.hand}
           selected={state.selected}
           lockedCard={state.lockedCard}

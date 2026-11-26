@@ -59,14 +59,7 @@ export function App() {
       ) : null}
 
       {state.screen === 'round' ? (
-        <RoundScreen
-          state={state}
-          room={state.room}
-          onSelect={selectCard}
-          onLockIn={() => {
-            if (state.selected !== null) submitCard(state.selected);
-          }}
-        />
+        <RoundScreen state={state} room={state.room} onSelect={selectCard} onLockIn={submitCard} />
       ) : null}
 
       {state.screen === 'endgame' && state.endgame && state.room ? (

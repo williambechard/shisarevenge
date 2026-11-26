@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   CARD_NAMES,
@@ -10,10 +11,11 @@ import {
   type SpecialStatus,
 } from '@shisa-revenge/shared';
 import { NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../../assets/cards/index.js';
-import { Button } from '../atoms/Button.js';
 import { PlayingCard } from '../molecules/PlayingCard.js';
+import { CardPreview } from './CardPreview.js';
+import { cardInfo } from './cardText.js';
 
-// The shared layout id that links a card in the fan to the same card on the table.
+// The shared layout id that links a card in the fan to the same card on the preview and the table.
 export const PLAYED_LAYOUT_ID = 'played-me';
 
 type HandTrayProps = {
@@ -24,7 +26,7 @@ type HandTrayProps = {
   locked: boolean;
   special: { kind: SpecialKind; status: SpecialStatus } | null;
   onSelect: (card: PlayedCard) => void;
-  onLockIn: () => void;
+  onLockIn: (card: PlayedCard) => void;
 };
 
 type FanItem = {
@@ -47,9 +49,9 @@ function sameCard(a: PlayedCard | null, b: PlayedCard): boolean {
 }
 
 // The fan: every card the player owns this round, spread around a pivot below.
-// A used card stays in place, dimmed, so the fan keeps its shape for the rest of the match.
-// The locked card stays in place but hidden. The table card carries the same layout id, so Motion
-// animates it from here to the table.
+// Tapping a usable card selects it and opens a preview. Lock in happens on the preview.
+// A used card stays in place, dimmed. The locked card stays in place but hidden, and the table card
+// carries the same layout id, so Motion animates it from here to the table.
 export function HandTray({
   hand,
   selected,
@@ -59,6 +61,10 @@ export function HandTray({
   onSelect,
   onLockIn,
 }: HandTrayProps) {
+  const [previewCard, setPreviewCard] = useState<PlayedCard | null>(null);
+  // The preview closes on its own once the card is locked.
+  const previewing = previewCard !== null && !locked ? previewCard : null;
+
   const items: FanItem[] = CARD_VALUES.map((value) => {
     const card: PlayedCard = { type: 'number', value };
     const held = hand.includes(value);
@@ -85,6 +91,9 @@ export function HandTray({
   }
 
   const middle = (items.length - 1) / 2;
+  const previewItem = previewing
+    ? items.find((item) => sameCard(previewing, item.card))
+    : undefined;
   const selectedLabel = selected ? labelFor(selected, special) : 'Pick a card';
 
   return (
@@ -94,67 +103,82 @@ export function HandTray({
       </h2>
 
       <div className="relative flex h-36 items-end justify-center">
-        <AnimatePresence initial={false}>
-          {items.map((item, index) => {
-            const offset = index - middle;
-            const isSelected = sameCard(selected, item.card);
-            const isLocked = sameCard(lockedCard, item.card);
-            const state = item.used
-              ? 'used'
-              : isLocked
-                ? 'locked'
-                : isSelected
-                  ? 'selected'
-                  : 'available';
-            return (
-              <motion.div
-                key={item.key}
-                initial={false}
-                animate={{
-                  x: offset * 42,
-                  y: Math.abs(offset) * 6 - (isSelected ? 26 : 0),
-                  rotate: offset * 6,
-                  scale: isSelected ? 1.08 : 1,
-                  opacity: isLocked ? 0 : 1,
+        {items.map((item, index) => {
+          const offset = index - middle;
+          const isSelected = sameCard(selected, item.card);
+          const isLocked = sameCard(lockedCard, item.card);
+          const isPreviewed = sameCard(previewing, item.card);
+          const state = item.used
+            ? 'used'
+            : isLocked
+              ? 'locked'
+              : isSelected
+                ? 'selected'
+                : 'available';
+          // The layout id is on the card that is previewed or locked, so it travels to the next place.
+          const layoutId = isLocked || isPreviewed ? PLAYED_LAYOUT_ID : undefined;
+          return (
+            <motion.div
+              key={item.key}
+              initial={false}
+              animate={{
+                x: offset * 42,
+                y: Math.abs(offset) * 6 - (isSelected ? 26 : 0),
+                rotate: offset * 6,
+                scale: isSelected ? 1.08 : 1,
+                opacity: isLocked ? 0 : 1,
+              }}
+              transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+              style={{ zIndex: isSelected ? 20 : 10 + index }}
+              className="absolute bottom-0"
+            >
+              <button
+                type="button"
+                disabled={!item.usable}
+                aria-pressed={isSelected}
+                aria-label={`${item.label}, ${state}`}
+                onClick={() => {
+                  onSelect(item.card);
+                  setPreviewCard(item.card);
                 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-                style={{ zIndex: isSelected ? 20 : 10 + index }}
-                className="absolute bottom-0"
+                className={`rounded-xl focus-visible:outline-3 focus-visible:outline-gold disabled:cursor-not-allowed ${
+                  item.used ? 'opacity-40 grayscale' : ''
+                }`}
               >
-                <button
-                  type="button"
-                  disabled={!item.usable}
-                  aria-pressed={isSelected}
-                  aria-label={`${item.label}, ${state}`}
-                  onClick={() => {
-                    onSelect(item.card);
-                  }}
-                  className={`rounded-xl focus-visible:outline-3 focus-visible:outline-gold disabled:cursor-not-allowed ${
-                    item.used ? 'opacity-40 grayscale' : ''
-                  }`}
-                >
-                  <PlayingCard
-                    front={item.front}
-                    faceUp
-                    size="hand"
-                    layoutId={isLocked ? PLAYED_LAYOUT_ID : undefined}
-                  />
-                </button>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                <PlayingCard front={item.front} faceUp size="hand" layoutId={layoutId} />
+              </button>
+            </motion.div>
+          );
+        })}
       </div>
 
       <p className="min-h-5 text-center text-sm text-navy" aria-live="polite">
-        {locked ? 'Locked in. Waiting for your opponent.' : `Selected: ${selectedLabel}`}
+        {locked
+          ? 'Locked in. Waiting for your opponent.'
+          : selected
+            ? `Selected: ${selectedLabel}. Tap it to review and lock in.`
+            : 'Tap a card to review it.'}
       </p>
 
       {special ? <SpecialStatusLine status={special.status} /> : null}
 
-      <Button onClick={onLockIn} disabled={locked || selected === null}>
-        {locked ? 'Locked in' : 'Lock in'}
-      </Button>
+      <AnimatePresence>
+        {previewItem ? (
+          <CardPreview
+            key="preview"
+            front={previewItem.front}
+            info={cardInfo(previewItem.card, special?.kind ?? null)}
+            layoutId={PLAYED_LAYOUT_ID}
+            onLock={() => {
+              setPreviewCard(null);
+              onLockIn(previewItem.card);
+            }}
+            onBack={() => {
+              setPreviewCard(null);
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

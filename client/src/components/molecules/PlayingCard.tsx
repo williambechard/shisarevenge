@@ -8,13 +8,15 @@ type PlayingCardProps = {
   faceUp: boolean;
   // Shared layout id. Cards with the same id animate between their positions.
   layoutId?: string | undefined;
-  size?: 'hand' | 'table';
+  size?: 'hand' | 'table' | 'preview';
   className?: string;
 };
 
 const SIZE = {
   hand: 'h-24 w-16',
   table: 'h-32 w-[5.5rem]',
+  // Filling most of the screen, sized to keep the 2:3 card shape.
+  preview: 'aspect-[2/3] w-[min(72vw,40vh)]',
 } as const;
 
 // A card with a face and a back. It turns on its vertical axis, so the flip reads as 3D.

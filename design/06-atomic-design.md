@@ -98,7 +98,8 @@ client/src/
 |---|---|---|
 | `LobbyPanel` | Assigned name, seats left, player list, Leave room | Room state |
 | `PlayerList` | List of `PlayerChip` | Players in the room |
-| `HandTray` | Bottom fan of the player's five number cards and special card. The selected card lifts. The locked card stays hidden in the fan while it is on the table. | Private hand, selection, locked card |
+| `HandTray` | Bottom fan of the player's five number cards and special card. Tapping a card selects it and opens `CardPreview`. The locked card stays hidden in the fan while it is on the table. | Private hand, selection, locked card, `onLockIn(card)` |
+| `CardPreview` | The chosen card enlarged to fill most of the screen, with its name and effect. Lock in plays it. Back or Escape returns to the hand. A dialog. | `front`, `info`, `layoutId`, `onLock`, `onBack` |
 | `EncounterPanel` | Opponent, round number, countdown, lock-in button | Current encounter |
 | `RevealPanel` | Outcome of the duel in words, with each side's played card | Reveal payload |
 | `RoleCard` | Private role reveal with special card and rules | Private role |

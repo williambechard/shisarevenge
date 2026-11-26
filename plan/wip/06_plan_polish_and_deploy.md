@@ -7,6 +7,7 @@
 
 ### Feature freeze (day 12)
 
+- [ ] Card preview: tapping a card enlarges it to fill most of the screen with its name and effect. Lock in moves to the preview, and the locked card flies to the table. Check it on a phone.
 - [ ] Card animation (Motion and CSS 3D, see `design/02-tech-stack.md`): the fan, the card flip, and the move from the hand to the table. Check it on a phone in a live match.
 - [ ] Confirm the feature freeze. After this step, only bug fixes and deployment work are allowed.
 - [x] Scope change (steer after plan 05): special cards are played in place of a number, like the number cards. Design in `04-game-rules.md` section 5 and decision 19. Added here because plan 05 was already complete.
