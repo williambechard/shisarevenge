@@ -47,6 +47,7 @@ export type GameAction =
   | { type: 'discard-played' }
   | { type: 'card-gained'; value: CardValue }
   | { type: 'gained-done' }
+  | { type: 'continue-to-village' }
   | { type: 'round-ended'; round: number; caughtCount: number }
   | { type: 'special-notice'; notice: PrivateNotice }
   | { type: 'game-ended'; summary: EndgameSummary };
@@ -160,6 +161,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'gained-done':
       return { ...state, gained: null };
 
+    case 'continue-to-village':
+      return { ...state, overviewDismissed: true };
+
     case 'round-ended':
       return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };
 
@@ -167,6 +171,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, specialNotice: action.notice };
 
     case 'game-ended':
-      return { ...state, screen: 'endgame', endgame: action.summary };
+      return { ...state, screen: 'endgame', endgame: action.summary, overviewDismissed: false };
   }
 }

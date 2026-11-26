@@ -88,6 +88,10 @@ export type GameActions = {
   submitCard: (card: PlayedCard) => void;
   pickCard: (index: number) => void;
   dismissGained: () => void;
+  continueToVillage: () => void;
+  villageStep: (x: number, y: number) => void;
+  villageAccuse: (targetId: string, card: PlayedCard | null) => void;
+  villageInsert: (value: CardValue) => void;
   clearNotice: () => void;
 };
 
@@ -281,6 +285,29 @@ export function useGame(): { state: GameState } & GameActions {
     dispatch({ type: 'gained-done' });
   }, []);
 
+  const continueToVillage = useCallback((): void => {
+    dispatch({ type: 'continue-to-village' });
+  }, []);
+
+  // Village actions. The server answers with the new village and any notice for this player.
+  const villageStep = useCallback((x: number, y: number): void => {
+    getSocket().emit('village:move', { x, y }, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
+  const villageAccuse = useCallback((targetId: string, card: PlayedCard | null): void => {
+    getSocket().emit('village:accuse', { targetId, card }, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
+  const villageInsert = useCallback((value: CardValue): void => {
+    getSocket().emit('village:vend', { value }, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
@@ -293,6 +320,10 @@ export function useGame(): { state: GameState } & GameActions {
     submitCard,
     pickCard,
     dismissGained,
+    continueToVillage,
+    villageStep,
+    villageAccuse,
+    villageInsert,
     clearNotice,
   };
 }

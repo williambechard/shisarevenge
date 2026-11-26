@@ -5,6 +5,8 @@ type EndgameSummaryProps = {
   summary: EndgameSummary;
   players: PublicPlayer[];
   onBackToStart: () => void;
+  // Shown when the village is open between matches. Continues to the walkway.
+  onContinue?: (() => void) | undefined;
 };
 
 const WINNER_TEXT = {
@@ -17,7 +19,12 @@ function nameFor(players: PublicPlayer[], playerId: string): string {
 }
 
 // The overview after a match: who won, the final counts, the origin, and each player's history.
-export function EndgameSummary({ summary, players, onBackToStart }: EndgameSummaryProps) {
+export function EndgameSummary({
+  summary,
+  players,
+  onBackToStart,
+  onContinue,
+}: EndgameSummaryProps) {
   return (
     <section aria-labelledby="endgame-heading" className="flex flex-col gap-5 pt-6">
       <h1 id="endgame-heading" className="text-center text-3xl font-bold text-shisa">
@@ -54,7 +61,16 @@ export function EndgameSummary({ summary, players, onBackToStart }: EndgameSumma
         </ul>
       </section>
 
-      <Button onClick={onBackToStart}>Back to start</Button>
+      {onContinue ? (
+        <>
+          <Button onClick={onContinue}>Continue to the village</Button>
+          <Button variant="secondary" onClick={onBackToStart}>
+            Leave the room
+          </Button>
+        </>
+      ) : (
+        <Button onClick={onBackToStart}>Back to start</Button>
+      )}
     </section>
   );
 }

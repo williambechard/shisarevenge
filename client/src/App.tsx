@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react';
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
 import { PlayerBanner } from './components/molecules/PlayerBanner.js';
 import { StatusMessage } from './components/molecules/StatusMessage.js';
@@ -6,6 +7,7 @@ import { EndgameSummary } from './components/organisms/EndgameSummary.js';
 import { useGame } from './hooks/useGame.js';
 import { LobbyScreen } from './screens/LobbyScreen.js';
 import { RoundScreen } from './screens/RoundScreen.js';
+import { VillageScreen } from './screens/VillageScreen.js';
 
 // The role shown at the top: the origin is the Cursed Shisa while on Shisa's Army.
 function roleOf(
@@ -15,6 +17,9 @@ function roleOf(
   if (privateState.team === 'survivor') return 'Survivor';
   return privateState.origin ? 'Cursed Shisa' : "Shisa's Army";
 }
+
+// Screens fade in and out, so moving between the overview, the village, and a round is not abrupt.
+const FADE = { duration: 0.35 };
 
 // Chooses the screen from state. Each window keeps its name and role visible at the top.
 export function App() {
@@ -26,9 +31,24 @@ export function App() {
     submitCard,
     pickCard,
     dismissGained,
+    continueToVillage,
+    villageStep,
+    villageAccuse,
+    villageInsert,
     clearNotice,
   } = useGame();
   const role = roleOf(state.privateState);
+
+  // Which screen is showing. The village is open while the room is in its village phase, after the overview.
+  const village = state.room?.phase === 'village' && state.overviewDismissed && state.room.village;
+  const endgame = state.screen === 'endgame' && state.endgame && state.room ? state.endgame : null;
+  const activeScreen = village
+    ? 'village'
+    : state.screen === 'round'
+      ? 'round'
+      : endgame
+        ? 'endgame'
+        : null;
 
   return (
     <PhoneFrame>
@@ -68,24 +88,63 @@ export function App() {
         />
       ) : null}
 
-      {state.screen === 'round' ? (
-        <RoundScreen
-          state={state}
-          room={state.room}
-          onSelect={selectCard}
-          onLockIn={submitCard}
-          onPick={pickCard}
-          onGainedDone={dismissGained}
-        />
-      ) : null}
+      <AnimatePresence mode="wait" initial={false}>
+        {activeScreen === 'round' ? (
+          <motion.div
+            key="round"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={FADE}
+            className="flex flex-1 flex-col"
+          >
+            <RoundScreen
+              state={state}
+              room={state.room}
+              onSelect={selectCard}
+              onLockIn={submitCard}
+              onPick={pickCard}
+              onGainedDone={dismissGained}
+            />
+          </motion.div>
+        ) : null}
 
-      {state.screen === 'endgame' && state.endgame && state.room ? (
-        <EndgameSummary
-          summary={state.endgame}
-          players={state.room.players}
-          onBackToStart={leaveRoom}
-        />
-      ) : null}
+        {activeScreen === 'village' && state.room ? (
+          <motion.div
+            key="village"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={FADE}
+            className="flex flex-1 flex-col"
+          >
+            <VillageScreen
+              state={state}
+              room={state.room}
+              onStep={villageStep}
+              onAccuse={villageAccuse}
+              onInsert={villageInsert}
+            />
+          </motion.div>
+        ) : null}
+
+        {activeScreen === 'endgame' && endgame && state.room ? (
+          <motion.div
+            key="endgame"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={FADE}
+          >
+            <EndgameSummary
+              summary={endgame}
+              players={state.room.players}
+              onBackToStart={leaveRoom}
+              onContinue={state.room.phase === 'village' ? continueToVillage : undefined}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </PhoneFrame>
   );
 }

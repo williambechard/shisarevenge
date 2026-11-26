@@ -60,6 +60,8 @@ export type GameState = {
   playedDiscarded: boolean;
   // A card this player just took. The nonce makes each take a new moment even for the same value.
   gained: { value: CardValue; nonce: number } | null;
+  // True once the player has read the overview and chosen to continue to the village.
+  overviewDismissed: boolean;
   roundSummary: RoundSummary | null;
   // Caught or recovered notice for this player. Cleared when the next round is paired.
   specialNotice: PrivateNotice | null;
@@ -84,6 +86,7 @@ export function createInitialState(): GameState {
     lockedCard: null,
     playedDiscarded: false,
     gained: null,
+    overviewDismissed: false,
     roundSummary: null,
     specialNotice: null,
     endgame: null,
