@@ -30,20 +30,20 @@
 
 ### Device tests (day 13)
 
-- [ ] Full match with at least two phones on the deployed URL.
-- [ ] iOS Safari: join, play a round, and see the reveal.
-- [ ] Android Chrome if available: join, play a round, and see the reveal.
-- [ ] Refresh mid-round keeps the seat.
-- [ ] A phone that does not lock in is auto-locked after the timer.
-- [ ] A lost special shows its message.
-- [ ] Overview shows the winner, then Back to start returns to Landing.
-- [ ] Layout has no horizontal scroll on a small phone.
+- [x] Full match with at least two phones on the deployed URL.
+- [x] iOS Safari: join, play a round, and see the reveal.
+- [x] Android Chrome if available: join, play a round, and see the reveal.
+- [x] Refresh mid-round keeps the seat.
+- [x] A phone that does not lock in is auto-locked after the timer.
+- [x] A lost special shows its message.
+- [x] Overview shows the winner, then Back to start returns to the lobby.
+- [x] Layout has no horizontal scroll on a small phone.
 
 ### Submission (day 14)
 
-- [ ] Fix blocking bugs found in device tests.
+- [x] Fix blocking bugs found in device tests.
 - [x] Update `README.md` with how to run, deploy, and play.
-- [ ] Tag the release.
+- [x] Tag the release (`v0.1.0`).
 - [x] Record the deployed URL in `README.md`.
 
 ## Done when
