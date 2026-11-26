@@ -18,16 +18,16 @@ Deploy the server first. Vercel needs its URL.
 4. If the repo is not listed, click **Configure account** and grant Render access to `shisarevenge`. Then select `williambechard/shisarevenge`, and click **Connect**.
 5. Fill in the form:
 
-| Field          | Value                                                                   |
-| -------------- | ----------------------------------------------------------------------- |
-| Name           | `shisa-revenge-server` (any name works; it becomes part of the URL)     |
-| Language       | `Node`                                                                  |
-| Branch         | `main`                                                                  |
-| Region         | The region closest to your players                                      |
-| Root Directory | `server`                                                                |
-| Build Command  | `cd .. && npm ci && npm run build -w shared && npm run build -w server` |
-| Start Command  | `npm start`                                                             |
-| Instance Type  | `Free`                                                                  |
+| Field          | Value                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------- |
+| Name           | `shisa-revenge-server` (any name works; it becomes part of the URL)                   |
+| Language       | `Node`                                                                                |
+| Branch         | `main`                                                                                |
+| Region         | The region closest to your players                                                    |
+| Root Directory | `server`                                                                              |
+| Build Command  | `cd .. && npm ci --include=dev && npm run build -w shared && npm run build -w server` |
+| Start Command  | `npm start`                                                                           |
+| Instance Type  | `Free`                                                                                |
 
 The build command runs from the repo root. Render runs every command from the Root Directory (`server`), so Render's prefilled build command will not work. Replace whatever it shows with the command above. The start command already runs inside `server/`, so `npm start` is correct as given. `cd ..` moves out of `server/` so the install covers all workspaces and `shared` builds first.
 
@@ -63,14 +63,14 @@ Do not set `PORT`. Render sets it, and the server reads it.
 
 ## Troubleshooting
 
-| Symptom                                                       | Cause and fix                                                                                                                                                    |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Build fails with `Cannot find module '@shisa-revenge/shared'` | The build command did not run from the repo root. Check it starts with `cd ..`.                                                                                  |
-| Build fails with `npm ci` lockfile errors                     | Run `npm install` locally, commit the updated `package-lock.json`, and push.                                                                                     |
-| `Invalid server environment: CLIENT_ORIGIN` in the log        | `CLIENT_ORIGIN` is missing or is not a full URL. Set it with `https://`.                                                                                         |
-| Browser shows a CORS error                                    | `CLIENT_ORIGIN` does not match the page URL exactly. Check for a trailing slash or `http` vs `https`.                                                            |
-| Service restarts or does not start                            | Open **Logs**. The last lines show the cause.                                                                                                                    |
-| Players see "Connecting" or lose their room after a pause     | The free instance restarted, or slept after 15 minutes with no open connections. Rooms live in server memory, so a restart clears them. Players must join again. |
+| Symptom                                                                   | Cause and fix                                                                                                                                                               |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build fails with `Cannot find module '@shisa-revenge/shared'`             | The build command did not run from the repo root. Check it starts with `cd ..`.                                                                                             |
+| Build fails with `TS2307: Cannot find module 'vitest'` or a missing `tsc` | `NODE_ENV=production` makes `npm ci` skip devDependencies. The build command must include `--include=dev`, as in part 1. Keep `NODE_ENV=production` for the running server. | `n  | Build fails with `npm ci` lockfile errors | Run `npm install` locally, commit the updated `package-lock.json`, and push. |
+| `Invalid server environment: CLIENT_ORIGIN` in the log                    | `CLIENT_ORIGIN` is missing or is not a full URL. Set it with `https://`.                                                                                                    |
+| Browser shows a CORS error                                                | `CLIENT_ORIGIN` does not match the page URL exactly. Check for a trailing slash or `http` vs `https`.                                                                       |
+| Service restarts or does not start                                        | Open **Logs**. The last lines show the cause.                                                                                                                               |
+| Players see "Connecting" or lose their room after a pause                 | The free instance restarted, or slept after 15 minutes with no open connections. Rooms live in server memory, so a restart clears them. Players must join again.            |
 
 ## Notes
 
