@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { animate, motion, useAnimate } from 'motion/react';
 import { Avatar } from './Avatar.js';
 
-// A bounce after a meeting: the token lunges toward the other player (dx, dy), and returns.
+// A recoil after a meeting: once the token has arrived, it bumps in direction (dx, dy) and settles back.
 export type Bounce = { dx: number; dy: number; at: number } | null;
 
 type TokenProps = {
@@ -20,9 +20,9 @@ type TokenProps = {
 };
 
 const MOVE_MS = 450;
-const BOUNCE_MS = 700;
-// How far the token lunges toward the other player, in pixels.
-const LUNGE_PX = 14;
+const BOUNCE_MS = 300;
+// How far the token recoils, in pixels.
+const LUNGE_PX = 8;
 // A bounce older than this is not replayed, so a page reload does not repeat it.
 const BOUNCE_FRESH_MS = 2000;
 
@@ -61,7 +61,7 @@ export function Token({ name, colour, self, x, y, cols, rows, spread, bounce }: 
         x: [0, bounce.dx * LUNGE_PX, 0],
         y: [0, bounce.dy * LUNGE_PX, 0],
       },
-      { duration: BOUNCE_MS / 1000, ease: 'easeInOut' },
+      { duration: BOUNCE_MS / 1000, delay: MOVE_MS / 1000, ease: 'easeInOut' },
     );
     // The bounce plays once per meeting, keyed by its time.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -16,8 +16,8 @@ import { VillageBoard } from '../components/organisms/VillageBoard.js';
 import { VILLAGE_BACKGROUND_ART } from '../assets/village/index.js';
 import type { GameState } from '../state/gameState.js';
 
-// How long the bounce after a meeting lasts, before the overlay opens.
-const MEETING_BOUNCE_MS = 700;
+// How long the glide and recoil after a meeting take, before the overlay opens (450 ms glide, 300 ms recoil).
+const MEETING_BOUNCE_MS = 800;
 
 type VillageScreenProps = {
   state: GameState;

@@ -27,30 +27,10 @@ function isNeighbour(a: Position | undefined, b: Position): boolean {
   return a !== undefined && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
 }
 
-// Where a token is drawn. After a meeting the mover is drawn back on the tile they came from, until the
-// mover moves again. That keeps two tokens from sharing one tile on screen during the bounce.
-function drawnAt(
-  playerId: string,
-  positions: Record<string, Position>,
-  meeting: PublicVillage['meeting'],
-): Position | undefined {
-  const actual = positions[playerId];
-  if (
-    meeting &&
-    meeting.moverId === playerId &&
-    actual &&
-    actual.x === meeting.to.x &&
-    actual.y === meeting.to.y
-  ) {
-    return meeting.from;
-  }
-  return actual;
-}
-
-// The walkway grid. Tiles are see-through, so the village background shows through. Each reachable tile
-// is outlined and carries a direction arrow from the player's own tile. Tokens sit in a layer above the
-// tiles, so they can glide between tiles. When two players meet, the mover lunges toward the other
-// player's tile and bounces back to where they came from.
+// The walkway grid. Tiles are see-through, so the village background shows through. The tiles next to
+// the player's own token are outlined and carry a direction arrow from that token. Tokens sit in a layer
+// above the tiles, so they glide between tiles. A player who meets another stays on the tile they
+// stepped onto, and gives a small recoil there. The server keeps the same tile, so arrows and moves agree.
 export function VillageBoard({
   board,
   positions,
@@ -67,7 +47,7 @@ export function VillageBoard({
   const seats = players.filter((player) => positions[player.id] !== undefined);
   const tokensOn = new Map<string, PublicPlayer[]>();
   for (const player of seats) {
-    const at = drawnAt(player.id, positions, meeting);
+    const at = positions[player.id];
     if (!at) continue;
     const key = keyOf(at);
     tokensOn.set(key, [...(tokensOn.get(key) ?? []), player]);
@@ -127,20 +107,20 @@ export function VillageBoard({
 
       <div className="pointer-events-none absolute inset-0">
         {seats.map((player) => {
-          const at = drawnAt(player.id, positions, meeting);
+          const at = positions[player.id];
           if (!at) return null;
           const sharing = tokensOn.get(keyOf(at)) ?? [];
           const index = sharing.indexOf(player);
           const spread = (index - (sharing.length - 1) / 2) * TOKEN_SPREAD_PX;
-          const actual = positions[player.id];
+          // The mover recoils, opposite to the way they walked in, once they have arrived on the tile.
           const bounce: Bounce =
             meeting &&
             meeting.moverId === player.id &&
-            actual?.x === meeting.to.x &&
-            actual.y === meeting.to.y
+            at.x === meeting.to.x &&
+            at.y === meeting.to.y
               ? {
-                  dx: Math.sign(meeting.to.x - meeting.from.x),
-                  dy: Math.sign(meeting.to.y - meeting.from.y),
+                  dx: -Math.sign(meeting.to.x - meeting.from.x),
+                  dy: -Math.sign(meeting.to.y - meeting.from.y),
                   at: meeting.at,
                 }
               : null;
