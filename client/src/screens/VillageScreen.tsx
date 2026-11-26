@@ -11,6 +11,7 @@ import { Button } from '../components/atoms/Button.js';
 import { Countdown } from '../components/atoms/Countdown.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { AccusePanel } from '../components/organisms/AccusePanel.js';
+import { LockInOverlay } from '../components/organisms/LockInOverlay.js';
 import { VendingPanel } from '../components/organisms/VendingPanel.js';
 import { VillageBoard } from '../components/organisms/VillageBoard.js';
 import type { GameState } from '../state/gameState.js';
@@ -22,6 +23,7 @@ const ACCUSATION_NOTE_MS = 6000;
 // How long the vending hint stays above the machine.
 const VENDING_HINT_MS = 3000;
 // Village messages sit on a dark card, so white text stays readable over the background.
+const VILLAGE_NOTICE_MS = 3500;
 const noticeCard = 'rounded-xl bg-navy/90 px-4 py-3 text-sm text-white shadow-md';
 
 type VillageScreenProps = {
@@ -31,6 +33,9 @@ type VillageScreenProps = {
   onChallenge: (targetId: string | null) => void;
   onAccuse: (targetId: string, card: PlayedCard | null) => void;
   onInsert: (value: CardValue) => void;
+  // A message for this player from the last village action, or null.
+  message: string | null;
+  onClearNotice: () => void;
 };
 
 function nameOf(room: PublicRoomState, playerId: string): string {
@@ -85,11 +90,23 @@ export function VillageScreen({
   onChallenge,
   onAccuse,
   onInsert,
+  message,
+  onClearNotice,
 }: VillageScreenProps) {
   // Which meeting the player has already dismissed. A new arrival on the tile opens the overlay again.
   const [walkedOn, setWalkedOn] = useState<string | null>(null);
   // The vending panel opens when the player taps the machine from a tile next to it.
   const [vendingOpen, setVendingOpen] = useState(false);
+  // Village messages go away after a few seconds.
+  useEffect(() => {
+    if (message === null) return;
+    const handle = setTimeout(() => {
+      onClearNotice();
+    }, VILLAGE_NOTICE_MS);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [message, onClearNotice]);
   // A short hint above the machine, shown when the player taps it without a duplicate card.
   const [hint, setHint] = useState<{ id: number } | null>(null);
   useEffect(() => {
@@ -148,8 +165,16 @@ export function VillageScreen({
     return at !== undefined && at.x === here.x && at.y === here.y;
   });
   const meetingKey = `${String(here?.x)},${String(here?.y)}:${onTile.map((player) => player.id).join(',')}`;
+  // A challenge locks both players until the next round starts.
+  const pair = room.village?.partners.find(([a, b]) => a === selfId || b === selfId);
+  const partnerId = pair ? (pair[0] === selfId ? pair[1] : pair[0]) : null;
+  const partner = room.players.find((player) => player.id === partnerId);
+  const me = room.players.find((player) => player.id === selfId);
+  const lockedPair = partner !== undefined && me !== undefined ? { partner, me } : null;
+  const locked = lockedPair !== null;
   const overlayOpen =
     !out &&
+    !locked &&
     onTile.length > 0 &&
     walkedOn !== meetingKey &&
     (meetingAt === 0 || readyFor === meetingAt);
@@ -209,6 +234,17 @@ export function VillageScreen({
         </div>
       ) : null}
 
+      {lockedPair ? (
+        <LockInOverlay
+          self={{ name: lockedPair.me.name, icon: lockedPair.me.icon }}
+          partner={{ name: lockedPair.partner.name, icon: lockedPair.partner.icon }}
+        />
+      ) : null}
+      {message ? (
+        <div role="status" aria-live="polite" className={noticeCard}>
+          {message}
+        </div>
+      ) : null}
       {overlayOpen ? (
         <div
           role="dialog"
@@ -252,7 +288,7 @@ export function VillageScreen({
         </div>
       ) : null}
 
-      {vendingOpen && nextToMachine && !out ? (
+      {vendingOpen && nextToMachine && !out && !locked ? (
         <div
           role="dialog"
           aria-modal="true"

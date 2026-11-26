@@ -36,6 +36,8 @@
 - [x] Card-count badge: plain sand card with a bold number, at the upper right of the player's icon.
 - [x] Reconnect after the grace period is refused with GRACE_EXPIRED once a match has started (design/04 section 4.4).
 - [x] A lobby with a dropped player's seat held is closed to new players. Fresh windows no longer fill it with ghost seats and auto-start it (playtest bug).
+- [x] Card-count badge is a narrow card rectangle.
+- [x] Challenge locks both players for the next round, at once. Full-screen CHALLENGE overlay for both, with animation. Locked players cannot act, and nobody walks onto them (design/10 section 15).
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.

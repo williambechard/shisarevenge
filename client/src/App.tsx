@@ -134,6 +134,8 @@ export function App() {
               onChallenge={villageChallenge}
               onAccuse={villageAccuse}
               onInsert={villageInsert}
+              message={state.notice}
+              onClearNotice={clearNotice}
             />
           </motion.div>
         ) : null}

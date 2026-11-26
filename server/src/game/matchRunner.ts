@@ -656,6 +656,7 @@ export class MatchRunner {
         log: village.log,
         revealed: village.revealed,
         meeting: village.meeting,
+        partners: village.partners,
         endsAt,
       });
     }
@@ -695,7 +696,6 @@ export class MatchRunner {
   villageChallenge(code: string, playerId: string, target: string | null): MatchResult {
     const match = this.matches.get(code);
     if (!match?.village) return { ok: false, error: 'NOT_IN_VILLAGE' };
-    const previous = match.village.challenges[playerId];
     const result = challenge(match.village, playerId, target);
     if (!result.ok) return result;
 
@@ -703,8 +703,6 @@ export class MatchRunner {
     if (result.value.matched && target !== null) {
       this.emitToPlayer(code, playerId, 'player:notice', { kind: 'partnered', partnerId: target });
       this.emitToPlayer(code, target, 'player:notice', { kind: 'partnered', partnerId: playerId });
-    } else if (target !== null && target !== previous) {
-      this.emitToPlayer(code, target, 'player:notice', { kind: 'challenged', byId: playerId });
     }
     this.publishVillage(code);
     return { ok: true };

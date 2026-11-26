@@ -8,7 +8,7 @@ export function CardCountBadge({ count }: CardCountBadgeProps) {
   return (
     <span
       aria-label={`${String(count)} ${count === 1 ? 'card' : 'cards'}`}
-      className="flex h-7 min-w-7 items-center justify-center rounded-md border-2 border-navy bg-sand px-1 text-sm font-black text-navy shadow-md"
+      className="flex h-8 w-5 items-center justify-center rounded-md border-2 border-navy bg-sand text-sm font-black text-navy shadow-md"
     >
       {String(count)}
     </span>

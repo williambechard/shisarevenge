@@ -53,6 +53,8 @@ export type PublicVillage = {
     to: { x: number; y: number };
     at: number;
   } | null;
+  // Pairs locked in for a pre-battle: a challenge for the next round. Both players are locked until it starts.
+  partners: Array<[string, string]>;
   // Epoch ms when the village closes and the next match starts.
   endsAt: number;
 };

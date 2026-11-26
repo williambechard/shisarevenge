@@ -28,6 +28,7 @@ export const ERROR_CODES = [
   'NO_DUPLICATE',
   'VENDING_USED',
   'OBSERVER_ONLY',
+  'LOCKED_IN',
   'INTERNAL',
 ] as const;
 
@@ -61,6 +62,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   NOT_ON_VENDING: 'Stand next to the vending machine to use it.',
   NO_DUPLICATE: 'You need two copies of a card to use the machine.',
   VENDING_USED: 'You have already used the vending machine this village.',
+  LOCKED_IN: 'Locked in for a pre-battle. No interrupting!',
   OBSERVER_ONLY: 'Players who are out can only watch.',
   INTERNAL: 'Something went wrong. Please try again.',
 };

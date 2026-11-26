@@ -230,26 +230,35 @@ describe('vending machine (design/10 section 5)', () => {
 });
 
 describe('partner challenges (design/10 section 13.1)', () => {
-  it('pairs two players when they challenge each other on the same tile', () => {
-    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 } }, {});
-    const first = challenge(state, 'a', 'b');
-    if (!first.ok) throw new Error('first challenge failed');
-    expect(first.value.matched).toBe(false);
-    const second = challenge(first.value.state, 'b', 'a');
-    if (!second.ok) throw new Error('second challenge failed');
-    expect(second.value.matched).toBe(true);
-    expect(second.value.state.partners).toHaveLength(1);
-    expect([...(second.value.state.partners[0] ?? [])].sort()).toEqual(['a', 'b']);
-  });
-
-  it('does not pair a one-sided challenge', () => {
+  it('locks both players when one challenges the other on the same tile', () => {
     const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 } }, {});
     const result = challenge(state, 'a', 'b');
     if (!result.ok) throw new Error('challenge failed');
-    expect(result.value.matched).toBe(false);
-    expect(result.value.state.partners).toEqual([]);
+    expect(result.value.matched).toBe(true);
+    expect([...(result.value.state.partners[0] ?? [])].sort()).toEqual(['a', 'b']);
   });
 
+  it('refuses to challenge a player who is already locked in', () => {
+    const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 }, c: { x: 1, y: 0 } }, {});
+    const first = challenge(state, 'a', 'b');
+    if (!first.ok) throw new Error('first challenge failed');
+    expect(challenge(first.value.state, 'c', 'b')).toEqual({ ok: false, error: 'LOCKED_IN' });
+  });
+
+  it('keeps locked players from moving, accusing, or being walked onto', () => {
+    const locked = challenge(
+      villageAt({ a: { x: 1, y: 0 }, b: { x: 1, y: 0 }, c: { x: 2, y: 0 } }, {}),
+      'a',
+      'b',
+    );
+    if (!locked.ok) throw new Error('challenge failed');
+    const state = locked.value.state;
+    expect(moveTo(state, 'a', { x: 2, y: 0 }, 1000)).toEqual({ ok: false, error: 'LOCKED_IN' });
+    expect(moveTo(state, 'c', { x: 1, y: 0 }, 1000)).toEqual({ ok: false, error: 'LOCKED_IN' });
+    expect(
+      accuse(state, 'c', 'b', null, { a: 'survivor', b: 'survivor', c: 'survivor' }, seeded(1)),
+    ).toEqual({ ok: false, error: 'LOCKED_IN' });
+  });
   it('needs both players on the same tile', () => {
     const state = villageAt({ a: { x: 1, y: 0 }, b: { x: 2, y: 0 } }, {});
     expect(challenge(state, 'a', 'b')).toEqual({ ok: false, error: 'NOT_SAME_TILE' });

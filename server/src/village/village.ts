@@ -111,13 +111,14 @@ export function createVillage(
   };
 }
 
-// A copy of a record without the given keys. Keeps the state immutable.
-function without(record: Record<string, string>, ...keys: string[]): Record<string, string> {
-  return Object.fromEntries(Object.entries(record).filter(([key]) => !keys.includes(key)));
-}
-
 function cellAt(state: VillageState, position: Position): Cell | null {
   return state.cells[position.y]?.[position.x] ?? null;
+}
+
+// Locked in for a pre-battle: a challenge pair for the next round. A locked player cannot act, and cannot be
+// interrupted.
+function isLocked(state: VillageState, playerId: string): boolean {
+  return state.partners.some(([a, b]) => a === playerId || b === playerId);
 }
 
 function isSameTile(state: VillageState, a: string, b: string): boolean {
@@ -135,9 +136,15 @@ export function moveTo(
 ): VillageResult {
   const from = state.positions[playerId];
   if (!from) return { ok: false, error: 'NOT_IN_VILLAGE' };
+  if (isLocked(state, playerId)) return { ok: false, error: 'LOCKED_IN' };
   if (Math.abs(target.x - from.x) + Math.abs(target.y - from.y) !== 1) {
     return { ok: false, error: 'NOT_ADJACENT' };
   }
+  // Nobody walks onto a tile where a locked player stands. Locked players cannot be interrupted.
+  const interrupts = Object.entries(state.positions).some(
+    ([id, at]) => id !== playerId && at.x === target.x && at.y === target.y && isLocked(state, id),
+  );
+  if (interrupts) return { ok: false, error: 'LOCKED_IN' };
   const cell = cellAt(state, target);
   // The vending machine tile cannot be entered. Players use it from a neighbouring tile.
   if (cell === null || cell === 'blocked' || cell === 'vending') {
@@ -175,27 +182,16 @@ export function challenge(
   if (state.out[fromId]) return { ok: false, error: 'OBSERVER_ONLY' };
   if (!state.positions[fromId]) return { ok: false, error: 'NOT_IN_VILLAGE' };
 
-  if (target === null) {
-    const challenges = without(state.challenges, fromId);
-    return { ok: true, value: { state: { ...state, challenges }, matched: false } };
-  }
+  // Nothing to withdraw: a challenge locks both players at once.
+  if (target === null) return { ok: true, value: { state, matched: false } };
   if (target === fromId) return { ok: false, error: 'CANNOT_ACCUSE_SELF' };
   if (!state.positions[target] || state.out[target]) return { ok: false, error: 'NOT_IN_VILLAGE' };
   if (!isSameTile(state, fromId, target)) return { ok: false, error: 'NOT_SAME_TILE' };
+  if (isLocked(state, fromId) || isLocked(state, target)) return { ok: false, error: 'LOCKED_IN' };
 
-  const open: Record<string, string> = { ...state.challenges, [fromId]: target };
-  if (open[target] === fromId) {
-    // Mutual: both are partners for the next round, and neither has an open challenge.
-    const challenges = without(open, fromId, target);
-    const partners: Array<[string, string]> = [
-      ...state.partners.filter(
-        ([a, b]) => a !== fromId && b !== fromId && a !== target && b !== target,
-      ),
-      [fromId, target],
-    ];
-    return { ok: true, value: { state: { ...state, challenges, partners }, matched: true } };
-  }
-  return { ok: true, value: { state: { ...state, challenges: open }, matched: false } };
+  // A challenge pairs the two for the next round, and locks both until the round starts.
+  const partners: Array<[string, string]> = [...state.partners, [fromId, target]];
+  return { ok: true, value: { state: { ...state, partners }, matched: true } };
 }
 
 function removeCard(cards: VillageCards, choice: CardChoice): VillageCards | null {
@@ -223,6 +219,9 @@ export function accuse(
 ): VillageResult<{ state: VillageState; correct: boolean }> {
   if (state.out[accuserId]) return { ok: false, error: 'OBSERVER_ONLY' };
   if (!state.positions[accuserId]) return { ok: false, error: 'NOT_IN_VILLAGE' };
+  if (isLocked(state, accuserId) || isLocked(state, targetId)) {
+    return { ok: false, error: 'LOCKED_IN' };
+  }
   if (!state.positions[targetId]) return { ok: false, error: 'NOT_IN_VILLAGE' };
   if (accuserId === targetId) return { ok: false, error: 'CANNOT_ACCUSE_SELF' };
   if (!isSameTile(state, accuserId, targetId)) return { ok: false, error: 'NOT_SAME_TILE' };
@@ -276,6 +275,7 @@ export function vend(
   random: RandomFn,
 ): VillageResult<{ state: VillageState; received: VendedCard }> {
   if (state.out[playerId]) return { ok: false, error: 'OBSERVER_ONLY' };
+  if (isLocked(state, playerId)) return { ok: false, error: 'LOCKED_IN' };
   const at = state.positions[playerId];
   if (!at) return { ok: false, error: 'NOT_IN_VILLAGE' };
   // The machine is used from a tile next to it (design/10 section 5).

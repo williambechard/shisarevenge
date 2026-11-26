@@ -6,16 +6,18 @@ type AvatarProps = {
   icon: number;
   // Marks the player's own icon.
   self: boolean;
+  // A bigger icon, for announcements.
+  large?: boolean;
 };
 
 // A player's icon. The picture stands in for the player everywhere: the lobby, the header, and the walkway.
-export function Avatar({ name, icon, self }: AvatarProps) {
+export function Avatar({ name, icon, self, large = false }: AvatarProps) {
   return (
     <img
       src={playerIconSrc(icon)}
       alt={`${name}${self ? ' (you)' : ''}`}
       draggable={false}
-      className={`size-9 shrink-0 rounded-full bg-sand object-cover shadow ${self ? 'ring-2 ring-gold' : ''}`}
+      className={`${large ? 'size-20' : 'size-9'} shrink-0 rounded-full bg-sand object-cover shadow-lg ${self ? 'ring-2 ring-gold' : ''}`}
     />
   );
 }

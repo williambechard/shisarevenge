@@ -128,7 +128,7 @@ Open questions for review:
 5. **Eliminated players** still accuse for free, and can still walk the village between rounds. Do they keep watching during matches, or can they accuse each round?
 ### 13.1 Decisions (from review)
 
-1. **Partner choice:** when two players stand on the same tile, a modal opens for each of them. It offers **Challenge** (propose a duel for the next round), **Accuse**, or **Walk on**. A challenge is mutual: if both players challenge each other, they are paired for the next round. Otherwise the player is paired at random.
+1. **Partner choice:** when two players stand on the same tile, a modal opens for each of them. It offers **Challenge** (propose a duel for the next round), **Accuse**, or **Walk on**. A challenge locks both players as a pair for the next round, at once. A player who is not challenged is paired at random.
 2. **Random partners** are drawn from the players still in play. Eliminated players are never paired.
 3. **Accusations are public.** Everyone sees who accused whom, and the result of the accusation. A correct accusation also reveals the accused player's role to everyone. A wrong accusation reveals nothing about the accused's role.
 4. **Eliminated players are observers.** They can walk and read the village, but they cannot accuse or challenge.
@@ -138,3 +138,11 @@ Open questions for review:
 - No screen scrolls, vertically or horizontally. The phone frame is exactly the viewport height and hides overflow.
 - The walkway takes the largest square-tiled size that fits the width and the height left over. It shrinks on short phones.
 - Cards size from the screen height (dvh), so the table and hand fit short phones.
+
+## 15. Challenge lock (pre-battle)
+
+- A challenge pairs the challenger and the target as soon as it is made. Both players must be on the same tile and in play.
+- A locked player sees a full-screen CHALLENGE overlay with both icons and names. It stays until the round starts. They can do nothing else: no moving, no accusing, no vending.
+- Nobody can walk onto a tile where a locked player stands. The walker sees the message "Locked in for a pre-battle. No interrupting!".
+- A locked player cannot be challenged or accused.
+- Locks are public. The pair appears in the village state as partners.
