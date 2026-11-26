@@ -11,6 +11,8 @@ import { Countdown } from '../components/atoms/Countdown.js';
 import { Announcement } from '../components/molecules/Announcement.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
+import { WaitingIndicator } from '../components/molecules/WaitingIndicator.js';
+import { GainedCard } from '../components/organisms/GainedCard.js';
 import { HandTray } from '../components/organisms/HandTray.js';
 import { PickPanel } from '../components/organisms/PickPanel.js';
 import { PlayArea } from '../components/organisms/PlayArea.js';
@@ -24,6 +26,7 @@ type RoundScreenProps = {
   onSelect: (card: PlayedCard) => void;
   onLockIn: (card: PlayedCard) => void;
   onPick: (index: number) => void;
+  onGainedDone: () => void;
 };
 
 function nameOf(room: PublicRoomState | null, playerId: string | null): string {
@@ -64,6 +67,7 @@ function noticeText(notice: PrivateNotice): { text: string; tone: 'info' | 'erro
 }
 
 // Everyone can see how many cards each player holds, updated at each round summary.
+// An eliminated player fades to grey, so the change is easy to see.
 function CardCounts({ room }: { room: PublicRoomState }) {
   return (
     <section aria-label="Cards left" className="text-xs text-navy/80">
@@ -89,8 +93,16 @@ function CardCounts({ room }: { room: PublicRoomState }) {
 }
 
 // The round screen: team bar, card counts, the table, the fan of cards, and the reveal once both
-// players lock in. A winner of a duel takes a card here too, from a face-down pool.
-export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundScreenProps) {
+// players lock in. A winner of a duel takes a card here too, from a face-down pool. Every wait
+// names what it is waiting for.
+export function RoundScreen({
+  state,
+  room,
+  onSelect,
+  onLockIn,
+  onPick,
+  onGainedDone,
+}: RoundScreenProps) {
   const view = state.roundView;
   const self = state.privateState;
   const opponentId = self?.encounter?.opponentId ?? null;
@@ -99,6 +111,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
   const locked = self?.encounter?.selectionLocked ?? false;
   const reveal = state.reveal;
   const round = view?.round ?? 1;
+  const phase = room?.phase ?? null;
   const notice = state.specialNotice ? noticeText(state.specialNotice) : null;
   const out = room?.players.find((player) => player.id === state.playerId)?.eliminated === true;
   const pending = self?.pendingPick ?? null;
@@ -119,6 +132,41 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
       : null;
   const opponentFront = reveal ? cardArt(reveal.opponentValue, reveal.opponentSpecial) : null;
 
+  // What the player is waiting for right now, if anything. Null when the player has a choice to make.
+  const waiting = (() => {
+    if (out) return null;
+    if (reveal !== null) {
+      return phase === 'resolved'
+        ? {
+            title: 'Waiting for the round summary',
+            detail: 'Any card still being taken is finished first.',
+          }
+        : {
+            title: 'Waiting for the other duels',
+            detail: 'The round ends when every duel and every card take is done.',
+          };
+    }
+    if (phase === 'announce') {
+      return {
+        title: `Round ${String(round)} is starting`,
+        detail: 'Pairing players. Each duel starts once everyone is paired.',
+      };
+    }
+    if (isWarmUp) {
+      return {
+        title: 'Warm-Up: you sit out this round',
+        detail: 'The other duels are still being played.',
+      };
+    }
+    if (locked && phase === 'selecting') {
+      return {
+        title: `Waiting for ${opponentName} to lock in`,
+        detail: 'Your card is locked. The duel reveals as soon as they lock in.',
+      };
+    }
+    return null;
+  })();
+
   return (
     <section aria-labelledby="round-heading" className="flex flex-1 flex-col gap-5 pt-4">
       <header className="flex flex-col gap-2">
@@ -133,7 +181,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
           />
         ) : null}
         {room ? <CardCounts room={room} /> : null}
-        {view?.deadline && !reveal && !isWarmUp && !out ? (
+        {view?.deadline && !reveal && !isWarmUp && !out && phase === 'selecting' && !locked ? (
           <Countdown deadline={view.deadline} label="Choose before" />
         ) : null}
       </header>
@@ -142,9 +190,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
 
       {out ? (
         <StatusMessage>You are out of the match. Watch the rest of the game.</StatusMessage>
-      ) : isWarmUp ? (
-        <StatusMessage>Warm-Up: you sit out this round.</StatusMessage>
-      ) : opponentId ? (
+      ) : opponentId && phase !== 'announce' ? (
         <PlayArea
           opponentName={opponentName}
           mySlot={mySlot}
@@ -165,7 +211,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
         />
       ) : null}
 
-      {!out && !isWarmUp && reveal === null && self ? (
+      {!out && !isWarmUp && reveal === null && self && phase === 'selecting' ? (
         <HandTray
           key={round}
           hand={self.hand}
@@ -178,9 +224,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
         />
       ) : null}
 
-      {!out && !isWarmUp && locked && reveal === null ? (
-        <StatusMessage>Waiting for {opponentName} to lock in.</StatusMessage>
-      ) : null}
+      {waiting ? <WaitingIndicator title={waiting.title} detail={waiting.detail} /> : null}
 
       {state.autoLocked && reveal === null ? (
         <StatusMessage>Time ran out. Your lowest card was locked in for you.</StatusMessage>
@@ -202,6 +246,12 @@ export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundSc
             deadline={pending.deadline}
             onPick={onPick}
           />
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {state.gained ? (
+          <GainedCard key={state.gained.nonce} value={state.gained.value} onDone={onGainedDone} />
         ) : null}
       </AnimatePresence>
     </section>

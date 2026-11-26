@@ -174,3 +174,13 @@ describe('locked card on the table', () => {
     expect(next.lockedCard).toEqual({ type: 'number', value: 2 });
   });
 });
+
+describe('gained card moment', () => {
+  it('records a gained card with a new nonce each time, and clears it when done', () => {
+    const first = gameReducer(joinedState(), { type: 'card-gained', value: 4 });
+    expect(first.gained).toEqual({ value: 4, nonce: 1 });
+    const second = gameReducer(first, { type: 'card-gained', value: 4 });
+    expect(second.gained?.nonce).toBe(2);
+    expect(gameReducer(second, { type: 'gained-done' }).gained).toBeNull();
+  });
+});

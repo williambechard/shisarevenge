@@ -87,6 +87,7 @@ export type GameActions = {
   selectCard: (card: PlayedCard) => void;
   submitCard: (card: PlayedCard) => void;
   pickCard: (index: number) => void;
+  dismissGained: () => void;
   clearNotice: () => void;
 };
 
@@ -163,6 +164,9 @@ export function useGame(): { state: GameState } & GameActions {
       if (notice.kind === 'auto-locked') {
         dispatch({ type: 'auto-locked' });
         return;
+      }
+      if (notice.kind === 'card-gained') {
+        dispatch({ type: 'card-gained', value: notice.value });
       }
       dispatch({ type: 'special-notice', notice });
     };
@@ -273,9 +277,22 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
+  const dismissGained = useCallback((): void => {
+    dispatch({ type: 'gained-done' });
+  }, []);
+
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return { state, leaveRoom, startNow, selectCard, submitCard, pickCard, clearNotice };
+  return {
+    state,
+    leaveRoom,
+    startNow,
+    selectCard,
+    submitCard,
+    pickCard,
+    dismissGained,
+    clearNotice,
+  };
 }

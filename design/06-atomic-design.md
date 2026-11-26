@@ -84,6 +84,9 @@ client/src/
 | Component | Purpose | Key props |
 |---|---|---|
 | `PlayingCard` | One card with a face and a back. Turns in 3D (CSS `rotateY`). A shared `layoutId` moves it between the hand and the table. | `front`, `faceUp`, `layoutId`, `size` |
+| WaitingIndicator | A visible wait: a spinner, what is waited on, and why. Used for every wait on another player, the server, or a timer. | 	itle, detail, 	one |
+| GainedCard | The card a winner took: it rises, turns face up, and drops into the hand. | alue, onDone |
+| PickPanel | The blind pick: the loser's cards face down, with their count and a countdown. | loserName, poolSize, deadline, onPick |
 | `PlayArea` | The table: the opponent's card above, this player's card below. Cards turn face up at reveal. | `opponentName`, `mySlot`, `opponentFront`, `revealed` |
 | `PlayerChip` | Name, avatar, and team badge in a compact row | `player`, `isSelf` |
 | `TeamCount` | Survivor and Shisa's Army counts | `survivors`, `infected` |

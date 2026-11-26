@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
 import { StatusMessage } from './components/molecules/StatusMessage.js';
+import { WaitingIndicator } from './components/molecules/WaitingIndicator.js';
 import { EndgameSummary } from './components/organisms/EndgameSummary.js';
 import { useGame } from './hooks/useGame.js';
 import { LobbyScreen } from './screens/LobbyScreen.js';
@@ -10,7 +11,16 @@ const TEAM_LABEL = { survivor: 'Survivor', infected: "Shisa's Army" } as const;
 
 // Chooses the screen from state. Each window keeps its name and team visible at the top.
 export function App() {
-  const { state, leaveRoom, startNow, selectCard, submitCard, pickCard, clearNotice } = useGame();
+  const {
+    state,
+    leaveRoom,
+    startNow,
+    selectCard,
+    submitCard,
+    pickCard,
+    dismissGained,
+    clearNotice,
+  } = useGame();
   const teamLabel = useMemo(
     () => (state.privateState ? TEAM_LABEL[state.privateState.team] : null),
     [state.privateState],
@@ -31,15 +41,22 @@ export function App() {
       ) : null}
 
       {state.connection === 'waking' ? (
-        <StatusMessage showSpinner>
-          Server waking up. The first connection can take up to a minute.
-        </StatusMessage>
+        <WaitingIndicator
+          title="Server waking up"
+          detail="The game server sleeps when nobody is playing. The first connection can take up to a minute."
+        />
       ) : null}
       {state.connection === 'connecting' ? (
-        <StatusMessage showSpinner>Connecting...</StatusMessage>
+        <WaitingIndicator
+          title="Connecting to the game"
+          detail="Checking the connection to the game server."
+        />
       ) : null}
       {state.connection === 'reconnecting' ? (
-        <StatusMessage showSpinner>Reconnecting...</StatusMessage>
+        <WaitingIndicator
+          title="Reconnecting"
+          detail="The connection dropped. Your seat is held while we try again."
+        />
       ) : null}
       {state.connection === 'offline' ? (
         <StatusMessage tone="error">You are offline.</StatusMessage>
@@ -65,6 +82,7 @@ export function App() {
           onSelect={selectCard}
           onLockIn={submitCard}
           onPick={pickCard}
+          onGainedDone={dismissGained}
         />
       ) : null}
 

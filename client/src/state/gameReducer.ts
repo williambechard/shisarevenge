@@ -45,6 +45,8 @@ export type GameAction =
   | { type: 'lock'; card: PlayedCard }
   | { type: 'unlock' }
   | { type: 'discard-played' }
+  | { type: 'card-gained'; value: CardValue }
+  | { type: 'gained-done' }
   | { type: 'round-ended'; round: number; caughtCount: number }
   | { type: 'special-notice'; notice: PrivateNotice }
   | { type: 'game-ended'; summary: EndgameSummary };
@@ -151,6 +153,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'discard-played':
       return { ...state, playedDiscarded: true };
+
+    case 'card-gained':
+      return { ...state, gained: { value: action.value, nonce: (state.gained?.nonce ?? 0) + 1 } };
+
+    case 'gained-done':
+      return { ...state, gained: null };
 
     case 'round-ended':
       return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };
