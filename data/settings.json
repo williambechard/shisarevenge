@@ -9,16 +9,16 @@
       "usesPerVillage": 1
     },
     "board": [
-      "XWWWWWX",
-      "WWXWXWW",
+      "WWWWWWW",
+      "WWWWWWW",
       "WWWVWWW",
-      "WXWWWXW",
-      "XWWWWWX",
-      "WWXWWWW",
-      "XWWXWWW",
-      "WWWWWXW",
-      "WXWWWWW",
-      "XWWWWWX"
+      "WWWWWWW",
+      "WWWWWWW",
+      "WWWWWWW",
+      "WWWWWWW",
+      "WWWWWWW",
+      "WWWWWWW",
+      "WWWWWWW"
     ]
   }
 }

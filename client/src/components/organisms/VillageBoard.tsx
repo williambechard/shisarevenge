@@ -1,9 +1,4 @@
-import {
-  isWalkableChar,
-  reachableTiles,
-  type PublicPlayer,
-  type PublicVillage,
-} from '@shisa-revenge/shared';
+import type { PublicPlayer, PublicVillage } from '@shisa-revenge/shared';
 import { VENDING_ART } from '../../assets/village/index.js';
 import { DirectionArrow } from '../atoms/DirectionArrow.js';
 import { Token, type Bounce } from '../molecules/Token.js';
@@ -16,7 +11,7 @@ type VillageBoardProps = {
   meeting: PublicVillage['meeting'];
   players: PublicPlayer[];
   selfId: string | null;
-  // Called with the tile a player taps. Every open tile the player can reach is enabled.
+  // Called with the tile a player taps. Only the four tiles next to the player's own token are enabled.
   onStep: (x: number, y: number) => void;
 };
 
@@ -24,6 +19,11 @@ type VillageBoardProps = {
 const TOKEN_SPREAD_PX = 14;
 
 const keyOf = (position: Position): string => `${String(position.x)},${String(position.y)}`;
+
+// One step up, down, left, or right. Diagonals do not count.
+function isNeighbour(a: Position | undefined, b: Position): boolean {
+  return a !== undefined && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+}
 
 // Where a token is drawn. After a meeting the mover is drawn back on the tile they came from, until the
 // mover moves again. That keeps two tokens from sharing one tile on screen during the bounce.
@@ -60,11 +60,6 @@ export function VillageBoard({
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
   const own = selfId === null ? undefined : positions[selfId];
-  const reachable = new Set(
-    own
-      ? reachableTiles(columns, rows, (x, y) => isWalkableChar(board[y]?.[x]), own).map(keyOf)
-      : [],
-  );
 
   const seats = players.filter((player) => positions[player.id] !== undefined);
   const tokensOn = new Map<string, PublicPlayer[]>();
@@ -86,7 +81,7 @@ export function VillageBoard({
         {board.flatMap((row, y) =>
           Array.from(row, (char, x) => {
             const here = { x, y };
-            const enabled = reachable.has(keyOf(here));
+            const enabled = isNeighbour(own, here) && (char === 'W' || char === 'V');
             return (
               <button
                 key={keyOf(here)}

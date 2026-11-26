@@ -17,7 +17,8 @@
 ### Village
 
 - [ ] Add the Village screen with a fixed grid, tap-to-move, and up to 8 avatars.
-- [x] Walk to any walkway or vending tile reachable through open tiles, not only a neighbour. Added because players could not reach most walkway tiles in one step. Rule in `design/10-village.md` section 3.
+- [x] Walk to any walkway or vending tile reachable through open tiles, not only a neighbour. Added because players could not reach most walkway tiles in one step.
+- [x] Reverted the reachable-tiles rule at the player's request. Movement is one tile at a time (up, down, left, right). The board has no blocked tiles, so every tile is reachable. Design in `design/10-village.md` section 3.
 - [x] Show a direction arrow on every reachable tile, pointing from the player's token.
 - [x] Glide tokens between tiles with ease-in/out, with squash and stretch along the path of travel.
 - [ ] Playtest the movement feel and arrows on a phone.

@@ -24,9 +24,9 @@ Players who are out of cards at the end of a match are still in the village. The
 
 ## 3. The walkway (grid)
 
-- **Board:** 7 columns by 5 rows of tiles. Each tile is walkway, a blocked decor tile (sand, rock, or water), or a landmark.
+- **Board:** 7 columns by 10 rows of tiles, all walkway except the vending machine. The board in data/settings.json may still use blocked tiles (X), but the MVP board has none, so every tile can be reached.
 - **Landmark:** the vending machine occupies one walkway tile. It is the only landmark in the MVP.
-- **Movement:** tap any walkway or vending tile the player can reach by walking up, down, left, or right through open tiles (not diagonal, and blocked tiles are never entered). Every reachable tile is enabled and shows a direction arrow from the player's token. The server checks reachability with the same rule (`reachableTiles` in `shared/src/village.ts`) and records the position. A move takes one step of the cooldown regardless of distance. Players and the vending machine do not block reachability. A player may move once every `MOVE_COOLDOWN_MS` (proposed: 400 ms) to keep the server quiet.
+- **Movement:** tap an adjacent walkway tile (up, down, left, right, not diagonal). The four tiles next to the player's token are enabled and show a direction arrow pointing at them. The server validates each move and records the position. A player may move once every `MOVE_COOLDOWN_MS` (proposed: 400 ms) to keep the server quiet.
 - **Avatars:** each player is a token with their name's first letter and one of eight colours. The token is code-drawn, so it needs no art.
 - **Meeting:** two players are on the same tile when they stand together. Accusations need the accuser and the target on the same tile. This is why the grid matters: you have to walk to the person you suspect.
 - **Start positions:** each player starts on a walkway tile spread across the board, chosen by the server.
