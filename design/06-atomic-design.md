@@ -87,6 +87,7 @@ client/src/
 | WaitingIndicator | A visible wait: a spinner, what is waited on, and why. Used for every wait on another player, the server, or a timer. | 	itle, detail, 	one |
 | GainedCard | The card a winner took: it rises, turns face up, and drops into the hand. | alue, onDone |
 | PickPanel | The blind pick: the loser's cards face down, with their count and a countdown. | loserName, poolSize, deadline, onPick |
+| `PlayerBanner` (molecule) | This player's name and role at the top of the screen, in light text on the bingata red. Shows Survivor, Cursed Shisa, or Shisa's Army. | `name`, `role` |
 | `Tick` (atom) | One tick on the team line, in a team colour. The leader's ticks stand taller. | `variant`, `leading` |
 | `RoundChip` (molecule) | One round, R1 to R5. The current round is coral and ringed. | `round`, `state` |
 | `TickLine` (molecule) | Survivor and Shisa's Army ticks from opposite ends. The side with more ticks leads, and the gap is the margin. | `survivors`, `infected` |

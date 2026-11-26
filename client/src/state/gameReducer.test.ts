@@ -162,6 +162,7 @@ describe('locked card on the table', () => {
       privateState: {
         playerId: 'p1',
         team: 'survivor' as const,
+        origin: false,
         hand: [4, 2, 5] as CardValue[],
         special: null,
         pendingPick: null,

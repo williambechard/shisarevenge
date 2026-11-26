@@ -58,6 +58,8 @@ export type PublicRoomState = {
 export type PrivatePlayerState = {
   playerId: string;
   team: Team;
+  // True for the player who started the match as the Cursed Shisa, even after their team changes.
+  origin: boolean;
   hand: CardValue[];
   special: { kind: SpecialKind; status: SpecialStatus } | null;
   // A take this player must make now. The server picks at random after the deadline.

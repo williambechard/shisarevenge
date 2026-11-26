@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
+import { PlayerBanner } from './components/molecules/PlayerBanner.js';
 import { StatusMessage } from './components/molecules/StatusMessage.js';
 import { WaitingIndicator } from './components/molecules/WaitingIndicator.js';
 import { EndgameSummary } from './components/organisms/EndgameSummary.js';
@@ -7,9 +7,16 @@ import { useGame } from './hooks/useGame.js';
 import { LobbyScreen } from './screens/LobbyScreen.js';
 import { RoundScreen } from './screens/RoundScreen.js';
 
-const TEAM_LABEL = { survivor: 'Survivor', infected: "Shisa's Army" } as const;
+// The role shown at the top: the origin is the Cursed Shisa while on Shisa's Army.
+function roleOf(
+  privateState: { team: 'survivor' | 'infected'; origin: boolean } | null,
+): string | null {
+  if (!privateState) return null;
+  if (privateState.team === 'survivor') return 'Survivor';
+  return privateState.origin ? 'Cursed Shisa' : "Shisa's Army";
+}
 
-// Chooses the screen from state. Each window keeps its name and team visible at the top.
+// Chooses the screen from state. Each window keeps its name and role visible at the top.
 export function App() {
   const {
     state,
@@ -21,25 +28,11 @@ export function App() {
     dismissGained,
     clearNotice,
   } = useGame();
-  const teamLabel = useMemo(
-    () => (state.privateState ? TEAM_LABEL[state.privateState.team] : null),
-    [state.privateState],
-  );
+  const role = roleOf(state.privateState);
 
   return (
     <PhoneFrame>
-      {state.name ? (
-        <p className="text-center text-sm text-navy/70" aria-label="Your name and team">
-          You are <span className="font-semibold text-navy">{state.name}</span>
-          {teamLabel ? (
-            <>
-              {' · '}
-              <span className="font-semibold text-navy">{teamLabel}</span>
-            </>
-          ) : null}
-        </p>
-      ) : null}
-
+      {state.name ? <PlayerBanner name={state.name} role={role} /> : null}
       {state.connection === 'waking' ? (
         <WaitingIndicator
           title="Server waking up"

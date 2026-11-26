@@ -541,6 +541,7 @@ export class MatchRunner {
       this.io.to(seat.socketId).emit('player:private-state', {
         playerId: player.id,
         team: player.team,
+        origin: room.originPlayerId === player.id,
         hand: player.hand,
         special: player.special ? { ...player.special } : null,
         pendingPick: this.pendingPickView(code, player.id),
