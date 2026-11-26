@@ -1,11 +1,14 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
   CARD_NAMES,
+  SPECIAL_NAMES,
   type CardValue,
   type PlayedCard,
   type SpecialKind,
 } from '@shisa-revenge/shared';
+import { NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../../assets/cards/index.js';
 import { Button } from '../atoms/Button.js';
+import { CardChoice, type ChoiceItem } from './CardChoice.js';
 
 type Target = { id: string; name: string };
 
@@ -18,6 +21,7 @@ type AccusePanelProps = {
 };
 
 // Accusations (design/10 section 4). Pick a player on your tile, then give up a card to accuse them.
+// The card is chosen like on the duel screen: tap to preview, then accuse or back out.
 // A player with no cards accuses for free.
 export function AccusePanel({ targets, hand, special, onAccuse }: AccusePanelProps) {
   const [chosen, setChosen] = useState<Target | null>(null);
@@ -46,40 +50,12 @@ export function AccusePanel({ targets, hand, special, onAccuse }: AccusePanelPro
     );
   }
 
-  return (
-    <section aria-label={`Accuse ${chosen.name}`} className="flex flex-col gap-2">
-      <p className="text-sm font-semibold">
-        {holdsCards
-          ? `Give up one card to accuse ${chosen.name}. It is gone whatever happens.`
-          : `You have no cards, so accusing ${chosen.name} is free.`}
-      </p>
-      {holdsCards ? (
-        <div className="flex flex-wrap gap-2">
-          {[...new Set(hand)].map((value) => (
-            <Button
-              key={value}
-              variant="secondary"
-              onClick={() => {
-                onAccuse(chosen.id, { type: 'number', value });
-                setChosen(null);
-              }}
-            >
-              Give {String(value)} {CARD_NAMES[value]}
-            </Button>
-          ))}
-          {special !== null ? (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                onAccuse(chosen.id, { type: 'special' });
-                setChosen(null);
-              }}
-            >
-              Give your special card
-            </Button>
-          ) : null}
-        </div>
-      ) : (
+  if (!holdsCards) {
+    return (
+      <section aria-label={`Accuse ${chosen.name}`} className="flex flex-col gap-2">
+        <p className="text-sm font-semibold">
+          You have no cards, so accusing {chosen.name} is free.
+        </p>
         <Button
           onClick={() => {
             onAccuse(chosen.id, null);
@@ -88,7 +64,49 @@ export function AccusePanel({ targets, hand, special, onAccuse }: AccusePanelPro
         >
           Accuse {chosen.name}
         </Button>
-      )}
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setChosen(null);
+          }}
+        >
+          Cancel
+        </Button>
+      </section>
+    );
+  }
+
+  const detail = 'This card is gone whatever happens.';
+  const summary = `Give it up to accuse ${chosen.name}.`;
+  const items: ChoiceItem[] = [...new Set(hand)].map((value) => ({
+    key: `number-${String(value)}`,
+    card: { type: 'number', value },
+    front: NUMBER_CARD_ART[value],
+    label: `${String(value)} ${CARD_NAMES[value]}`,
+    info: { title: `${String(value)} ${CARD_NAMES[value]}`, summary, detail },
+  }));
+  if (special !== null) {
+    items.push({
+      key: 'special',
+      card: { type: 'special' },
+      front: SPECIAL_CARD_ART[special],
+      label: SPECIAL_NAMES[special],
+      info: { title: SPECIAL_NAMES[special], summary, detail },
+    });
+  }
+
+  return (
+    <section aria-label={`Accuse ${chosen.name}`} className="flex flex-col gap-3">
+      <p className="text-sm font-semibold">Choose a card to give up.</p>
+      <CardChoice
+        items={items}
+        actionLabel={`Accuse ${chosen.name}`}
+        layoutId="accuse-choice"
+        onChoose={(card) => {
+          onAccuse(chosen.id, card);
+          setChosen(null);
+        }}
+      />
       <Button
         variant="secondary"
         onClick={() => {

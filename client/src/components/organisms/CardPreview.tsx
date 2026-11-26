@@ -10,11 +10,20 @@ type CardPreviewProps = {
   layoutId: string;
   onLock: () => void;
   onBack: () => void;
+  // Text on the action button. Defaults to Lock in on the duel screen.
+  actionLabel?: string | undefined;
 };
 
 // The card, enlarged to fill most of the screen, with its text. Lock in plays it. Back returns to
 // the hand without locking anything. Escape also goes back.
-export function CardPreview({ front, info, layoutId, onLock, onBack }: CardPreviewProps) {
+export function CardPreview({
+  front,
+  info,
+  layoutId,
+  onLock,
+  onBack,
+  actionLabel = 'Lock in',
+}: CardPreviewProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Move focus into the dialog when it opens, so keyboard and screen reader users land in it.
@@ -65,7 +74,7 @@ export function CardPreview({ front, info, layoutId, onLock, onBack }: CardPrevi
             </Button>
           </div>
           <div className="flex-1">
-            <Button onClick={onLock}>Lock in</Button>
+            <Button onClick={onLock}>{actionLabel}</Button>
           </div>
         </div>
       </div>

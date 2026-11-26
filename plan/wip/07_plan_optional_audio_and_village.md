@@ -31,6 +31,7 @@
 - [ ] Check layout at 320x568, 375x667, 390x844, 430x932, and landscape. Endgame summary and long names not yet checked.
 - [x] Village token shows the card count (last round summary) as a card-back badge above the player (design/04 rule 25).
 - [x] Duel table: on screens 760 px tall or less, the two card slots sit side by side. Taller screens keep them stacked.
+- [x] Card choices in the village (vending insert, accusation card) use the duel preview. Cards sit side by side; tapping one zooms it with its text and an action button, or Back (`CardChoice` organism).
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.
