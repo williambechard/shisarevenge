@@ -3,6 +3,7 @@ import {
   MAX_PLAYERS,
   PLAYER_ICON_COUNT,
   PLAYER_NAMES,
+  RECONNECT_GRACE_SECONDS,
   ROOM_INACTIVITY_HOURS,
 } from '@shisa-revenge/shared';
 import { RoomRegistry } from './roomRegistry.js';
@@ -206,8 +207,57 @@ describe('RoomRegistry player icons', () => {
   it('keeps the icon when a player reclaims their seat', () => {
     const { registry } = makeRegistry();
     const first = enterOk(registry, 's1');
+    registry.bindSocket(first.room.code, first.player.id, 's1');
     registry.markDisconnected(first.room.code, first.player.id, 's1');
     const again = enterOk(registry, 's2', first.player.token);
     expect(again.player.icon).toBe(first.player.icon);
+  });
+});
+
+describe('RoomRegistry reconnect grace in a started match', () => {
+  it('lets a player come back within the grace period', () => {
+    const { registry, advance } = makeRegistry();
+    const first = enterOk(registry, 's1');
+    first.room.phase = 'selecting';
+    registry.bindSocket(first.room.code, first.player.id, 's1');
+    registry.markDisconnected(first.room.code, first.player.id, 's1');
+    advance(RECONNECT_GRACE_SECONDS * 1000 - 1000);
+    const again = enterOk(registry, 's2', first.player.token);
+    expect(again.reconnected).toBe(true);
+  });
+
+  it('refuses a return after the grace period, and does not seat a new player in the match', () => {
+    const { registry, advance } = makeRegistry();
+    const first = enterOk(registry, 's1');
+    first.room.phase = 'selecting';
+    registry.bindSocket(first.room.code, first.player.id, 's1');
+    registry.markDisconnected(first.room.code, first.player.id, 's1');
+    advance(RECONNECT_GRACE_SECONDS * 1000 + 1000);
+    expect(registry.enter(first.player.token, 's2')).toEqual({ ok: false, error: 'GRACE_EXPIRED' });
+    const fresh = enterOk(registry, 's3');
+    expect(fresh.room.code).not.toBe(first.room.code);
+  });
+});
+
+describe('RoomRegistry lobby with a held seat', () => {
+  it('does not seat a new player in a lobby where a player has dropped', () => {
+    const { registry } = makeRegistry();
+    const first = enterOk(registry, 's1');
+    enterOk(registry, 's2');
+    registry.bindSocket(first.room.code, first.player.id, 's1');
+    registry.markDisconnected(first.room.code, first.player.id, 's1');
+    const fresh = enterOk(registry, 's3');
+    expect(fresh.room.code).not.toBe(first.room.code);
+  });
+
+  it('seats a new player in the lobby again once the dropped seat is released', () => {
+    const { registry } = makeRegistry();
+    const first = enterOk(registry, 's1');
+    enterOk(registry, 's2');
+    registry.bindSocket(first.room.code, first.player.id, 's1');
+    registry.markDisconnected(first.room.code, first.player.id, 's1');
+    registry.leave(first.room.code, first.player.id);
+    const fresh = enterOk(registry, 's3');
+    expect(fresh.room.code).toBe(first.room.code);
   });
 });

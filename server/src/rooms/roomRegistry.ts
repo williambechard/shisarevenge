@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import {
   MAX_PLAYERS,
   PLAYER_ICON_COUNT,
+  RECONNECT_GRACE_SECONDS,
   PLAYER_NAMES,
   ROOM_INACTIVITY_HOURS,
   ROUND_COUNT,
@@ -26,6 +27,8 @@ export type PlayerRecord = {
   token: string;
   connected: boolean;
   joinedAt: number;
+  // When the player last dropped off, or null while connected. Used for the reconnect grace period.
+  disconnectedAt: number | null;
   // The socket that currently holds this seat. Null before the first bind.
   socketId: string | null;
   // Cards held and the out-of-cards flag. Shared at the round summary only.
@@ -92,7 +95,15 @@ export class RoomRegistry {
         const heldElsewhere =
           player.connected && player.socketId !== null && player.socketId !== socketId;
         if (heldElsewhere) return { ok: false, error: 'SEAT_IN_USE' };
+        // Once a match has started, a seat is held only for the reconnect grace period.
+        const graceEnded =
+          room.phase !== 'lobby' &&
+          !player.connected &&
+          player.disconnectedAt !== null &&
+          this.now() - player.disconnectedAt > RECONNECT_GRACE_SECONDS * 1000;
+        if (graceEnded) return { ok: false, error: 'GRACE_EXPIRED' };
         player.connected = true;
+        player.disconnectedAt = null;
         room.lastActivityAt = this.now();
         return { ok: true, value: { room, player, reconnected: true } };
       }
@@ -193,6 +204,7 @@ export class RoomRegistry {
     if (!room || !player || player.socketId !== socketId) return null;
 
     player.connected = false;
+    player.disconnectedAt = this.now();
     room.lastActivityAt = this.now();
     return player;
   }
@@ -246,9 +258,12 @@ export class RoomRegistry {
   }
 
   // The oldest lobby that still has room. Rooms are kept in creation order.
+  // A lobby with a held seat is closed to new players. Otherwise a dropped player's seat counts toward the
+  // room, and new windows fill it, which starts the match with players who are not there.
   private openLobby(): RoomRecord | undefined {
     for (const room of this.rooms.values()) {
-      if (room.phase === 'lobby' && room.players.length < MAX_PLAYERS) return room;
+      const seatsHeld = room.players.some((player) => !player.connected);
+      if (room.phase === 'lobby' && room.players.length < MAX_PLAYERS && !seatsHeld) return room;
     }
     return undefined;
   }
@@ -278,6 +293,7 @@ export class RoomRegistry {
       icon,
       token: this.newToken(),
       connected: true,
+      disconnectedAt: null,
       joinedAt: this.now(),
       socketId: null,
       cardCount: null,

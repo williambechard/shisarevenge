@@ -34,6 +34,8 @@
 - [x] Card choices in the village (vending insert, accusation card) use the duel preview. Cards sit side by side; tapping one zooms it with its text and an action button, or Back (`CardChoice` organism).
 - [x] Player icons: the server gives each seat a different one of eight icons at random. The icon shows in the header, the lobby list, and as the walkway token (design/10 section 2).
 - [x] Card-count badge: plain sand card with a bold number, at the upper right of the player's icon.
+- [x] Reconnect after the grace period is refused with GRACE_EXPIRED once a match has started (design/04 section 4.4).
+- [x] A lobby with a dropped player's seat held is closed to new players. Fresh windows no longer fill it with ghost seats and auto-start it (playtest bug).
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.

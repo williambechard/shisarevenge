@@ -71,6 +71,8 @@ If a player has not locked in when the timer ends, the server auto-selects for t
 - A disconnected player keeps their seat for `RECONNECT_GRACE_SECONDS`.
 - While they are disconnected, their encounter timer still runs. The auto-select rule in 4.3 applies.
 - After the grace period, the player stays in the match but is treated as auto-selecting every round. The rest of the room is not blocked.
+- After the grace period, the seat cannot be reclaimed. A window that presents the old token gets GRACE_EXPIRED. The seat stays in the match as auto-selecting.
+- New players never join a started match. A lobby that holds a dropped player's seat is closed to new players until that seat is released after LOBBY_DISCONNECT_GRACE_SECONDS. A new window starts its own lobby.
 
 ### 4.5 Reveal
 
