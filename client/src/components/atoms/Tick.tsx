@@ -1,4 +1,4 @@
-﻿export type TickVariant = 'survivor' | 'infected' | 'empty';
+export type TickVariant = 'survivor' | 'infected' | 'empty';
 
 type TickProps = {
   variant: TickVariant;
@@ -16,7 +16,7 @@ const COLOR: Record<TickVariant, string> = {
 export function Tick({ variant, leading }: TickProps) {
   return (
     <span
-      className={`block w-full rounded-sm transition-all ${leading ? 'h-7' : 'h-5'} ${COLOR[variant]}`}
+      className={`block w-full rounded-sm transition-all ${leading ? 'h-3.5' : 'h-2.5'} ${COLOR[variant]}`}
     />
   );
 }
