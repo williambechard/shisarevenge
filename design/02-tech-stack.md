@@ -15,6 +15,7 @@ The stack is chosen for speed of delivery, low hosting cost, and strict server a
   Build tool   Vite   Fast dev server and static production build.  
   Styling   Tailwind CSS (v4 with the Vite plugin)   Mobile-first utilities. No separate CSS files to manage.  
   Icons   lucide-react   Consistent icons. Tree-shaken.  
+  Card animation   Motion (motion/react) and CSS 3D transforms   Flip, fan, and move cards between hand and table. Motion adds about 30 KB gzipped. Godot was considered and rejected: its web export loads a full engine before the first screen, and it would replace the working client.  
   Realtime   Socket.IO (v4)   Rooms, reconnects, and events out of the box.  
   Server   Node.js with Express   Hosts the Socket.IO server and a `/health` endpoint.  
   Runtime validation   Zod   Validates every incoming socket payload at the trust boundary.  

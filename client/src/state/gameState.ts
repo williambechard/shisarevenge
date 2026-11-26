@@ -54,6 +54,8 @@ export type GameState = {
   autoLocked: boolean;
   // The card this player has picked for the round, not yet locked in.
   selected: PlayedCard | null;
+  // The card this player locked in this round. It moves from the fan to the table.
+  lockedCard: PlayedCard | null;
   roundSummary: RoundSummary | null;
   // Caught or recovered notice for this player. Cleared when the next round is paired.
   specialNotice: PrivateNotice | null;
@@ -75,6 +77,7 @@ export function createInitialState(): GameState {
     duel: null,
     autoLocked: false,
     selected: null,
+    lockedCard: null,
     roundSummary: null,
     specialNotice: null,
     endgame: null,

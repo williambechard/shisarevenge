@@ -42,6 +42,8 @@ export type GameAction =
   | { type: 'duel-result'; outcome: DuelOutcome }
   | { type: 'auto-locked' }
   | { type: 'select'; card: PlayedCard }
+  | { type: 'lock'; card: PlayedCard }
+  | { type: 'unlock' }
   | { type: 'round-ended'; round: number; caughtCount: number }
   | { type: 'special-notice'; notice: PrivateNotice }
   | { type: 'game-ended'; summary: EndgameSummary };
@@ -82,6 +84,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
+        lockedCard: null,
         roundSummary: null,
         specialNotice: null,
         endgame: null,
@@ -100,6 +103,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         duel: null,
         autoLocked: false,
         selected: null,
+        lockedCard: null,
         roundSummary: null,
         specialNotice: null,
       };
@@ -121,11 +125,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'duel-result':
       return { ...state, duel: action.outcome };
 
-    case 'auto-locked':
-      return { ...state, autoLocked: true };
+    case 'auto-locked': {
+      // The server plays the lowest number in the hand. Show that card on the table.
+      const hand = state.privateState?.hand ?? [];
+      const lowest = hand.length > 0 ? Math.min(...hand) : null;
+      return {
+        ...state,
+        autoLocked: true,
+        lockedCard:
+          lowest === null ? state.lockedCard : { type: 'number', value: lowest as CardValue },
+      };
+    }
 
     case 'select':
       return { ...state, selected: action.card };
+
+    case 'lock':
+      return { ...state, lockedCard: action.card };
+
+    case 'unlock':
+      return { ...state, lockedCard: null };
 
     case 'round-ended':
       return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };

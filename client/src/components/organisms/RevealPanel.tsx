@@ -27,12 +27,13 @@ const OUTCOME_TEXT: Record<DuelOutcome['result'], string> = {
   recovered: 'Ramen won. A member of Shisa’s Army returned to the Survivors.',
 };
 
-// A played special shows its name. A played number shows its card name.
-function cardName(value: CardValue, special: SpecialKind | null): string {
-  return special ? SPECIAL_NAMES[special] : CARD_NAMES[value];
+// What a side played, in words: a special by name and strength, or a number by its card name.
+function playedText(value: CardValue, special: SpecialKind | null): string {
+  if (special) return `${SPECIAL_NAMES[special]} (strength ${String(SPECIAL_STRENGTH[special])})`;
+  return `${String(value)} ${CARD_NAMES[value]}`;
 }
 
-// Both played cards are shown together, after both players lock in.
+// The outcome of the duel, in words. The cards themselves are shown on the table.
 export function RevealPanel({
   myValue,
   opponentValue,
@@ -44,32 +45,16 @@ export function RevealPanel({
   return (
     <section
       aria-labelledby="reveal-heading"
-      className="flex flex-col gap-3 rounded-xl bg-white/70 p-4"
+      className="flex flex-col gap-2 rounded-xl bg-white/70 p-4 text-center"
     >
       <h2 id="reveal-heading" className="text-sm font-semibold text-navy">
         Reveal
       </h2>
-      <div className="grid grid-cols-2 gap-3 text-center">
-        <div>
-          <p className="text-xs text-navy/70">You</p>
-          <p className="text-3xl font-bold">{myValue}</p>
-          <p className="text-xs">{cardName(myValue, mySpecial)}</p>
-          {mySpecial ? (
-            <p className="text-xs text-navy/70">Strength {String(SPECIAL_STRENGTH[mySpecial])}</p>
-          ) : null}
-        </div>
-        <div>
-          <p className="text-xs text-navy/70">{opponentName}</p>
-          <p className="text-3xl font-bold">{opponentValue}</p>
-          <p className="text-xs">{cardName(opponentValue, opponentSpecial)}</p>
-          {opponentSpecial ? (
-            <p className="text-xs text-navy/70">
-              Strength {String(SPECIAL_STRENGTH[opponentSpecial])}
-            </p>
-          ) : null}
-        </div>
-      </div>
-      <p className="text-center font-semibold">{OUTCOME_TEXT[result]}</p>
+      <p className="text-sm">
+        You played {playedText(myValue, mySpecial)}. {opponentName} played{' '}
+        {playedText(opponentValue, opponentSpecial)}.
+      </p>
+      <p className="font-semibold">{OUTCOME_TEXT[result]}</p>
     </section>
   );
 }

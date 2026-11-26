@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PublicRoomState } from '@shisa-revenge/shared';
+import type { CardValue, PublicRoomState } from '@shisa-revenge/shared';
 import { createInitialState } from './gameState.js';
 import { gameReducer } from './gameReducer.js';
 
@@ -134,5 +134,42 @@ describe('endgame and round summary', () => {
       deadline: 1,
     });
     expect(next.specialNotice).toBeNull();
+  });
+});
+
+describe('locked card on the table', () => {
+  it('puts the card on the table when it is locked and clears it on unlock', () => {
+    const locked = gameReducer(joinedState(), { type: 'lock', card: { type: 'number', value: 3 } });
+    expect(locked.lockedCard).toEqual({ type: 'number', value: 3 });
+    expect(gameReducer(locked, { type: 'unlock' }).lockedCard).toBeNull();
+  });
+
+  it('clears the locked card when the next round is paired', () => {
+    const locked = gameReducer(joinedState(), { type: 'lock', card: { type: 'special' } });
+    const next = gameReducer(locked, {
+      type: 'round-paired',
+      round: 2,
+      pairings: [],
+      warmUpPlayerId: null,
+      deadline: 1,
+    });
+    expect(next.lockedCard).toBeNull();
+  });
+
+  it('shows the lowest number in the hand when the server auto-locks', () => {
+    const withHand = {
+      ...joinedState(),
+      privateState: {
+        playerId: 'p1',
+        team: 'survivor' as const,
+        hand: [4, 2, 5] as CardValue[],
+        special: null,
+        encounter: null,
+        notices: [],
+      },
+    };
+    const next = gameReducer(withHand, { type: 'auto-locked' });
+    expect(next.autoLocked).toBe(true);
+    expect(next.lockedCard).toEqual({ type: 'number', value: 2 });
   });
 });

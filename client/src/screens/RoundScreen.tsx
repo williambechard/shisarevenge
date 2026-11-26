@@ -10,7 +10,9 @@ import { Announcement } from '../components/molecules/Announcement.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
 import { HandTray } from '../components/organisms/HandTray.js';
+import { PlayArea } from '../components/organisms/PlayArea.js';
 import { RevealPanel } from '../components/organisms/RevealPanel.js';
+import { cardArt, NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../assets/cards/index.js';
 import type { GameState } from '../state/gameState.js';
 
 type RoundScreenProps = {
@@ -36,7 +38,7 @@ function noticeText(notice: PrivateNotice): string | null {
   return null;
 }
 
-// The round screen: team bar, opponent, timer, special card, hand, lock-in, and the reveal once both players lock in.
+// The round screen: team bar, the table, the fan of cards, and the reveal once both players lock in.
 export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProps) {
   const view = state.roundView;
   const self = state.privateState;
@@ -47,6 +49,22 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
   const reveal = state.reveal;
   const round = view?.round ?? 1;
   const notice = state.specialNotice ? noticeText(state.specialNotice) : null;
+
+  // Art for the card on the table. Once revealed, the revealed card is the source.
+  const lockedFront =
+    state.lockedCard === null
+      ? null
+      : state.lockedCard.type === 'number'
+        ? NUMBER_CARD_ART[state.lockedCard.value]
+        : self?.special
+          ? SPECIAL_CARD_ART[self.special.kind]
+          : null;
+  const mySlot = reveal
+    ? { front: cardArt(reveal.myValue, reveal.mySpecial) }
+    : lockedFront
+      ? { front: lockedFront }
+      : null;
+  const opponentFront = reveal ? cardArt(reveal.opponentValue, reveal.opponentSpecial) : null;
 
   return (
     <section aria-labelledby="round-heading" className="flex flex-1 flex-col gap-5 pt-4">
@@ -75,15 +93,30 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
       {isWarmUp ? (
         <StatusMessage>Warm-Up: you sit out this round.</StatusMessage>
       ) : opponentId ? (
-        <p className="text-base">
-          Your opponent: <span className="font-semibold">{opponentName}</span>
-        </p>
+        <PlayArea
+          opponentName={opponentName}
+          mySlot={mySlot}
+          opponentFront={opponentFront}
+          revealed={reveal !== null}
+        />
+      ) : null}
+
+      {reveal ? (
+        <RevealPanel
+          myValue={reveal.myValue}
+          opponentValue={reveal.opponentValue}
+          opponentName={opponentName}
+          result={state.duel?.result ?? 'tie'}
+          mySpecial={reveal.mySpecial}
+          opponentSpecial={reveal.opponentSpecial}
+        />
       ) : null}
 
       {!isWarmUp && reveal === null && self ? (
         <HandTray
           hand={self.hand}
           selected={state.selected}
+          lockedCard={state.lockedCard}
           locked={locked}
           special={self.special}
           onSelect={onSelect}
@@ -97,17 +130,6 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
 
       {state.autoLocked && reveal === null ? (
         <StatusMessage>Time ran out. Your lowest card was locked in for you.</StatusMessage>
-      ) : null}
-
-      {reveal ? (
-        <RevealPanel
-          myValue={reveal.myValue}
-          opponentValue={reveal.opponentValue}
-          opponentName={opponentName}
-          result={state.duel?.result ?? 'tie'}
-          mySpecial={reveal.mySpecial}
-          opponentSpecial={reveal.opponentSpecial}
-        />
       ) : null}
 
       {state.roundSummary ? (

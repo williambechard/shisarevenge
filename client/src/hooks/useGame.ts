@@ -250,8 +250,12 @@ export function useGame(): { state: GameState } & GameActions {
   }, []);
 
   const submitCard = useCallback((card: PlayedCard): void => {
+    // Show the card on the table at once. Revert if the server refuses it.
+    dispatch({ type: 'lock', card });
     getSocket().emit('encounter:submit', card, (response: PlainAck) => {
-      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+      if (response.ok) return;
+      dispatch({ type: 'unlock' });
+      dispatch({ type: 'notice', message: response.error.message });
     });
   }, []);
 

@@ -9,6 +9,7 @@ import card5 from './card_5.jpg';
 import cardProtectionTalisman from './card_protection_talisman.jpg';
 import cardRamen from './card_ramen.jpg';
 import cardShisaMask from './card_shisa_mask.jpg';
+import cardBack from '../textures/bingata-bands.svg';
 
 export const NUMBER_CARD_ART = {
   1: card1,
@@ -23,3 +24,14 @@ export const SPECIAL_CARD_ART = {
   ramen: cardRamen,
   'shisa-mask': cardShisaMask,
 } as const;
+
+// The face-down side of every card. Placeholder art until the final back is drawn.
+export const CARD_BACK_ART = cardBack;
+
+// The art for a played card: a special's art when a special was played, otherwise the number's art.
+export function cardArt(
+  value: keyof typeof NUMBER_CARD_ART,
+  special: keyof typeof SPECIAL_CARD_ART | null,
+): string {
+  return special ? SPECIAL_CARD_ART[special] : NUMBER_CARD_ART[value];
+}

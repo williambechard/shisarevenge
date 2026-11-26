@@ -83,8 +83,8 @@ client/src/
 
 | Component | Purpose | Key props |
 |---|---|---|
-| `NumberCard` | One numbered card. Shows value and name. Can be disabled or selected. | `value`, `name`, `state` (`available`, `selected`, `used`), `onSelect` |
-| `SpecialCard` | Special card with status | `kind`, `status`, `onToggle` |
+| `PlayingCard` | One card with a face and a back. Turns in 3D (CSS `rotateY`). A shared `layoutId` moves it between the hand and the table. | `front`, `faceUp`, `layoutId`, `size` |
+| `PlayArea` | The table: the opponent's card above, this player's card below. Cards turn face up at reveal. | `opponentName`, `mySlot`, `opponentFront`, `revealed` |
 | `PlayerChip` | Name, avatar, and team badge in a compact row | `player`, `isSelf` |
 | `TeamCount` | Survivor and Shisa's Army counts | `survivors`, `infected` |
 | `TeamBar` | Segmented progress bar: one segment per player, 100% win marker, five round ticks, text caption | `survivors`, `infected`, `round`, `roundCount` |
@@ -98,9 +98,9 @@ client/src/
 |---|---|---|
 | `LobbyPanel` | Assigned name, seats left, player list, Leave room | Room state |
 | `PlayerList` | List of `PlayerChip` | Players in the room |
-| `HandTray` | Bottom tray with the player's five `NumberCard`s and `SpecialCard` | Private hand |
+| `HandTray` | Bottom fan of the player's five number cards and special card. The selected card lifts. The locked card stays hidden in the fan while it is on the table. | Private hand, selection, locked card |
 | `EncounterPanel` | Opponent, round number, countdown, lock-in button | Current encounter |
-| `RevealPanel` | Both numbers, specials, and outcome | Reveal payload |
+| `RevealPanel` | Outcome of the duel in words, with each side's played card | Reveal payload |
 | `RoleCard` | Private role reveal with special card and rules | Private role |
 | `EndgameSummary` | Winner, counts, Shisa's identity, history | Final result |
 
@@ -190,9 +190,10 @@ Follow the naming table in `05-coding-standards.md`. Components use theme names 
 Build from the bottom up, in this order, so every level can be tested as it is built:
 
 1. Atoms: `Button`, `Badge`, `Avatar`, `Icon`, `Countdown`.
-2. Molecules: `NumberCard`, `SpecialCard`, `PlayerChip`, `TeamCount`, `TeamBar`, `StatusMessage`, `EmoteBar`, `Announcement`.
+2. Molecules: `PlayingCard`, `PlayerChip`, `TeamCount`, `TeamBar`, `StatusMessage`, `EmoteBar`, `Announcement`.
 3. Organisms: `PlayerList`, `LobbyPanel`, `HandTray`, `EncounterPanel`, `RevealPanel`, `RoleCard`, `EndgameSummary`.
 4. Template: `PhoneFrame`.
 5. Screens, connected last.
 
 Each organism gets a Storybook-free preview: a small dev-only route at `/dev/components` that renders each piece with fixture data. This is the cheapest way to check layout on a phone before the server works. Remove the route before the party or keep it behind `import.meta.env.DEV`.
+
