@@ -94,7 +94,7 @@ client/src/
 | `TickLine` (molecule) | Survivor and Shisa's Army ticks from opposite ends. The side with more ticks leads, and the gap is the margin. | `survivors`, `infected` |
 | `FaceDownHand` (molecule) | A fan of face-down cards. The number of backs shows how many cards are held. | `count`, `hideLast`, `layoutId` |
 | `RoundTrack` (organism) | The rounds of the match as chips, with the current round marked. | `current`, `total` |
-| `PlayArea` | The table: the opponent's card above, this player's card below. Cards turn face up at reveal. | `opponentName`, `mySlot`, `opponentFront`, `revealed` |
+| `PlayArea` | The table: the opponent's card above, this player's card below. Cards turn face up at reveal. On screens 760 px tall or less, the two card slots sit side by side. | `opponentName`, `mySlot`, `opponentFront`, `revealed` |
 | `PlayerChip` | Name, avatar, and team badge in a compact row | `player`, `isSelf` |
 | `TeamCount` | Survivor and Shisa's Army counts | `survivors`, `infected` |
 | `StatusMessage` | Live status text, for example "Waiting for opponent" | `message`, `tone` |

@@ -52,55 +52,57 @@ export function PlayArea({
         <p className="text-xs text-navy/70">{opponentName}</p>
       </div>
 
-      <AnimatePresence>
-        {showOpponentCard ? (
-          <motion.div
-            key="opponent-card"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={TOSS_AWAY}
-          >
-            <PlayingCard
-              front={opponentFront ?? NUMBER_CARD_ART[1]}
-              faceUp={revealed}
-              size="table"
-              layoutId={OPPONENT_PLAYED_LAYOUT_ID}
+      <div className="flex flex-col items-center gap-2 [@media(max-height:760px)]:flex-row [@media(max-height:760px)]:gap-4">
+        <AnimatePresence>
+          {showOpponentCard ? (
+            <motion.div
+              key="opponent-card"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={TOSS_AWAY}
+            >
+              <PlayingCard
+                front={opponentFront ?? NUMBER_CARD_ART[1]}
+                faceUp={revealed}
+                size="table"
+                layoutId={OPPONENT_PLAYED_LAYOUT_ID}
+              />
+            </motion.div>
+          ) : (
+            <div
+              key="opponent-empty"
+              aria-hidden="true"
+              className="h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3] rounded-xl border-2 border-dashed border-navy/25"
             />
-          </motion.div>
-        ) : (
-          <div
-            key="opponent-empty"
-            aria-hidden="true"
-            className="h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3] rounded-xl border-2 border-dashed border-navy/25"
-          />
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {mySlot && !discarded ? (
-          <motion.div
-            key="mine"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={TOSS_AWAY}
-            className="flex flex-col items-center gap-1"
-          >
-            <PlayingCard
-              front={mySlot.front}
-              faceUp={revealed}
-              size="table"
-              layoutId={PLAYED_LAYOUT_ID}
+        <AnimatePresence>
+          {mySlot && !discarded ? (
+            <motion.div
+              key="mine"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={TOSS_AWAY}
+              className="flex flex-col items-center gap-1"
+            >
+              <PlayingCard
+                front={mySlot.front}
+                faceUp={revealed}
+                size="table"
+                layoutId={PLAYED_LAYOUT_ID}
+              />
+              <p className="text-xs text-navy/70">You</p>
+            </motion.div>
+          ) : (
+            <div
+              key="mine-empty"
+              aria-hidden="true"
+              className="h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3] rounded-xl border-2 border-dashed border-navy/40"
             />
-            <p className="text-xs text-navy/70">You</p>
-          </motion.div>
-        ) : (
-          <div
-            key="mine-empty"
-            aria-hidden="true"
-            className="h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3] rounded-xl border-2 border-dashed border-navy/40"
-          />
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import type { PublicPlayer, PublicVillage } from '@shisa-revenge/shared';
 import { VENDING_ART } from '../../assets/village/index.js';
+import { CardCountBadge } from '../atoms/CardCountBadge.js';
 import { DirectionArrow } from '../atoms/DirectionArrow.js';
 import { Token, type Bounce } from '../molecules/Token.js';
 
@@ -153,6 +154,11 @@ export function VillageBoard({
                 rows={rows}
                 spread={spread}
                 bounce={bounce}
+                badge={
+                  player.cardCount === null ? undefined : (
+                    <CardCountBadge count={player.cardCount} />
+                  )
+                }
               />
             );
           })}

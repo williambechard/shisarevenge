@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { animate, motion, useAnimate } from 'motion/react';
 import { Avatar } from './Avatar.js';
 
@@ -17,6 +17,8 @@ type TokenProps = {
   // Horizontal offset in pixels, so two tokens on one tile sit side by side.
   spread: number;
   bounce: Bounce;
+  // Shown above the token, such as the card count.
+  badge?: ReactNode;
 };
 
 const MOVE_MS = 450;
@@ -28,7 +30,7 @@ const BOUNCE_FRESH_MS = 2000;
 
 // A player's token. It glides from tile to tile with ease-in/out, and squashes and stretches along the
 // way of travel: stretched as it leaves, squashed as it lands.
-export function Token({ name, colour, self, x, y, cols, rows, spread, bounce }: TokenProps) {
+export function Token({ name, colour, self, x, y, cols, rows, spread, bounce, badge }: TokenProps) {
   const [scope, animateInner] = useAnimate<HTMLDivElement>();
   const last = useRef({ x, y });
   const bounceAt = bounce?.at;
@@ -82,6 +84,7 @@ export function Token({ name, colour, self, x, y, cols, rows, spread, bounce }: 
       <div ref={scope} className="flex items-center justify-center">
         <Avatar name={name} colour={colour} self={self} />
       </div>
+      {badge ? <div className="absolute -top-4 left-1/2 -translate-x-1/2">{badge}</div> : null}
     </motion.div>
   );
 }

@@ -29,6 +29,8 @@
 - [x] Tapping the machine without a duplicate shows a short hint above it for 3 seconds: its purpose and that no duplicates are held.
 - [x] Layout: the frame is viewport-high with no page scrolling. The walkway and cards size from the available height (design/10 section 14).
 - [ ] Check layout at 320x568, 375x667, 390x844, 430x932, and landscape. Endgame summary and long names not yet checked.
+- [x] Village token shows the card count (last round summary) as a card-back badge above the player (design/04 rule 25).
+- [x] Duel table: on screens 760 px tall or less, the two card slots sit side by side. Taller screens keep them stacked.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.
