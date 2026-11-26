@@ -1,7 +1,13 @@
 // The village: a walkway grid, tap-to-move, partner challenges, accusations, and the vending machine.
 // Pure: no I/O and no timers. Rules are in design/10-village.md. Board and tuning come from data/settings.json.
 
-import type { CardValue, ErrorCode, SpecialKind, Team } from '@shisa-revenge/shared';
+import {
+  reachableTiles,
+  type CardValue,
+  type ErrorCode,
+  type SpecialKind,
+  type Team,
+} from '@shisa-revenge/shared';
 import type { RandomFn } from '../game/pairing.js';
 import type { GameSettings } from '../config/settings.js';
 
@@ -126,7 +132,7 @@ function isSameTile(state: VillageState, a: string, b: string): boolean {
   return pa !== undefined && pb !== undefined && pa.x === pb.x && pa.y === pb.y;
 }
 
-// One step to a neighbouring tile. Diagonals are not allowed. The cooldown keeps traffic low.
+// Walks to any open tile the player can reach through open tiles (design/10 section 3). The cooldown keeps traffic low.
 export function moveTo(
   state: VillageState,
   playerId: string,
@@ -135,11 +141,16 @@ export function moveTo(
 ): VillageResult {
   const from = state.positions[playerId];
   if (!from) return { ok: false, error: 'NOT_IN_VILLAGE' };
-  if (Math.abs(target.x - from.x) + Math.abs(target.y - from.y) !== 1) {
-    return { ok: false, error: 'NOT_ADJACENT' };
-  }
   const cell = cellAt(state, target);
   if (cell === null || cell === 'blocked') return { ok: false, error: 'BLOCKED_TILE' };
+  const open = (x: number, y: number): boolean => {
+    const at = cellAt(state, { x, y });
+    return at !== null && at !== 'blocked';
+  };
+  const reachable = reachableTiles(state.columns, state.rows, open, from);
+  if (!reachable.some((tile) => tile.x === target.x && tile.y === target.y)) {
+    return { ok: false, error: 'NOT_REACHABLE' };
+  }
   const last = state.lastMoveAt[playerId];
   if (last !== undefined && now - last < state.settings.moveCooldownMs) {
     return { ok: false, error: 'MOVE_COOLDOWN' };

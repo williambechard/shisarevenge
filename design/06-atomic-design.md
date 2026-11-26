@@ -78,6 +78,7 @@ client/src/
 | `Avatar` | Player avatar with team overlay | `name`, `team`, `size` |
 | `Icon` | Wraps a Lucide icon with an accessible label | `name`, `label` |
 | `Countdown` | Shows seconds left, announces at 10 and 0 | `secondsLeft` |
+| `DirectionArrow` | Arrow pointing from the player's token toward a reachable walkway tile. Turns with the direction. | `dx`, `dy`, `className` |
 
 ### Molecules
 
@@ -99,6 +100,7 @@ client/src/
 | `StatusMessage` | Live status text, for example "Waiting for opponent" | `message`, `tone` |
 | `EmoteBar` | Row of preset emote buttons, with cooldown state | `emotes`, `onSend`, `cooldownMs` |
 | `Announcement` | Banner for round-summary messages, read aloud by screen readers | `text`, `round` |
+| `Token` (molecule) | A player on the walkway. Glides between tiles with ease-in/out, squashes and stretches as it moves, and lunges back after a meeting. Two tokens on one tile sit side by side. | `name`, `colour`, `self`, `x`, `y`, `cols`, `rows`, `spread`, `bounce` |
 
 ### Organisms
 

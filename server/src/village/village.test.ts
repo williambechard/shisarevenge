@@ -1,9 +1,17 @@
-// Village rules from design/10-village.md: movement, accusations, and the vending machine.
+﻿// Village rules from design/10-village.md: movement, accusations, and the vending machine.
 import { describe, expect, it } from 'vitest';
 import { parseSettings } from '../config/settings.js';
 import type { CardValue } from '@shisa-revenge/shared';
 import type { RandomFn } from '../game/pairing.js';
-import { accuse, challenge, createVillage, moveTo, vend, type VillageState } from './village.js';
+import {
+  accuse,
+  challenge,
+  createVillage,
+  moveTo,
+  parseCells,
+  vend,
+  type VillageState,
+} from './village.js';
 
 function seeded(seed: number): RandomFn {
   let state = seed;
@@ -46,10 +54,24 @@ describe('moving on the walkway', () => {
     expect(next.ok && next.value.positions.a).toEqual({ x: 2, y: 0 });
   });
 
-  it('refuses a diagonal or a jump', () => {
+  it('walks to any reachable tile, not only a neighbour', () => {
     const state = villageAt({ a: { x: 1, y: 0 } }, {});
-    expect(moveTo(state, 'a', { x: 2, y: 1 }, 1000)).toEqual({ ok: false, error: 'NOT_ADJACENT' });
-    expect(moveTo(state, 'a', { x: 3, y: 0 }, 1000)).toEqual({ ok: false, error: 'NOT_ADJACENT' });
+    const next = moveTo(state, 'a', { x: 3, y: 0 }, 1000);
+    expect(next.ok && next.value.positions.a).toEqual({ x: 3, y: 0 });
+  });
+
+  it('refuses a tile it cannot reach through open tiles', () => {
+    const base = villageAt({ a: { x: 0, y: 0 } }, {});
+    const island = { ...base, columns: 3, rows: 1, cells: parseCells(['WXW']) };
+    expect(moveTo(island, 'a', { x: 2, y: 0 }, 1000)).toEqual({
+      ok: false,
+      error: 'NOT_REACHABLE',
+    });
+  });
+
+  it('refuses to stay on the same tile', () => {
+    const state = villageAt({ a: { x: 1, y: 0 } }, {});
+    expect(moveTo(state, 'a', { x: 1, y: 0 }, 1000)).toEqual({ ok: false, error: 'NOT_REACHABLE' });
   });
 
   it('refuses a blocked tile', () => {

@@ -1,4 +1,4 @@
-// Error codes and acknowledgement shapes from design/08-socket-contract.md sections 1 and 7.
+﻿// Error codes and acknowledgement shapes from design/08-socket-contract.md sections 1 and 7.
 
 export const ERROR_CODES = [
   'INVALID_PAYLOAD',
@@ -16,7 +16,7 @@ export const ERROR_CODES = [
   'NO_PICK_PENDING',
   'INVALID_PICK',
   'NOT_IN_VILLAGE',
-  'NOT_ADJACENT',
+  'NOT_REACHABLE',
   'BLOCKED_TILE',
   'MOVE_COOLDOWN',
   'NOT_SAME_TILE',
@@ -49,7 +49,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   NO_PICK_PENDING: 'There is no card to take right now.',
   INVALID_PICK: 'That card is not available to take.',
   NOT_IN_VILLAGE: 'The village is not open right now.',
-  NOT_ADJACENT: 'You can only step to a tile next to you.',
+  NOT_REACHABLE: 'You cannot reach that tile from here.',
   BLOCKED_TILE: 'You cannot walk there.',
   MOVE_COOLDOWN: 'Wait a moment before your next step.',
   NOT_SAME_TILE: 'You must stand on the same tile as them to accuse.',

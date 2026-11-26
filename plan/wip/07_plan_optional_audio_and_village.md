@@ -17,6 +17,10 @@
 ### Village
 
 - [ ] Add the Village screen with a fixed grid, tap-to-move, and up to 8 avatars.
+- [x] Walk to any walkway or vending tile reachable through open tiles, not only a neighbour. Added because players could not reach most walkway tiles in one step. Rule in `design/10-village.md` section 3.
+- [x] Show a direction arrow on every reachable tile, pointing from the player's token.
+- [x] Glide tokens between tiles with ease-in/out, with squash and stretch along the path of travel.
+- [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.
 - [ ] Add `emote:shown` to the room. Show the emote bubble over the avatar.
