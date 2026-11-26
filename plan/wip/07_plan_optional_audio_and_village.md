@@ -27,6 +27,8 @@
 - [x] Village background covers the whole phone frame, through the top to the bottom edge, via PhoneFrame.
 - [x] Vending panel is a modal, and opens only when the player holds a duplicate (playtest question).
 - [x] Tapping the machine without a duplicate shows a short hint above it for 3 seconds: its purpose and that no duplicates are held.
+- [x] Layout: the frame is viewport-high with no page scrolling. The walkway and cards size from the available height (design/10 section 14).
+- [ ] Check layout at 320x568, 375x667, 390x844, 430x932, and landscape. Endgame summary and long names not yet checked.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.

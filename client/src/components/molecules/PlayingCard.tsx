@@ -14,8 +14,9 @@ type PlayingCardProps = {
 
 const SIZE = {
   mini: 'h-14 w-10',
-  hand: 'h-24 w-16',
-  table: 'h-32 w-[5.5rem]',
+  // Card heights follow the screen height, so the table and hand fit short phones without scrolling.
+  hand: 'h-[clamp(4.5rem,15dvh,6rem)] aspect-[2/3]',
+  table: 'h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3]',
   // Filling most of the screen, sized to keep the 2:3 card shape.
   preview: 'aspect-[2/3] w-[min(72vw,40vh)]',
 } as const;

@@ -109,7 +109,7 @@ export function HandTray({
         Your cards
       </h2>
 
-      <div className="relative flex h-36 items-end justify-center">
+      <div className="relative flex h-[clamp(5.5rem,17dvh,8rem)] items-end justify-center">
         <AnimatePresence initial={false}>
           {items.map((item, index) => {
             const offset = index - middle;

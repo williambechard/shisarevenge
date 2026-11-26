@@ -71,7 +71,7 @@ export function PlayArea({
           <div
             key="opponent-empty"
             aria-hidden="true"
-            className="h-32 w-[5.5rem] rounded-xl border-2 border-dashed border-navy/25"
+            className="h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3] rounded-xl border-2 border-dashed border-navy/25"
           />
         )}
       </AnimatePresence>
@@ -97,7 +97,7 @@ export function PlayArea({
           <div
             key="mine-empty"
             aria-hidden="true"
-            className="h-32 w-[5.5rem] rounded-xl border-2 border-dashed border-navy/40"
+            className="h-[clamp(4.5rem,14dvh,8rem)] aspect-[2/3] rounded-xl border-2 border-dashed border-navy/40"
           />
         )}
       </AnimatePresence>

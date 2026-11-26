@@ -132,3 +132,9 @@ Open questions for review:
 2. **Random partners** are drawn from the players still in play. Eliminated players are never paired.
 3. **Accusations are public.** Everyone sees who accused whom, and the result of the accusation. A correct accusation also reveals the accused player's role to everyone. A wrong accusation reveals nothing about the accused's role.
 4. **Eliminated players are observers.** They can walk and read the village, but they cannot accuse or challenge.
+
+## 14. Layout on phones
+
+- No screen scrolls, vertically or horizontally. The phone frame is exactly the viewport height and hides overflow.
+- The walkway takes the largest square-tiled size that fits the width and the height left over. It shrinks on short phones.
+- Cards size from the screen height (dvh), so the table and hand fit short phones.

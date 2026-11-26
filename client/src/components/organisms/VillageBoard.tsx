@@ -33,6 +33,10 @@ function isNeighbour(a: Position | undefined, b: Position): boolean {
 // the player's own token are outlined and carry a direction arrow from that token. Tokens sit in a layer
 // above the tiles, so they glide between tiles. A player who meets another stays on the tile they
 // stepped onto, and gives a small recoil there. The server keeps the same tile, so arrows and moves agree.
+//
+// The board never scrolls. It takes the largest size that fits both the width and the height left over
+// by the screen, keeping its square tiles. The container measures itself, so the board shrinks on short
+// phones.
 export function VillageBoard({
   board,
   positions,
@@ -43,12 +47,12 @@ export function VillageBoard({
   onVendingTap,
   vendingHint,
 }: VillageBoardProps) {
-  const machine = board
-    .flatMap((row, y) => Array.from(row, (char, x) => ({ char, x, y })))
-    .find((cell) => cell.char === 'V');
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
   const own = selfId === null ? undefined : positions[selfId];
+  const machine = board
+    .flatMap((row, y) => Array.from(row, (char, x) => ({ char, x, y })))
+    .find((cell) => cell.char === 'V');
 
   const seats = players.filter((player) => positions[player.id] !== undefined);
   const tokensOn = new Map<string, PublicPlayer[]>();
@@ -60,103 +64,111 @@ export function VillageBoard({
   }
 
   return (
-    <div className="relative w-full">
+    <div className="flex min-h-0 flex-1 items-center justify-center [container-type:size]">
       <div
-        role="group"
-        aria-label="Walkway"
-        className="grid w-full"
-        style={{ gridTemplateColumns: `repeat(${String(columns)}, minmax(0, 1fr))` }}
+        className="relative"
+        style={{
+          width: `min(100cqw, calc(100cqh * ${String(columns)} / ${String(rows)}))`,
+          aspectRatio: `${String(columns)} / ${String(rows)}`,
+        }}
       >
-        {board.flatMap((row, y) =>
-          Array.from(row, (char, x) => {
-            const here = { x, y };
-            const enabled = isNeighbour(own, here) && (char === 'W' || char === 'V');
-            return (
-              <button
-                key={keyOf(here)}
-                type="button"
-                disabled={!enabled}
-                aria-label={
-                  char === 'V'
-                    ? 'Vending machine'
-                    : `Tile ${String(x + 1)}, ${String(y + 1)}${enabled ? ', you can walk here' : ''}`
-                }
-                onClick={() => {
-                  if (char === 'V') {
-                    onVendingTap();
-                  } else {
-                    onStep(x, y);
+        <div
+          role="group"
+          aria-label="Walkway"
+          className="grid size-full"
+          style={{ gridTemplateColumns: `repeat(${String(columns)}, minmax(0, 1fr))` }}
+        >
+          {board.flatMap((row, y) =>
+            Array.from(row, (char, x) => {
+              const here = { x, y };
+              const enabled = isNeighbour(own, here) && (char === 'W' || char === 'V');
+              return (
+                <button
+                  key={keyOf(here)}
+                  type="button"
+                  disabled={!enabled}
+                  aria-label={
+                    char === 'V'
+                      ? 'Vending machine'
+                      : `Tile ${String(x + 1)}, ${String(y + 1)}${enabled ? ', you can walk here' : ''}`
                   }
-                }}
-                className={`relative aspect-square overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
-              >
-                {char === 'V' ? (
-                  <img
-                    src={VENDING_ART}
-                    alt=""
-                    className="absolute inset-0 size-full object-contain"
-                    draggable={false}
-                  />
-                ) : null}
-                {enabled && own ? (
-                  <DirectionArrow
-                    dx={x - own.x}
-                    dy={y - own.y}
-                    className="absolute inset-0 m-auto"
-                  />
-                ) : null}
-              </button>
-            );
-          }),
-        )}
-      </div>
+                  onClick={() => {
+                    if (char === 'V') {
+                      onVendingTap();
+                    } else {
+                      onStep(x, y);
+                    }
+                  }}
+                  className={`relative overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
+                >
+                  {char === 'V' ? (
+                    <img
+                      src={VENDING_ART}
+                      alt=""
+                      className="absolute inset-0 size-full object-contain"
+                      draggable={false}
+                    />
+                  ) : null}
+                  {enabled && own ? (
+                    <DirectionArrow
+                      dx={x - own.x}
+                      dy={y - own.y}
+                      className="absolute inset-0 m-auto"
+                    />
+                  ) : null}
+                </button>
+              );
+            }),
+          )}
+        </div>
 
-      <div className="pointer-events-none absolute inset-0">
-        {seats.map((player) => {
-          const at = positions[player.id];
-          if (!at) return null;
-          const sharing = tokensOn.get(keyOf(at)) ?? [];
-          const index = sharing.indexOf(player);
-          const spread = (index - (sharing.length - 1) / 2) * TOKEN_SPREAD_PX;
-          // The mover recoils, opposite to the way they walked in, once they have arrived on the tile.
-          const bounce: Bounce =
-            meeting &&
-            meeting.moverId === player.id &&
-            at.x === meeting.to.x &&
-            at.y === meeting.to.y
-              ? {
-                  dx: -Math.sign(meeting.to.x - meeting.from.x),
-                  dy: -Math.sign(meeting.to.y - meeting.from.y),
-                  at: meeting.at,
-                }
-              : null;
-          return (
-            <Token
-              key={player.id}
-              name={player.name}
-              colour={players.indexOf(player)}
-              self={player.id === selfId}
-              x={at.x}
-              y={at.y}
-              cols={columns}
-              rows={rows}
-              spread={spread}
-              bounce={bounce}
-            />
-          );
-        })}
-        {vendingHint && machine ? (
-          <div
-            role="status"
-            className="absolute -mt-2 w-44 -translate-x-1/2 -translate-y-full rounded-md bg-navy px-2 py-1 text-center text-xs text-sand shadow-md"
-            style={{
-              left: `${String(((machine.x + 0.5) / columns) * 100)}%`,
-              top: `${String((machine.y / rows) * 100)}%`,
-            }}
-          >
-            {vendingHint}
-          </div>
-        ) : null}
+        <div className="pointer-events-none absolute inset-0">
+          {seats.map((player) => {
+            const at = positions[player.id];
+            if (!at) return null;
+            const sharing = tokensOn.get(keyOf(at)) ?? [];
+            const index = sharing.indexOf(player);
+            const spread = (index - (sharing.length - 1) / 2) * TOKEN_SPREAD_PX;
+            // The mover recoils, opposite to the way they walked in, once they have arrived on the tile.
+            const bounce: Bounce =
+              meeting &&
+              meeting.moverId === player.id &&
+              at.x === meeting.to.x &&
+              at.y === meeting.to.y
+                ? {
+                    dx: -Math.sign(meeting.to.x - meeting.from.x),
+                    dy: -Math.sign(meeting.to.y - meeting.from.y),
+                    at: meeting.at,
+                  }
+                : null;
+            return (
+              <Token
+                key={player.id}
+                name={player.name}
+                colour={players.indexOf(player)}
+                self={player.id === selfId}
+                x={at.x}
+                y={at.y}
+                cols={columns}
+                rows={rows}
+                spread={spread}
+                bounce={bounce}
+              />
+            );
+          })}
+          {vendingHint && machine ? (
+            <div
+              role="status"
+              className="absolute -mt-2 w-44 -translate-x-1/2 -translate-y-full rounded-md bg-navy px-2 py-1 text-center text-xs text-sand shadow-md"
+              style={{
+                left: `${String(((machine.x + 0.5) / columns) * 100)}%`,
+                top: `${String((machine.y / rows) * 100)}%`,
+              }}
+            >
+              {vendingHint}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

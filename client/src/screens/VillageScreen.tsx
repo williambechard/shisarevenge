@@ -165,7 +165,7 @@ export function VillageScreen({
   const special = self?.special?.status === 'available' ? self.special.kind : null;
 
   return (
-    <section aria-labelledby="village-heading" className="flex flex-1 flex-col gap-4">
+    <section aria-labelledby="village-heading" className="flex min-h-0 flex-1 flex-col gap-4">
       <header className="flex justify-center">
         <Countdown deadline={village.endsAt} label="Next round in" />
       </header>
