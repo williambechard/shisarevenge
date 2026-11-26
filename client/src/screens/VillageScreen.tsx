@@ -6,7 +6,6 @@ import {
   type PlayedCard,
   type PrivateNotice,
   type PublicRoomState,
-  type SpecialKind,
 } from '@shisa-revenge/shared';
 import { Button } from '../components/atoms/Button.js';
 import { Countdown } from '../components/atoms/Countdown.js';
