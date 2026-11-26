@@ -15,6 +15,8 @@ type VillageBoardProps = {
   onStep: (x: number, y: number) => void;
   // Called when the player taps the vending machine from a tile next to it.
   onVendingTap: () => void;
+  // A short message shown above the vending machine, or null for none.
+  vendingHint: string | null;
 };
 
 // Horizontal gap in pixels between two tokens that share one tile.
@@ -39,7 +41,11 @@ export function VillageBoard({
   selfId,
   onStep,
   onVendingTap,
+  vendingHint,
 }: VillageBoardProps) {
+  const machine = board
+    .flatMap((row, y) => Array.from(row, (char, x) => ({ char, x, y })))
+    .find((cell) => cell.char === 'V');
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
   const own = selfId === null ? undefined : positions[selfId];
@@ -139,6 +145,18 @@ export function VillageBoard({
             />
           );
         })}
+        {vendingHint && machine ? (
+          <div
+            role="status"
+            className="absolute -mt-2 w-44 -translate-x-1/2 -translate-y-full rounded-md bg-navy px-2 py-1 text-center text-xs text-sand shadow-md"
+            style={{
+              left: `${String(((machine.x + 0.5) / columns) * 100)}%`,
+              top: `${String((machine.y / rows) * 100)}%`,
+            }}
+          >
+            {vendingHint}
+          </div>
+        ) : null}
       </div>
     </div>
   );

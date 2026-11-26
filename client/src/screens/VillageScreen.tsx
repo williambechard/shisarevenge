@@ -19,6 +19,8 @@ import type { GameState } from '../state/gameState.js';
 const MEETING_BOUNCE_MS = 800;
 // How long a new accusation stays on screen for everyone.
 const ACCUSATION_NOTE_MS = 6000;
+// How long the vending hint stays above the machine.
+const VENDING_HINT_MS = 3000;
 
 type VillageScreenProps = {
   state: GameState;
@@ -86,6 +88,17 @@ export function VillageScreen({
   const [walkedOn, setWalkedOn] = useState<string | null>(null);
   // The vending panel opens when the player taps the machine from a tile next to it.
   const [vendingOpen, setVendingOpen] = useState(false);
+  // A short hint above the machine, shown when the player taps it without a duplicate card.
+  const [hint, setHint] = useState<{ id: number } | null>(null);
+  useEffect(() => {
+    if (hint === null) return;
+    const handle = setTimeout(() => {
+      setHint((current) => (current === hint ? null : current));
+    }, VENDING_HINT_MS);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [hint]);
   // The overlay waits for the bounce after a meeting to finish.
   const meetingAt = room.village?.meeting?.at ?? 0;
   const [readyFor, setReadyFor] = useState(0);
@@ -169,9 +182,18 @@ export function VillageScreen({
           setVendingOpen(false);
           onStep(x, y);
         }}
+        vendingHint={
+          hint
+            ? 'Vending machine. Insert two copies of a card to get a random one. No duplicates in your hand.'
+            : null
+        }
         onVendingTap={() => {
           // The panel opens only when the player holds a duplicate card to insert.
-          if (hasDuplicate) setVendingOpen(true);
+          if (hasDuplicate) {
+            setVendingOpen(true);
+          } else {
+            setHint({ id: Date.now() });
+          }
         }}
       />
 
