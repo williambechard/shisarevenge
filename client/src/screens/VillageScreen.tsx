@@ -13,11 +13,12 @@ import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { AccusePanel } from '../components/organisms/AccusePanel.js';
 import { VendingPanel } from '../components/organisms/VendingPanel.js';
 import { VillageBoard } from '../components/organisms/VillageBoard.js';
-import { VILLAGE_BACKGROUND_ART } from '../assets/village/index.js';
 import type { GameState } from '../state/gameState.js';
 
 // How long the glide and recoil after a meeting take, before the overlay opens (450 ms glide, 300 ms recoil).
 const MEETING_BOUNCE_MS = 800;
+// How long a new accusation stays on screen for everyone.
+const ACCUSATION_NOTE_MS = 6000;
 
 type VillageScreenProps = {
   state: GameState;
@@ -88,6 +89,24 @@ export function VillageScreen({
   // The overlay waits for the bounce after a meeting to finish.
   const meetingAt = room.village?.meeting?.at ?? 0;
   const [readyFor, setReadyFor] = useState(0);
+  // The newest accusation, shown briefly to everyone. The full log stays in the village state.
+  const logLength = room.village?.log.length ?? 0;
+  const latestEntry = room.village?.log.at(-1);
+  const latestNote = latestEntry
+    ? `${nameOf(room, latestEntry.accuserId)} accused ${nameOf(room, latestEntry.targetId)}: ${latestEntry.correct ? "correct, they served Shisa's Army" : 'not them'}`
+    : null;
+  // Hides the note once it has been on screen for a while. Keyed by the log length, so each new entry shows once.
+  const [hiddenLogLength, setHiddenLogLength] = useState(-1);
+  const note = latestNote !== null && logLength !== hiddenLogLength ? latestNote : null;
+  useEffect(() => {
+    if (logLength === 0) return;
+    const handle = setTimeout(() => {
+      setHiddenLogLength(logLength);
+    }, ACCUSATION_NOTE_MS);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [logLength]);
   useEffect(() => {
     if (meetingAt === 0) return;
     const handle = setTimeout(() => {
@@ -130,47 +149,14 @@ export function VillageScreen({
     ].some(([x, y]) => x !== undefined && y !== undefined && isMachine(x, y));
   const hand = self?.hand ?? [];
   const special = self?.special?.status === 'available' ? self.special.kind : null;
-  const recent = village.log.slice(-5);
 
   return (
-    <section
-      aria-labelledby="village-heading"
-      className="-mx-5 -mb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-1 flex-col gap-4 bg-cover bg-center px-5 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-      style={{
-        backgroundImage: `url(${VILLAGE_BACKGROUND_ART})`,
-      }}
-    >
+    <section aria-labelledby="village-heading" className="flex flex-1 flex-col gap-4">
       <header className="flex justify-center">
         <Countdown deadline={village.endsAt} label="Next round in" />
       </header>
 
-      <section
-        aria-label="Tags and accusations"
-        className="flex flex-col gap-1 text-xs text-navy/80"
-      >
-        <p className="font-semibold">Tags on the walkway</p>
-        <ul className="flex flex-wrap gap-x-3 gap-y-1">
-          {room.players.map((player) => (
-            <li key={player.id} className={player.eliminated ? 'line-through' : ''}>
-              {player.name}: {String(village.tags[player.id] ?? 0)}
-              {village.revealed[player.id] === 'infected' ? " (Shisa's Army)" : ''}
-            </li>
-          ))}
-        </ul>
-        {recent.length > 0 ? (
-          <>
-            <p className="pt-1 font-semibold">Accusations</p>
-            <ul className="flex flex-col gap-0.5">
-              {recent.map((entry, index) => (
-                <li key={index}>
-                  {nameOf(room, entry.accuserId)} accused {nameOf(room, entry.targetId)}:{' '}
-                  {entry.correct ? "correct, they served Shisa's Army" : 'not them'}
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-      </section>
+      {note ? <StatusMessage>{note}</StatusMessage> : null}
 
       <VillageBoard
         board={village.board}

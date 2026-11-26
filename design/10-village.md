@@ -62,7 +62,7 @@ These are proposals. The open questions in section 9 decide them.
 
 ## 7. Screens and transitions
 
-- **Walkway screen:** the board, the avatars, the tag counts, the timer, and the player's own cards. Its controls are the accusation panel and the vending machine panel, opened from the tile the player stands on.
+- **Walkway screen:** the board, the avatars, and the countdown. No text otherwise. The newest accusation shows for about 6 seconds, for everyone, and the full log stays in the village state. The background covers the whole phone frame below the header. Its controls are the accusation panel and the vending machine panel, opened from the tile the player stands on.
 - **Overview to walkway:** the overview fades out and the walkway fades in with a slight rise (about 350 ms). The timer starts once the walkway has settled.
 - **Walkway to the next round:** the walkway fades out and the round screen fades in, with a short "Round 1 starts" caption (about 350 ms total).
 - **Motion limits:** nothing longer than 400 ms, as set in `07-implementation-plan.md`. Transitions use the same spring as the card moves, so the game feels like one thing.

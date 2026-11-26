@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
+import { VILLAGE_BACKGROUND_ART } from './assets/village/index.js';
 import { PlayerBanner } from './components/molecules/PlayerBanner.js';
 import { StatusMessage } from './components/molecules/StatusMessage.js';
 import { WaitingIndicator } from './components/molecules/WaitingIndicator.js';
@@ -58,7 +59,7 @@ export function App() {
   const view = viewOf(state);
 
   return (
-    <PhoneFrame>
+    <PhoneFrame background={view === 'village' ? VILLAGE_BACKGROUND_ART : undefined}>
       {state.name ? <PlayerBanner name={state.name} role={role} /> : null}
       {state.connection === 'waking' ? (
         <WaitingIndicator

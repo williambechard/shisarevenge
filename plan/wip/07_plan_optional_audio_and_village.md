@@ -23,6 +23,8 @@
 - [x] Glide tokens between tiles with ease-in/out, with squash and stretch along the path of travel.
 - [x] Make the vending machine tile impassable. Players use it by tapping it from a neighbouring tile, which opens the panel (playtest bug: a player could stand on the machine with no panel). Server checks adjacency in `vend`.
 - [x] Meeting: the player who stepped on stays on that tile. The token glides in and recoils once. The arrows and server agree (playtest bug: arrows stayed on the other player's tile after the bounce).
+- [x] Village screen shows only the countdown and the board. Tags and the accusation list are removed (playtest feedback). The newest accusation shows as a short notice for everyone.
+- [x] Village background covers the whole phone frame, through the top to the bottom edge, via PhoneFrame.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.
