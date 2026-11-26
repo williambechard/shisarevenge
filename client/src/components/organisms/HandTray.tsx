@@ -38,7 +38,7 @@ type FanItem = {
 };
 
 // A card played or taken leaves the fan by tossing away. A new card drops in from above.
-const TOSS_OUT = { y: -170, rotate: 16, opacity: 0, scale: 0.6, transition: { duration: 0.45 } };
+const TOSS_OUT = { y: -170, rotate: 16, opacity: 0, scale: 0.6, transition: { duration: 0.35 } };
 const DROP_IN = { opacity: 0, y: -110, scale: 0.6 };
 
 function sameCard(a: PlayedCard | null, b: PlayedCard): boolean {

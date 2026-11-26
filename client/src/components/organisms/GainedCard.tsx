@@ -44,7 +44,7 @@ export function GainedCard({ value, onDone }: GainedCardProps) {
       <motion.div
         initial={{ scale: 0.4, y: 120, rotate: -8 }}
         animate={{ scale: 1.3, y: 0, rotate: 0 }}
-        exit={{ y: 320, scale: 0.6, opacity: 0, transition: { duration: 0.5 } }}
+        exit={{ y: 320, scale: 0.6, opacity: 0, transition: { duration: 0.35 } }}
         transition={{ type: 'spring', stiffness: 150, damping: 17 }}
       >
         <PlayingCard front={NUMBER_CARD_ART[value]} faceUp={faceUp} size="preview" />

@@ -16,7 +16,7 @@ type PlayAreaProps = {
 };
 
 // Played cards leave the table by tossing away.
-const TOSS_AWAY = { y: -180, rotate: -14, opacity: 0, scale: 0.7, transition: { duration: 0.5 } };
+const TOSS_AWAY = { y: -180, rotate: -14, opacity: 0, scale: 0.7, transition: { duration: 0.35 } };
 
 // The table: the opponent's card on top, this player's card below. The card you lock in moves
 // here from the fan. Both cards turn face up when the duel reveals, and toss away after a moment.

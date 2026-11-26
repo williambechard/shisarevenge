@@ -80,7 +80,7 @@ function CardCounts({ room }: { room: PublicRoomState }) {
               opacity: player.eliminated ? 0.45 : 1,
               filter: player.eliminated ? 'grayscale(1)' : 'grayscale(0)',
             }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.35 }}
             className={player.eliminated ? 'line-through' : ''}
           >
             {player.name}:{' '}
