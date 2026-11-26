@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { CARD_BACK_ART } from '../../assets/cards/index.js';
 
@@ -25,13 +26,30 @@ export function PlayingCard({
   size = 'table',
   className = '',
 }: PlayingCardProps) {
+  // The face turns only once its image has decoded, so it never turns while still blank.
+  // A failed decode still turns the card, so a broken image cannot leave it face down.
+  const [decodedFront, setDecodedFront] = useState<string | null>(null);
+  useEffect(() => {
+    let current = true;
+    const image = new Image();
+    image.src = front;
+    const markReady = (): void => {
+      if (current) setDecodedFront(front);
+    };
+    image.decode().then(markReady, markReady);
+    return () => {
+      current = false;
+    };
+  }, [front]);
+  const showFace = faceUp && decodedFront === front;
+
   return (
     <div className={`${SIZE[size]} [perspective:900px] ${className}`}>
       <motion.div
         {...(layoutId === undefined ? {} : { layoutId })}
         className="relative h-full w-full [transform-style:preserve-3d]"
         initial={false}
-        animate={{ rotateY: faceUp ? 0 : 180 }}
+        animate={{ rotateY: showFace ? 0 : 180 }}
         transition={{ type: 'spring', stiffness: 170, damping: 22 }}
       >
         <div className="absolute inset-0 overflow-hidden rounded-xl border-2 border-navy bg-white shadow-md [backface-visibility:hidden]">
