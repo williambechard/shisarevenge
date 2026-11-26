@@ -1,5 +1,5 @@
-﻿import { Avatar } from '../molecules/Avatar.js';
-import { VENDING_ART, WALKWAY_ART } from '../../assets/village/index.js';
+import { Avatar } from '../molecules/Avatar.js';
+import { VENDING_ART } from '../../assets/village/index.js';
 import type { PublicPlayer } from '@shisa-revenge/shared';
 
 type Position = { x: number; y: number };
@@ -18,7 +18,7 @@ function isNeighbour(a: Position | undefined, b: Position): boolean {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
 }
 
-// The walkway grid. Stone tiles, the vending machine tile, blocked sand, and each player's token.
+// The walkway grid. The background shows through the walkable tiles. Blocked tiles are shaded, and each player's token sits on its tile.
 export function VillageBoard({ board, positions, players, selfId, onStep }: VillageBoardProps) {
   const own = selfId === null ? undefined : positions[selfId];
   const seats = players.filter((player) => positions[player.id] !== undefined);
@@ -27,7 +27,7 @@ export function VillageBoard({ board, positions, players, selfId, onStep }: Vill
     <div
       role="group"
       aria-label="Walkway"
-      className="grid w-full gap-px rounded-xl bg-navy/30 p-1"
+      className="grid w-full gap-px p-1"
       style={{ gridTemplateColumns: `repeat(${String(board[0]?.length ?? 0)}, minmax(0, 1fr))` }}
     >
       {board.flatMap((row, y) =>
@@ -38,7 +38,6 @@ export function VillageBoard({ board, positions, players, selfId, onStep }: Vill
             return at !== undefined && at.x === x && at.y === y;
           });
           const enabled = char !== 'X' && isNeighbour(own, here);
-          const art = WALKWAY_ART[(x + y * 2) % WALKWAY_ART.length];
           return (
             <button
               key={`${String(x)}-${String(y)}`}
@@ -48,10 +47,9 @@ export function VillageBoard({ board, positions, players, selfId, onStep }: Vill
               onClick={() => {
                 onStep(x, y);
               }}
-              className={`relative aspect-square overflow-hidden focus-visible:outline-3 focus-visible:outline-gold ${
-                char === 'X' ? 'bg-[#d9c39a]' : 'bg-cover bg-center'
+              className={`relative aspect-[1/2] overflow-hidden border border-navy/20 focus-visible:outline-3 focus-visible:outline-gold ${
+                char === 'X' ? 'bg-navy/25' : ''
               } ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
-              style={char === 'X' ? undefined : { backgroundImage: `url(${art ?? ''})` }}
             >
               {char === 'V' ? (
                 <img

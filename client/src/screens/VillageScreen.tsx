@@ -108,7 +108,7 @@ export function VillageScreen({
       aria-labelledby="village-heading"
       className="flex flex-1 flex-col gap-4 rounded-xl bg-cover bg-center p-3"
       style={{
-        backgroundImage: `linear-gradient(rgba(247,241,227,0.25), rgba(247,241,227,0.45)), url(${VILLAGE_BACKGROUND_ART})`,
+        backgroundImage: `url(${VILLAGE_BACKGROUND_ART})`,
       }}
     >
       <header className="flex justify-center">
