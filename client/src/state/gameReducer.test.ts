@@ -164,6 +164,7 @@ describe('locked card on the table', () => {
         team: 'survivor' as const,
         hand: [4, 2, 5] as CardValue[],
         special: null,
+        pendingPick: null,
         encounter: null,
         notices: [],
       },

@@ -5,9 +5,11 @@
 import type { Server } from 'socket.io';
 import {
   LOBBY_START_WAIT_SECONDS,
+  PICK_SECONDS,
   MAX_PLAYERS,
   MIN_PLAYERS,
   SELECTION_SECONDS,
+  type CardValue,
   type EndgameSummary,
   type PlayedCard,
   type ErrorCode,
@@ -17,8 +19,11 @@ import {
 } from '@shisa-revenge/shared';
 import type { RoomRecord, RoomRegistry } from '../rooms/roomRegistry.js';
 import {
+  applyPick,
   autoLockUnlocked,
   beginRound,
+  cardCountOf,
+  eliminateEmpty,
   createMatch,
   isPairLocked,
   isPairResolved,
@@ -39,6 +44,7 @@ export type MatchTiming = {
   selectionMs: number;
   resultMs: number;
   lobbyWaitMs: number;
+  pickMs: number;
 };
 
 export const DEFAULT_TIMING: MatchTiming = {
@@ -46,6 +52,7 @@ export const DEFAULT_TIMING: MatchTiming = {
   selectionMs: SELECTION_SECONDS * 1000,
   resultMs: 6000,
   lobbyWaitMs: LOBBY_START_WAIT_SECONDS * 1000,
+  pickMs: PICK_SECONDS * 1000,
 };
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -80,6 +87,9 @@ export class MatchRunner {
   private readonly lobbyTimers = new Map<string, Timer>();
   // Lobbies whose wait has ended. Start is offered while the count is even.
   private readonly waitElapsed = new Set<string>();
+  // One take timer per winner, keyed by pickKey(). Deadlines are shared with clients as epoch ms.
+  private readonly pickTimers = new Map<string, Timer>();
+  private readonly pickDeadlines = new Map<string, number>();
   private readonly timing: MatchTiming;
   private readonly random: RandomFn;
   private readonly clock: Clock;
@@ -117,6 +127,7 @@ export class MatchRunner {
     const matchState = createMatch(players, this.random);
     this.matches.set(code, { state: matchState, timer: null });
     this.registry.setTeamCounts(code, teamCounts(matchState));
+    this.publishCards(code, matchState);
     this.registry.setMatchResult(code, origin.id, null);
     this.io.to(code).emit('game:started', { originPlayerId: origin.id });
     this.startRound(code);
@@ -218,6 +229,9 @@ export class MatchRunner {
   }
   dispose(code: string): void {
     this.clearLobbyTimer(code);
+    for (const key of [...this.pickTimers.keys()]) {
+      if (key.startsWith(`${code}|`)) this.clearPickTimer(key);
+    }
     const match = this.matches.get(code);
     if (match?.timer) this.clock.clearTimeout(match.timer);
     this.matches.delete(code);
@@ -306,8 +320,12 @@ export class MatchRunner {
   private revealDuel(code: string, pair: Pair): void {
     if (!isPairLocked(this.current(code), pair)) return;
 
+    const previousPicks = this.current(code).picks;
     const next = revealPair(this.current(code), pair, this.random);
     this.setState(code, next);
+    for (const pick of next.picks) {
+      if (!previousPicks.includes(pick)) this.startPick(code, pick.winnerId);
+    }
     const result = next.results.find(
       (entry) => entry.pair[0] === pair[0] && entry.pair[1] === pair[1],
     );
@@ -317,13 +335,92 @@ export class MatchRunner {
     this.sendSpecialNotices(code, result);
     this.registry.setPhase(code, next.phase === 'resolved' ? 'resolved' : 'revealed');
     this.syncPrivate(code);
-
-    if (next.phase === 'resolved') {
-      this.finishRound(code);
-    }
+    this.maybeFinishRound(code);
   }
 
   // Sends the reveal and result to the two participants only. Each side sees its own view.
+  // Opens a take for the winner of a duel. The winner has pickMs to choose.
+  private startPick(code: string, winnerId: string): void {
+    const key = pickKey(code, winnerId);
+    this.pickDeadlines.set(key, Date.now() + this.timing.pickMs);
+    const handle = this.clock.setTimeout(() => {
+      this.pickTimers.delete(key);
+      this.timeOutPick(code, winnerId);
+    }, this.timing.pickMs);
+    this.pickTimers.set(key, handle);
+  }
+
+  // The winner chose the card at index in the face-down pool.
+  pick(code: string, playerId: string, index: number): MatchResult {
+    const match = this.matches.get(code);
+    if (!match) return { ok: false, error: 'WRONG_PHASE' };
+    const pick = match.state.picks.find((entry) => entry.winnerId === playerId);
+    if (!pick) return { ok: false, error: 'NO_PICK_PENDING' };
+    const next = applyPick(match.state, playerId, index);
+    if (!next.ok) return next;
+    this.resolvePick(code, pick, next.value, pick.pool[index]);
+    return { ok: true };
+  }
+
+  // The winner did not choose in time. The server takes a random card from the pool.
+  private timeOutPick(code: string, winnerId: string): void {
+    const match = this.matches.get(code);
+    const pick = match?.state.picks.find((entry) => entry.winnerId === winnerId);
+    if (!match || !pick) return;
+    const index = Math.floor(this.random() * pick.pool.length);
+    const next = applyPick(match.state, winnerId, index);
+    if (next.ok) this.resolvePick(code, pick, next.value, pick.pool[index]);
+  }
+
+  private resolvePick(
+    code: string,
+    pick: { winnerId: string; loserId: string },
+    next: MatchState,
+    value: CardValue | undefined,
+  ): void {
+    this.clearPickTimer(pickKey(code, pick.winnerId));
+    this.setState(code, next);
+    if (value !== undefined) {
+      this.emitToPlayer(code, pick.winnerId, 'player:notice', { kind: 'card-gained', value });
+    }
+    this.emitToPlayer(code, pick.loserId, 'player:notice', { kind: 'card-lost' });
+    this.syncPrivate(code);
+    this.maybeFinishRound(code);
+  }
+
+  private clearPickTimer(key: string): void {
+    const handle = this.pickTimers.get(key);
+    if (handle) this.clock.clearTimeout(handle);
+    this.pickTimers.delete(key);
+    this.pickDeadlines.delete(key);
+  }
+
+  // The round summary waits until every take is made.
+  private maybeFinishRound(code: string): void {
+    const state = this.current(code);
+    if (state.phase === 'resolved' && state.picks.length === 0) this.finishRound(code);
+  }
+
+  private pendingPickView(
+    code: string,
+    playerId: string,
+  ): { poolSize: number; deadline: number } | null {
+    const pick = this.matches.get(code)?.state.picks.find((entry) => entry.winnerId === playerId);
+    if (!pick) return null;
+    return {
+      poolSize: pick.pool.length,
+      deadline: this.pickDeadlines.get(pickKey(code, playerId)) ?? Date.now(),
+    };
+  }
+
+  // Shares card counts and out flags with the room. Called at the round summary only.
+  private publishCards(code: string, state: MatchState): void {
+    for (const player of state.players) {
+      this.registry.setCards(code, player.id, cardCountOf(player), player.eliminated);
+    }
+    this.broadcastRoomByCode(code);
+  }
+
   private sendDuel(code: string, result: DuelResult): void {
     const [a, b] = result.pair;
     const [valueA, valueB] = result.values;
@@ -369,7 +466,16 @@ export class MatchRunner {
   // or end the match.
   private finishRound(code: string): void {
     this.cancelTimer(code);
-    const state = this.current(code);
+    const before = this.current(code);
+    const state = eliminateEmpty(before);
+    this.setState(code, state);
+    this.publishCards(code, state);
+    for (const player of state.players) {
+      const wasOut = before.players.find((candidate) => candidate.id === player.id)?.eliminated;
+      if (player.eliminated && !wasOut) {
+        this.emitToPlayer(code, player.id, 'player:notice', { kind: 'eliminated' });
+      }
+    }
     const counts = teamCounts(state);
     const caught = state.results.filter((entry) => entry.outcome.caughtCold !== null);
     const recovered = state.results.filter((entry) => entry.outcome.recoveredId !== null);
@@ -383,7 +489,10 @@ export class MatchRunner {
     });
     this.setPhase(code, 'resolved');
 
-    const win = checkWin(state.players, state.round);
+    const win = checkWin(
+      state.players.filter((player) => !player.eliminated),
+      state.round,
+    );
     this.schedule(code, this.timing.resultMs, () => {
       if (win) {
         this.endMatch(code, win.winner);
@@ -430,6 +539,7 @@ export class MatchRunner {
         team: player.team,
         hand: player.hand,
         special: player.special ? { ...player.special } : null,
+        pendingPick: this.pendingPickView(code, player.id),
         encounter: opponentId
           ? {
               opponentId,
@@ -506,9 +616,14 @@ function duelView(result: DuelResult, viewerId: string) {
 function teamCounts(state: MatchState): PublicRoomState['teamCounts'] {
   const counts = { survivors: 0, infected: 0 };
   for (const player of state.players) {
+    if (player.eliminated) continue;
     const team: Team = player.team;
     if (team === 'infected') counts.infected += 1;
     else counts.survivors += 1;
   }
   return counts;
+}
+
+function pickKey(code: string, winnerId: string): string {
+  return `${code}|${winnerId}`;
 }

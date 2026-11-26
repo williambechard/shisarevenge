@@ -1,4 +1,6 @@
+import { AnimatePresence } from 'motion/react';
 import {
+  CARD_NAMES,
   ROUND_COUNT,
   SPECIAL_NAMES,
   type PlayedCard,
@@ -10,6 +12,7 @@ import { Announcement } from '../components/molecules/Announcement.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
 import { HandTray } from '../components/organisms/HandTray.js';
+import { PickPanel } from '../components/organisms/PickPanel.js';
 import { PlayArea } from '../components/organisms/PlayArea.js';
 import { RevealPanel } from '../components/organisms/RevealPanel.js';
 import { cardArt, NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../assets/cards/index.js';
@@ -20,26 +23,66 @@ type RoundScreenProps = {
   room: PublicRoomState | null;
   onSelect: (card: PlayedCard) => void;
   onLockIn: (card: PlayedCard) => void;
+  onPick: (index: number) => void;
 };
 
 function nameOf(room: PublicRoomState | null, playerId: string | null): string {
   return room?.players.find((player) => player.id === playerId)?.name ?? 'Opponent';
 }
 
-// Lost or gained specials are always said in words, and the player is told each time.
-function noticeText(notice: PrivateNotice): string | null {
+// Each notice is said in words, so the player knows what changed and why.
+function noticeText(notice: PrivateNotice): { text: string; tone: 'info' | 'error' } | null {
   if (notice.kind === 'caught-cold') {
     const lost = notice.lostSpecial ? ` Your ${SPECIAL_NAMES[notice.lostSpecial]} is gone.` : '';
-    return `You caught a cold.${lost} You now have a ${SPECIAL_NAMES[notice.newSpecial]}.`;
+    return {
+      text: `You caught a cold.${lost} You now have a ${SPECIAL_NAMES[notice.newSpecial]}.`,
+      tone: 'error',
+    };
   }
   if (notice.kind === 'recovered') {
-    return `You recovered. Your ${SPECIAL_NAMES[notice.lostSpecial ?? 'shisa-mask']} is gone. You now have a ${SPECIAL_NAMES[notice.newSpecial]}.`;
+    return {
+      text: `You recovered. Your ${SPECIAL_NAMES[notice.lostSpecial ?? 'shisa-mask']} is gone. You now have a ${SPECIAL_NAMES[notice.newSpecial]}.`,
+      tone: 'info',
+    };
+  }
+  if (notice.kind === 'card-gained') {
+    return {
+      text: `You took a ${String(notice.value)} ${CARD_NAMES[notice.value]}.`,
+      tone: 'info',
+    };
+  }
+  if (notice.kind === 'card-lost') {
+    return { text: 'A card was taken from your hand.', tone: 'info' };
+  }
+  if (notice.kind === 'eliminated') {
+    return {
+      text: 'You have no cards left. You are out, but you can watch the match.',
+      tone: 'error',
+    };
   }
   return null;
 }
 
-// The round screen: team bar, the table, the fan of cards, and the reveal once both players lock in.
-export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProps) {
+// Everyone can see how many cards each player holds, updated at each round summary.
+function CardCounts({ room }: { room: PublicRoomState }) {
+  return (
+    <section aria-label="Cards left" className="text-xs text-navy/80">
+      <p className="font-semibold">Cards left</p>
+      <ul className="flex flex-wrap gap-x-3 gap-y-1">
+        {room.players.map((player) => (
+          <li key={player.id} className={player.eliminated ? 'line-through opacity-60' : ''}>
+            {player.name}:{' '}
+            {player.eliminated ? 'out' : player.cardCount === null ? '-' : String(player.cardCount)}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// The round screen: team bar, card counts, the table, the fan of cards, and the reveal once both
+// players lock in. A winner of a duel takes a card here too, from a face-down pool.
+export function RoundScreen({ state, room, onSelect, onLockIn, onPick }: RoundScreenProps) {
   const view = state.roundView;
   const self = state.privateState;
   const opponentId = self?.encounter?.opponentId ?? null;
@@ -49,6 +92,8 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
   const reveal = state.reveal;
   const round = view?.round ?? 1;
   const notice = state.specialNotice ? noticeText(state.specialNotice) : null;
+  const out = room?.players.find((player) => player.id === state.playerId)?.eliminated === true;
+  const pending = self?.pendingPick ?? null;
 
   // Art for the card on the table. Once revealed, the revealed card is the source.
   const lockedFront =
@@ -79,18 +124,17 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
             round={round}
           />
         ) : null}
-        {view?.deadline && !reveal && !isWarmUp ? (
+        {room ? <CardCounts room={room} /> : null}
+        {view?.deadline && !reveal && !isWarmUp && !out ? (
           <Countdown deadline={view.deadline} label="Choose before" />
         ) : null}
       </header>
 
-      {notice ? (
-        <StatusMessage tone={state.specialNotice?.kind === 'caught-cold' ? 'error' : 'info'}>
-          {notice}
-        </StatusMessage>
-      ) : null}
+      {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}
 
-      {isWarmUp ? (
+      {out ? (
+        <StatusMessage>You are out of the match. Watch the rest of the game.</StatusMessage>
+      ) : isWarmUp ? (
         <StatusMessage>Warm-Up: you sit out this round.</StatusMessage>
       ) : opponentId ? (
         <PlayArea
@@ -98,6 +142,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
           mySlot={mySlot}
           opponentFront={opponentFront}
           revealed={reveal !== null}
+          discarded={state.playedDiscarded}
         />
       ) : null}
 
@@ -112,7 +157,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
         />
       ) : null}
 
-      {!isWarmUp && reveal === null && self ? (
+      {!out && !isWarmUp && reveal === null && self ? (
         <HandTray
           key={round}
           hand={self.hand}
@@ -125,7 +170,7 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
         />
       ) : null}
 
-      {!isWarmUp && locked && reveal === null ? (
+      {!out && !isWarmUp && locked && reveal === null ? (
         <StatusMessage>Waiting for {opponentName} to lock in.</StatusMessage>
       ) : null}
 
@@ -139,6 +184,17 @@ export function RoundScreen({ state, room, onSelect, onLockIn }: RoundScreenProp
           caughtCount={state.roundSummary.caughtCount}
         />
       ) : null}
+
+      <AnimatePresence>
+        {pending ? (
+          <PickPanel
+            key="pick"
+            poolSize={pending.poolSize}
+            deadline={pending.deadline}
+            onPick={onPick}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

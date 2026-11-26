@@ -50,5 +50,12 @@ export const encounterSubmitPayload = z.union([
   z.strictObject({ type: z.literal('special') }),
 ]);
 
+// The winner of a duel takes one card. The index is the position in the face-down pool.
+export const cardPickPayload = z.strictObject({
+  index: z.number().int().min(0).max(99),
+});
+
+export type CardPickPayload = z.infer<typeof cardPickPayload>;
+
 export type EncounterSubmitPayload = z.infer<typeof encounterSubmitPayload>;
 export type RoomEnterPayload = z.infer<typeof roomEnterPayload>;

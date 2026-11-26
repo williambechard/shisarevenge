@@ -10,7 +10,7 @@ const TEAM_LABEL = { survivor: 'Survivor', infected: "Shisa's Army" } as const;
 
 // Chooses the screen from state. Each window keeps its name and team visible at the top.
 export function App() {
-  const { state, leaveRoom, startNow, selectCard, submitCard, clearNotice } = useGame();
+  const { state, leaveRoom, startNow, selectCard, submitCard, pickCard, clearNotice } = useGame();
   const teamLabel = useMemo(
     () => (state.privateState ? TEAM_LABEL[state.privateState.team] : null),
     [state.privateState],
@@ -59,7 +59,13 @@ export function App() {
       ) : null}
 
       {state.screen === 'round' ? (
-        <RoundScreen state={state} room={state.room} onSelect={selectCard} onLockIn={submitCard} />
+        <RoundScreen
+          state={state}
+          room={state.room}
+          onSelect={selectCard}
+          onLockIn={submitCard}
+          onPick={pickCard}
+        />
       ) : null}
 
       {state.screen === 'endgame' && state.endgame && state.room ? (

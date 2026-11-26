@@ -13,6 +13,8 @@ export const ERROR_CODES = [
   'RATE_LIMITED',
   'GAME_IN_PROGRESS',
   'SEAT_IN_USE',
+  'NO_PICK_PENDING',
+  'INVALID_PICK',
   'INTERNAL',
 ] as const;
 
@@ -32,6 +34,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   RATE_LIMITED: 'Too many actions. Wait a moment and try again.',
   GAME_IN_PROGRESS: 'This match has already started.',
   SEAT_IN_USE: 'This seat is open in another window.',
+  NO_PICK_PENDING: 'There is no card to take right now.',
+  INVALID_PICK: 'That card is not available to take.',
   INTERNAL: 'Something went wrong. Please try again.',
 };
 

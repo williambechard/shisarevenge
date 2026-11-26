@@ -4,6 +4,7 @@
 import type { Server, Socket } from 'socket.io';
 import {
   ERROR_MESSAGES,
+  cardPickPayload,
   encounterSubmitPayload,
   RATE_LIMIT_EVENTS_PER_SECOND,
   roomEnterPayload,
@@ -185,6 +186,17 @@ export function registerConnectionHandlers(
       ack?.({ ok: true });
     });
 
+    // The winner of a duel takes one card from the face-down pool (design section 4.6).
+    socket.on('card:pick', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      const payload = parse(cardPickPayload, raw);
+      if (!payload) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+
+      const result = matches.pick(session.roomCode, session.playerId, payload.index);
+      if (!result.ok) return ack?.(fail(result.error));
+      ack?.({ ok: true });
+    });
     socket.on('disconnect', () => {
       if (!session.roomCode || !session.playerId) return;
       const code = session.roomCode;

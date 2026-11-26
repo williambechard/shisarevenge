@@ -44,6 +44,7 @@ export type GameAction =
   | { type: 'select'; card: PlayedCard }
   | { type: 'lock'; card: PlayedCard }
   | { type: 'unlock' }
+  | { type: 'discard-played' }
   | { type: 'round-ended'; round: number; caughtCount: number }
   | { type: 'special-notice'; notice: PrivateNotice }
   | { type: 'game-ended'; summary: EndgameSummary };
@@ -85,6 +86,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         autoLocked: false,
         selected: null,
         lockedCard: null,
+        playedDiscarded: false,
         roundSummary: null,
         specialNotice: null,
         endgame: null,
@@ -104,6 +106,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         autoLocked: false,
         selected: null,
         lockedCard: null,
+        playedDiscarded: false,
         roundSummary: null,
         specialNotice: null,
       };
@@ -145,6 +148,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'unlock':
       return { ...state, lockedCard: null };
+
+    case 'discard-played':
+      return { ...state, playedDiscarded: true };
 
     case 'round-ended':
       return { ...state, roundSummary: { round: action.round, caughtCount: action.caughtCount } };

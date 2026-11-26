@@ -25,6 +25,9 @@ type EnterAck = AckResponse<{
 }>;
 type PlainAck = AckResponse;
 
+// After a reveal, the played cards stay on the table this long, then toss away.
+const DISCARD_AFTER_MS = 1400;
+
 // After this long without a connection, the message says the server is waking up.
 const WAKING_AFTER_MS = 3000;
 
@@ -83,6 +86,7 @@ export type GameActions = {
   startNow: () => void;
   selectCard: (card: PlayedCard) => void;
   submitCard: (card: PlayedCard) => void;
+  pickCard: (index: number) => void;
   clearNotice: () => void;
 };
 
@@ -139,6 +143,9 @@ export function useGame(): { state: GameState } & GameActions {
     };
 
     const onRevealed = (payload: RevealedPayload): void => {
+      window.setTimeout(() => {
+        dispatch({ type: 'discard-played' });
+      }, DISCARD_AFTER_MS);
       dispatch({
         type: 'revealed',
         myValue: payload.myValue,
@@ -259,9 +266,16 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
+  // Takes one card from the face-down pool. The server answers with the new hand and a notice.
+  const pickCard = useCallback((index: number): void => {
+    getSocket().emit('card:pick', { index }, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
 
-  return { state, leaveRoom, startNow, selectCard, submitCard, clearNotice };
+  return { state, leaveRoom, startNow, selectCard, submitCard, pickCard, clearNotice };
 }

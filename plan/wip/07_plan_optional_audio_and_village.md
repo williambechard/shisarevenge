@@ -33,3 +33,7 @@
 ## Done when
 
 All steps are checked, or the plan is moved to the parking lot by decision and noted in this file.
+
+## Stretch goal: exchange machine in the village
+
+- [ ] Between matches, players can walk the village. One stop is an exchange machine. A player puts in a duplicate number card and receives a random card. A special card is possible but not guaranteed. Design it in `design/01-game-design.md` before building. Needs the card-taking rules in `design/04-game-rules.md` section 4.6 first.

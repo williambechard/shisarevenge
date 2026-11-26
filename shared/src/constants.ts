@@ -33,6 +33,9 @@ export const SPECIAL_STRENGTH = {
 
 export const SELECTION_SECONDS = 45;
 
+// Time for the winner of a duel to take a card. On timeout the server takes one at random (design/04 section 4.6).
+export const PICK_SECONDS = 10;
+
 // Once a room has MIN_PLAYERS, this long before anyone may start it early. See design/01-game-design.md section 8.
 // TESTING VALUE: 15 seconds. Restore to 60 before the party.
 export const LOBBY_START_WAIT_SECONDS = 15;

@@ -12,11 +12,12 @@
 | `CARD_VALUES` | 1, 2, 3, 4, 5 | Each once per game. |
 | `SPECIAL_STRENGTH` | Talisman 2, Ramen 3, Shisa Mask 4 | Strength of a special card when it is played. See section 5. |
 | `SELECTION_SECONDS` | 45 | Tunable. |
+| `PICK_SECONDS` | 10 | Time for the winner of a duel to take a card. On timeout the server takes one at random. |
 | `RECONNECT_GRACE_SECONDS` | 120 | A disconnected player keeps their seat for this long. |
 
 ## 2. Entities
 
-- **Player:** `id`, `name`, `sessionToken`, `team`, `hand` (unused number cards), `special` (`{ kind, status }`), `byeCount`, `connected`.
+- **Player:** `id`, `name`, `sessionToken`, `team`, `hand` (number cards held, values 1 to 5, duplicates allowed after a take), `special` (`{ kind, status }`), `byeCount`, `connected`, `eliminated`.
 - **Team:** `'survivor' | 'infected'`. Display names come from the terminology table. Code uses the neutral names.
 - **Special kinds:** `'protection-talisman' | 'ramen' | 'shisa-mask'`.
 - **Special status:** `'available' | 'committed' | 'spent' | 'lost'`.
@@ -29,7 +30,7 @@
 2. Pick one player at random as origin. Give that player team `infected` and special `shisa-mask`, status `available`.
 3. Every other player gets team `survivor`.
 4. Give each survivor one special at random: `protection-talisman` or `ramen`, status `available`.
-5. Give every player the full hand `[1, 2, 3, 4, 5]`. Each player also holds their special card, so six cards in total. A player plays one card each round, so one card is left unused by the end of round five.
+5. Give every player the full hand `[1, 2, 3, 4, 5]`. Each player also holds their special card, so six cards in total. A player plays one card each round. Cards can also be taken from the hand (section 4.6), so a hand can run out. Running out is elimination (section 4.7).
 6. Set `round = 1`.
 
 ## 4. Round flow
@@ -37,6 +38,8 @@
 Phases, in order: `announce` -> `pairing` -> `selecting` -> `revealed` -> `resolved`. Then the next round, or `ended`.
 
 ### 4.1 Pairing
+
+Pair only active players. A player who is eliminated (section 4.7) is not paired and does not play.
 
 - Pool: all players. (Under the current rules every player has a card in every round, so no one is excluded for lack of cards.)
 - If the pool has an odd count, choose one player as Warm-Up:
@@ -72,6 +75,23 @@ If a player has not locked in when the timer ends, the server auto-selects for t
 ### 4.5 Reveal
 
 When both players in an encounter have locked in, the server reveals both played cards (a number, or a special and its strength) to those two players only. The reveal is sent to the whole room only as public team counts after the round.
+
+### 4.6 Taking a card
+
+Every duel with a winner has a take. A tie has no take. This includes a duel between two players on the same team.
+
+1. After the duel resolves, the server gathers the loser's number cards that remain in hand. The played card is already removed. These form the pool. The server shuffles the pool, so position carries no information.
+2. The winner gets a blind pick. The winner sees how many cards are in the pool, and nothing about their values. The winner chooses one by its position.
+3. The chosen card is removed from the loser's hand and added to the winner's hand. The winner sees its value. The loser sees a card leave their hand.
+4. Special cards are never in the pool. A special stays with its owner.
+5. If the pool is empty, there is no take.
+6. The winner has `PICK_SECONDS` to choose. On timeout the server chooses at random. A pending pick does not stop other duels from resolving, but the round summary waits until every pick is made.
+
+### 4.7 Elimination
+
+- A player holds one card for each number in hand, and one for the special card if it is `available`.
+- At the round summary, a player who holds no cards is eliminated. An eliminated player is not paired, does not select, cannot take a card, and cannot be taken from. They stay in the room and watch.
+- Eliminated players do not count in team counts or win checks (section 9).
 
 ## 5. Strength of played cards
 
@@ -122,6 +142,10 @@ Rules precedence: a played Talisman blocks a freeze regardless of the margin.
 - Do not update the public team counts here. They change only at the round summary (`round:ended` in `08-socket-contract.md`), so the progress bar cannot reveal mid-round freezes.
 - Mark the encounter `resolved`.
 
+### Step 5: Take a card (section 4.6)
+
+Runs after steps 1 to 4, for every duel with a winner. The loser's remaining number cards form the pool, and the winner picks one blind.
+
 ## 7. Catching a cold (survivor becomes Shisa's Army)
 
 1. Set the player's `team` to `infected`.
@@ -145,9 +169,9 @@ Recovery applies only to the duel's Shisa's Army member, and only when the Survi
 
 Run after every round's resolution, in this order:
 
-1. If every player is `infected`, Shisa's Army wins immediately.
-2. If no player is `infected`, Survivors win immediately.
-3. If `round === ROUND_COUNT`, Survivors win if any player is `survivor`, otherwise Shisa's Army wins.
+1. Only active players count (players not eliminated). If no active player is a survivor, Shisa's Army wins immediately.
+2. If no active player is `infected`, Survivors win immediately.
+3. If `round === ROUND_COUNT`, Survivors win if any active player is `survivor`, otherwise Shisa's Army wins.
 4. Otherwise, increment `round` and go to the next round.
 
 ## 10. Rounds and phases
@@ -165,7 +189,7 @@ Run after every round's resolution, in this order:
 
 The engine must uphold these at all times. Each one needs a unit test.
 
-- A card value appears at most once in a player's hand.
+- A hand may hold the same card value more than once, after a take.
 - A used card never returns to the hand.
 - Each special card is used at most once. A special's status moves only in this order: `available` -> `committed` -> `spent`, or `available` -> `lost`.
 - Each player is in at most one encounter per round.
@@ -198,3 +222,11 @@ These fill gaps in `01-game-design.md` and the original doc. Review them after p
 18. A Shisa's Army member who is recovered is also written to the endgame transformation history, the same as a catch. Duel results use the words in  8-socket-contract.md. A Survivor who wins a mixed duel without Ramen gets epelled. Its Army opponent gets lost.
 
 19. Specials are played like number cards. Each player has five numbers and one special card, and plays one card per round in place of a number. A special has a fixed strength (section 5): Protection Talisman 2, Ramen 3, Shisa Mask 4. The Shisa Mask no longer adds a bonus. These strengths and the card count are a first guess and need playtesting.
+
+20. Specials are never taken. Taking applies only to number cards. A special stays with its owner.
+21. Every duel with a winner has a take, including a duel between two players on the same team. A tie has no take. Teammates can take from each other, which can eliminate a teammate. Revisit after playtests.
+22. The pick is blind. The server shuffles the pool, and the winner sees only the number of cards. A hand can hold duplicate values after a take.
+23. The pick has a timeout of `PICK_SECONDS`. On timeout the server takes a random card. The round summary waits for every pick.
+24. A player who holds no cards at the round summary is eliminated. Eliminated players are not paired and watch the rest of the match.
+25. Public card counts and eliminated flags are shared at the round summary only. Hand contents are never shared.
+26. Team counts and win checks count only active players. If no active player is a survivor, Shisa's Army wins.

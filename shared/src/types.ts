@@ -18,6 +18,10 @@ export type PublicPlayer = {
   id: string;
   name: string;
   connected: boolean;
+  // Cards held, shared at the round summary only. Null before the match starts.
+  cardCount: number | null;
+  // True once the player holds no cards. Shared at the round summary only.
+  eliminated: boolean;
 };
 
 export type EndgameSummary = {
@@ -56,6 +60,8 @@ export type PrivatePlayerState = {
   team: Team;
   hand: CardValue[];
   special: { kind: SpecialKind; status: SpecialStatus } | null;
+  // A take this player must make now. The server picks at random after the deadline.
+  pendingPick: { poolSize: number; deadline: number } | null;
   encounter: {
     opponentId: string;
     selectionLocked: boolean;
@@ -77,4 +83,7 @@ export type DuelOutcome = {
 export type PrivateNotice =
   | { kind: 'caught-cold'; lostSpecial: SpecialKind | null; newSpecial: 'shisa-mask' }
   | { kind: 'recovered'; lostSpecial: 'shisa-mask' | null; newSpecial: SpecialKind }
-  | { kind: 'auto-locked' };
+  | { kind: 'auto-locked' }
+  | { kind: 'card-gained'; value: CardValue }
+  | { kind: 'card-lost' }
+  | { kind: 'eliminated' };

@@ -184,3 +184,15 @@ Before merging any change to this contract, confirm:
 - `round:state` never contains `hand`, `special`, or `encounter` data.
 - `player:private-state` is emitted only to its own socket.
 - `encounter:revealed` and `encounter:result` are emitted only to the two participants.
+
+## 10. Card taking and elimination
+
+Added with the take rule (design/04 sections 4.6 and 4.7).
+
+- Client to server: `card:pick` with `{ index: integer }`, the position of the chosen card in the face-down pool. Errors: `NO_PICK_PENDING` when the player has no take, `INVALID_PICK` when the index is outside the pool.
+- Private to the winner of a duel: `player:private-state` carries `pendingPick: { poolSize, deadline } | null`. The pool values are never sent. `deadline` is epoch ms, when the server takes a card at random.
+- Private notices: `card-gained` (with the value, to the winner only), `card-lost` (no value, to the loser), and `eliminated` (to the player who holds no cards).
+- Public, at the round summary only: each player's `cardCount` and `eliminated` flag in `room:state`. `cardCount` is null before the match starts. Hand contents are never public.
+- Team counts count active players only.
+
+Order: the round summary (`round:ended`) waits until every take is made.

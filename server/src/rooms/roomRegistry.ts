@@ -24,6 +24,9 @@ export type PlayerRecord = {
   joinedAt: number;
   // The socket that currently holds this seat. Null before the first bind.
   socketId: string | null;
+  // Cards held and the out-of-cards flag. Shared at the round summary only.
+  cardCount: number | null;
+  eliminated: boolean;
 };
 
 export type RoomRecord = {
@@ -128,6 +131,15 @@ export class RoomRegistry {
     room.startAvailable = startAvailable;
   }
 
+  // Sets the public card count and out-of-cards flag. Called at the round summary only.
+  setCards(code: string, playerId: string, cardCount: number, eliminated: boolean): void {
+    const room = this.rooms.get(code);
+    const player = room?.players.find((candidate) => candidate.id === playerId);
+    if (!player) return;
+    player.cardCount = cardCount;
+    player.eliminated = eliminated;
+  }
+
   setTeamCounts(code: string, teamCounts: { survivors: number; infected: number }): void {
     const room = this.rooms.get(code);
     if (room) room.teamCounts = teamCounts;
@@ -199,6 +211,8 @@ export class RoomRegistry {
         id: player.id,
         name: player.name,
         connected: player.connected,
+        cardCount: player.cardCount,
+        eliminated: player.eliminated,
       })),
       pairings: [],
       warmUpPlayerId: null,
@@ -251,6 +265,8 @@ export class RoomRegistry {
       connected: true,
       joinedAt: this.now(),
       socketId: null,
+      cardCount: null,
+      eliminated: false,
     };
   }
 

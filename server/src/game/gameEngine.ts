@@ -24,6 +24,8 @@ export type MatchPlayer = {
   byeCount: number;
   // The special card. Played at most once, like a number card.
   special: PlayerSpecial | null;
+  // Out of cards. Not paired, and cannot take or be taken from (design section 4.7).
+  eliminated: boolean;
 };
 
 export type Pair = [string, string];
@@ -47,6 +49,13 @@ export type DuelResult = {
   recoveredNewSpecial: SpecialKind | null;
 };
 
+// A take waiting for the winner of a duel (design section 4.6). The pool is shuffled, so position carries no information.
+export type PendingPick = {
+  winnerId: string;
+  loserId: string;
+  pool: CardValue[];
+};
+
 export type MatchState = {
   phase: Phase;
   round: number;
@@ -60,6 +69,8 @@ export type MatchState = {
   resolvedPairs: ReadonlySet<string>;
   // Results from the current round, in the order duels resolved.
   results: ReadonlyArray<DuelResult>;
+  // Takes not yet made this round. The round summary waits until this is empty.
+  picks: ReadonlyArray<PendingPick>;
   // Round numbers in which each player changed team, for the endgame history.
   transformations: Readonly<Record<string, readonly number[]>>;
 };
@@ -86,6 +97,7 @@ export function createMatch(
         player.team === 'infected'
           ? { kind: 'shisa-mask', status: 'available' }
           : { kind: randomSurvivorSpecial(random), status: 'available' },
+      eliminated: false,
     })),
     pairs: [],
     warmUpId: null,
@@ -93,6 +105,7 @@ export function createMatch(
     locked: new Map(),
     resolvedPairs: new Set(),
     results: [],
+    picks: [],
     transformations: {},
   };
 }
@@ -108,6 +121,7 @@ export function beginRound(state: MatchState): MatchState {
     locked: new Map(),
     resolvedPairs: new Set(),
     results: [],
+    picks: [],
   };
 }
 
@@ -119,7 +133,7 @@ export function pairRound(state: MatchState, random: RandomFn): MatchState {
 
   const byeCounts = Object.fromEntries(state.players.map((player) => [player.id, player.byeCount]));
   const result = pairPlayers({
-    playerIds: state.players.map((player) => player.id),
+    playerIds: state.players.filter((player) => !player.eliminated).map((player) => player.id),
     byeCounts,
     previousPairs: state.previousPairs,
     random,
@@ -259,6 +273,11 @@ export function revealPair(
     transformations = appendTransformation(transformations, outcome.recoveredId, state.round);
   }
 
+  // Step 5: the winner takes a card from the loser's remaining number cards (design section 4.6).
+  const loserId = outcome.winnerId === null ? null : outcome.winnerId === a ? b : a;
+  const pick =
+    loserId && outcome.winnerId ? pickFor(players, outcome.winnerId, loserId, random) : null;
+
   const resolvedPairs = new Set(state.resolvedPairs);
   resolvedPairs.add(pairKey(a, b));
   const result: DuelResult = {
@@ -274,6 +293,7 @@ export function revealPair(
   const next: MatchState = {
     ...state,
     players,
+    picks: pick ? [...state.picks, pick] : state.picks,
     transformations,
     resolvedPairs,
     results: [...state.results, result],
@@ -287,6 +307,69 @@ export function revealPair(
     };
   }
   return next;
+}
+
+// The pool for a take: the loser's number cards, shuffled so that position carries no information.
+function pickFor(
+  players: readonly MatchPlayer[],
+  winnerId: string,
+  loserId: string,
+  random: RandomFn,
+): PendingPick | null {
+  const loser = players.find((player) => player.id === loserId);
+  if (!loser || loser.hand.length === 0) return null;
+  const pool = [...loser.hand];
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [pool[index], pool[swap]] = [pool[swap] as CardValue, pool[index] as CardValue];
+  }
+  return { winnerId, loserId, pool };
+}
+
+// Number of cards a player holds: each number card, plus the special while it is available.
+export function cardCountOf(player: MatchPlayer): number {
+  return player.hand.length + (player.special?.status === 'available' ? 1 : 0);
+}
+
+// Marks every player who holds no cards as eliminated (design section 4.7). Runs at the round summary.
+export function eliminateEmpty(state: MatchState): MatchState {
+  return {
+    ...state,
+    players: state.players.map((player) =>
+      player.eliminated || cardCountOf(player) > 0 ? player : { ...player, eliminated: true },
+    ),
+  };
+}
+
+// The winner takes the card at index in the face-down pool (design section 4.6).
+export function applyPick(state: MatchState, winnerId: string, index: number): Result<MatchState> {
+  const pick = state.picks.find((entry) => entry.winnerId === winnerId);
+  if (!pick) return { ok: false, error: 'NO_PICK_PENDING' };
+  const card = pick.pool[index];
+  if (card === undefined) return { ok: false, error: 'INVALID_PICK' };
+
+  const players = state.players.map((player) => {
+    if (player.id === winnerId) return { ...player, hand: [...player.hand, card] };
+    if (player.id === pick.loserId) {
+      const hand = [...player.hand];
+      const at = hand.indexOf(card);
+      if (at >= 0) hand.splice(at, 1);
+      return { ...player, hand };
+    }
+    return player;
+  });
+  return {
+    ok: true,
+    value: { ...state, players, picks: state.picks.filter((entry) => entry !== pick) },
+  };
+}
+
+// The winner did not choose in time. The server takes a random card from the pool.
+export function autoPick(state: MatchState, winnerId: string, random: RandomFn): MatchState {
+  const pick = state.picks.find((entry) => entry.winnerId === winnerId);
+  if (!pick) return state;
+  const result = applyPick(state, winnerId, Math.floor(random() * pick.pool.length));
+  return result.ok ? result.value : state;
 }
 
 function appendTransformation(
