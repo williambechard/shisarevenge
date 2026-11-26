@@ -21,6 +21,7 @@
 - [x] Reverted the reachable-tiles rule at the player's request. Movement is one tile at a time (up, down, left, right). The board has no blocked tiles, so every tile is reachable. Design in `design/10-village.md` section 3.
 - [x] Show a direction arrow on every reachable tile, pointing from the player's token.
 - [x] Glide tokens between tiles with ease-in/out, with squash and stretch along the path of travel.
+- [x] Make the vending machine tile impassable. Players use it by tapping it from a neighbouring tile, which opens the panel (playtest bug: a player could stand on the machine with no panel). Server checks adjacency in `vend`.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.

@@ -13,6 +13,8 @@ type VillageBoardProps = {
   selfId: string | null;
   // Called with the tile a player taps. Only the four tiles next to the player's own token are enabled.
   onStep: (x: number, y: number) => void;
+  // Called when the player taps the vending machine from a tile next to it.
+  onVendingTap: () => void;
 };
 
 // Horizontal gap in pixels between two tokens that share one tile.
@@ -56,6 +58,7 @@ export function VillageBoard({
   players,
   selfId,
   onStep,
+  onVendingTap,
 }: VillageBoardProps) {
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
@@ -87,9 +90,17 @@ export function VillageBoard({
                 key={keyOf(here)}
                 type="button"
                 disabled={!enabled}
-                aria-label={`Tile ${String(x + 1)}, ${String(y + 1)}${enabled ? ', you can walk here' : ''}`}
+                aria-label={
+                  char === 'V'
+                    ? 'Vending machine'
+                    : `Tile ${String(x + 1)}, ${String(y + 1)}${enabled ? ', you can walk here' : ''}`
+                }
                 onClick={() => {
-                  onStep(x, y);
+                  if (char === 'V') {
+                    onVendingTap();
+                  } else {
+                    onStep(x, y);
+                  }
                 }}
                 className={`relative aspect-square overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
               >

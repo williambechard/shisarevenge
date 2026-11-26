@@ -179,20 +179,27 @@ describe('accusations (design/10 section 4)', () => {
 });
 
 describe('vending machine (design/10 section 5)', () => {
-  const vendingTile = { x: 3, y: 2 };
+  it('refuses to walk onto the machine tile', () => {
+    const state = villageAt({ a: standing }, {});
+    expect(moveTo(state, 'a', vendingTile, 1000)).toEqual({ ok: false, error: 'BLOCKED_TILE' });
+  });
 
-  it('needs the player to stand on the machine', () => {
+  const vendingTile = { x: 3, y: 2 };
+  // The tile next to the machine, where players stand to use it.
+  const standing = { x: 2, y: 2 };
+
+  it('needs the player to stand next to the machine', () => {
     const state = villageAt({ a: { x: 1, y: 0 } }, { a: { hand: [2, 2], special: null } });
     expect(vend(state, 'a', 2, seeded(1))).toEqual({ ok: false, error: 'NOT_ON_VENDING' });
   });
 
   it('needs two copies of the card', () => {
-    const state = villageAt({ a: vendingTile }, { a: { hand: [2, 3], special: null } });
+    const state = villageAt({ a: standing }, { a: { hand: [2, 3], special: null } });
     expect(vend(state, 'a', 2, seeded(1))).toEqual({ ok: false, error: 'NO_DUPLICATE' });
   });
 
   it('takes one copy in and gives one card out, keeping the other copy', () => {
-    const state = villageAt({ a: vendingTile }, { a: { hand: [2, 2], special: null } });
+    const state = villageAt({ a: standing }, { a: { hand: [2, 2], special: null } });
     const result = vend(state, 'a', 2, seeded(5));
     if (!result.ok) throw new Error('vend failed');
     const hand = result.value.state.cards.a?.hand ?? [];
@@ -202,7 +209,7 @@ describe('vending machine (design/10 section 5)', () => {
   });
 
   it('allows one use per village', () => {
-    const state = villageAt({ a: vendingTile }, { a: { hand: [2, 2, 2], special: null } });
+    const state = villageAt({ a: standing }, { a: { hand: [2, 2, 2], special: null } });
     const first = vend(state, 'a', 2, seeded(5));
     if (!first.ok) throw new Error('first use failed');
     expect(vend(first.value.state, 'a', 2, seeded(6))).toEqual({
@@ -213,7 +220,7 @@ describe('vending machine (design/10 section 5)', () => {
 
   it('gives a special only to a player who holds none, and a number otherwise', () => {
     // A roll that would give a special (below specialChance) on a player who already has one must give a number.
-    const state = villageAt({ a: vendingTile }, { a: { hand: [4, 4], special: 'ramen' } });
+    const state = villageAt({ a: standing }, { a: { hand: [4, 4], special: 'ramen' } });
     for (let seed = 1; seed < 40; seed += 1) {
       const result = vend(state, 'a', 4, seeded(seed));
       if (!result.ok) throw new Error('vend failed');

@@ -56,7 +56,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   ALREADY_ACCUSED: 'You have already made your accusation this village.',
   CARD_REQUIRED: 'Choose a card to give up for this accusation.',
   CANNOT_ACCUSE_SELF: 'You cannot accuse yourself.',
-  NOT_ON_VENDING: 'Stand on the vending machine to use it.',
+  NOT_ON_VENDING: 'Stand next to the vending machine to use it.',
   NO_DUPLICATE: 'You need two copies of a card to use the machine.',
   VENDING_USED: 'You have already used the vending machine this village.',
   OBSERVER_ONLY: 'Players who are out can only watch.',

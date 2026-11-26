@@ -44,7 +44,7 @@ Players who are out of cards at the end of a match are still in the village. The
 
 ## 5. Vending machine
 
-- **Use:** stand on the vending machine's tile and insert one duplicate number card, a card whose value you already hold. You receive one random card.
+- **Use:** the machine tile cannot be walked onto. Stand on a tile next to it and tap the machine to open its panel, then insert one duplicate number card, a card whose value you already hold. You receive one random card.
 - **Odds (proposed):** number 1 to 5 each 16%, special 20%. The special is one of the three kinds, chosen at random.
 - **Special rule:** if the player already holds a special card, a special roll becomes a number roll instead.
 - **Limit:** one use per player per village.

@@ -83,6 +83,8 @@ export function VillageScreen({
 }: VillageScreenProps) {
   // Which meeting the player has already dismissed. A new arrival on the tile opens the overlay again.
   const [walkedOn, setWalkedOn] = useState<string | null>(null);
+  // The vending panel opens when the player taps the machine from a tile next to it.
+  const [vendingOpen, setVendingOpen] = useState(false);
   // The overlay waits for the bounce after a meeting to finish.
   const meetingAt = room.village?.meeting?.at ?? 0;
   const [readyFor, setReadyFor] = useState(0);
@@ -117,7 +119,15 @@ export function VillageScreen({
     onTile.length > 0 &&
     walkedOn !== meetingKey &&
     (meetingAt === 0 || readyFor === meetingAt);
-  const onVending = here !== undefined && village.board[here.y]?.[here.x] === 'V';
+  const isMachine = (x: number, y: number): boolean => village.board[y]?.[x] === 'V';
+  const nextToMachine =
+    here !== undefined &&
+    [
+      [here.x + 1, here.y],
+      [here.x - 1, here.y],
+      [here.x, here.y + 1],
+      [here.x, here.y - 1],
+    ].some(([x, y]) => x !== undefined && y !== undefined && isMachine(x, y));
   const hand = self?.hand ?? [];
   const special = self?.special?.status === 'available' ? self.special.kind : null;
   const recent = village.log.slice(-5);
@@ -168,7 +178,13 @@ export function VillageScreen({
         positions={village.positions}
         players={room.players}
         selfId={selfId}
-        onStep={onStep}
+        onStep={(x, y) => {
+          setVendingOpen(false);
+          onStep(x, y);
+        }}
+        onVendingTap={() => {
+          setVendingOpen(true);
+        }}
       />
 
       {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}
@@ -216,7 +232,19 @@ export function VillageScreen({
         </div>
       ) : null}
 
-      {onVending && !out ? <VendingPanel hand={hand} onInsert={onInsert} /> : null}
+      {vendingOpen && nextToMachine && !out ? (
+        <section className="flex flex-col gap-2 rounded-xl bg-sand/90 p-3">
+          <VendingPanel hand={hand} onInsert={onInsert} />
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setVendingOpen(false);
+            }}
+          >
+            Close
+          </Button>
+        </section>
+      ) : null}
     </section>
   );
 }
