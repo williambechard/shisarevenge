@@ -19,6 +19,7 @@ import { PlayArea } from '../components/organisms/PlayArea.js';
 import { RevealPanel } from '../components/organisms/RevealPanel.js';
 import { cardArt, NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../assets/cards/index.js';
 import type { GameState } from '../state/gameState.js';
+import { canChooseCard, opponentIn } from '../state/roundPhase.js';
 
 type RoundScreenProps = {
   state: GameState;
@@ -28,10 +29,6 @@ type RoundScreenProps = {
   onPick: (index: number) => void;
   onGainedDone: () => void;
 };
-
-function nameOf(room: PublicRoomState | null, playerId: string | null): string {
-  return room?.players.find((player) => player.id === playerId)?.name ?? 'Opponent';
-}
 
 // Each notice is said in words, so the player knows what changed and why.
 function noticeText(notice: PrivateNotice): { text: string; tone: 'info' | 'error' } | null {
@@ -105,8 +102,12 @@ export function RoundScreen({
 }: RoundScreenProps) {
   const view = state.roundView;
   const self = state.privateState;
-  const opponentId = self?.encounter?.opponentId ?? null;
-  const opponentName = nameOf(room, opponentId);
+  // The opponent is taken from this round's pairing. A name is shown only for a player who is still in the room and not out.
+  const pairedOpponent = opponentIn(view?.pairings ?? [], state.playerId);
+  const opponentPlayer =
+    room?.players.find((player) => player.id === pairedOpponent && !player.eliminated) ?? null;
+  const opponentId = opponentPlayer?.id ?? null;
+  const opponentName = opponentPlayer ? opponentPlayer.name : 'your opponent';
   const isWarmUp = view !== null && view.warmUpPlayerId === state.playerId;
   const locked = self?.encounter?.selectionLocked ?? false;
   const reveal = state.reveal;
@@ -158,7 +159,7 @@ export function RoundScreen({
         detail: 'The other duels are still being played.',
       };
     }
-    if (locked && phase === 'selecting') {
+    if (locked && canChooseCard(phase)) {
       return {
         title: `Waiting for ${opponentName} to lock in`,
         detail: 'Your card is locked. The duel reveals as soon as they lock in.',
@@ -181,7 +182,7 @@ export function RoundScreen({
           />
         ) : null}
         {room ? <CardCounts room={room} /> : null}
-        {view?.deadline && !reveal && !isWarmUp && !out && phase === 'selecting' && !locked ? (
+        {view?.deadline && !reveal && !isWarmUp && !out && canChooseCard(phase) && !locked ? (
           <Countdown deadline={view.deadline} label="Choose before" />
         ) : null}
       </header>
@@ -211,7 +212,7 @@ export function RoundScreen({
         />
       ) : null}
 
-      {!out && !isWarmUp && reveal === null && self && phase === 'selecting' ? (
+      {!out && !isWarmUp && reveal === null && self && canChooseCard(phase) ? (
         <HandTray
           key={round}
           hand={self.hand}
