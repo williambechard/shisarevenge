@@ -56,6 +56,8 @@ function closeOldTestWindows() {
   spawnSync('powershell', ['-NoProfile', '-Command', script], { stdio: 'ignore' });
 }
 const SESSION_ENTRIES = [
+  // sessionStorage holds each tab's seat. The browser restores it with the tab, so it must go too.
+  'Session Storage',
   'Sessions',
   'Current Session',
   'Last Session',
