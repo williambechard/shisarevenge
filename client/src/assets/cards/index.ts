@@ -35,3 +35,19 @@ export function cardArt(
 ): string {
   return special ? SPECIAL_CARD_ART[special] : NUMBER_CARD_ART[value];
 }
+
+// Decodes every card image before the first round. A face that is swapped in at reveal then draws
+// at once, instead of showing a blank frame while the image loads.
+export function preloadCardArt(): void {
+  const urls = [
+    ...Object.values(NUMBER_CARD_ART),
+    ...Object.values(SPECIAL_CARD_ART),
+    CARD_BACK_ART,
+  ];
+  for (const url of urls) {
+    const image = new Image();
+    image.src = url;
+    // Decoding is only a warm-up, so a failure is not an error for the player.
+    void image.decode().catch(() => undefined);
+  }
+}
