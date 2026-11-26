@@ -125,7 +125,7 @@ export function VillageScreen({
   return (
     <section
       aria-labelledby="village-heading"
-      className="flex flex-1 flex-col gap-4 rounded-xl bg-cover bg-center p-3"
+      className="-mx-5 -mb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-1 flex-col gap-4 bg-cover bg-center px-5 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       style={{
         backgroundImage: `url(${VILLAGE_BACKGROUND_ART})`,
       }}
