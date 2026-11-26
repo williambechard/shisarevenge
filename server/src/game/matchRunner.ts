@@ -282,6 +282,12 @@ export class MatchRunner {
     const seat = room?.players.find((player) => player.id === playerId);
     if (!match || !seat?.socketId) return;
 
+    // During the village the match is over. Send the village state, not the round events.
+    if (match.village) {
+      this.syncPrivate(code);
+      return;
+    }
+
     const state = match.state;
     this.io.to(seat.socketId).emit('game:started', { originPlayerId: null });
     if (state.pairs.length > 0) {

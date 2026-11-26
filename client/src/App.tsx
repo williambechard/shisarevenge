@@ -5,6 +5,7 @@ import { StatusMessage } from './components/molecules/StatusMessage.js';
 import { WaitingIndicator } from './components/molecules/WaitingIndicator.js';
 import { EndgameSummary } from './components/organisms/EndgameSummary.js';
 import { useGame } from './hooks/useGame.js';
+import type { GameState } from './state/gameState.js';
 import { LobbyScreen } from './screens/LobbyScreen.js';
 import { RoundScreen } from './screens/RoundScreen.js';
 import { VillageScreen } from './screens/VillageScreen.js';
@@ -21,6 +22,20 @@ function roleOf(
 // Screens fade in and out, so moving between the overview, the village, and a round is not abrupt.
 const FADE = { duration: 0.35 };
 
+// Which screen to show. The overview comes first after a match, until the player continues to the village.
+// The village comes next, while the room is in its village phase. The round, then the lobby, follow.
+type View = 'overview' | 'village' | 'round' | 'lobby' | null;
+
+function viewOf(state: GameState): View {
+  const room = state.room;
+  if (state.screen === 'endgame' && state.endgame && room && !state.overviewDismissed)
+    return 'overview';
+  if (room?.phase === 'village' && room.village) return 'village';
+  if (state.screen === 'round') return 'round';
+  if (state.screen === 'endgame' && state.endgame && room) return 'overview';
+  if (state.screen === 'lobby') return 'lobby';
+  return null;
+}
 // Chooses the screen from state. Each window keeps its name and role visible at the top.
 export function App() {
   const {
@@ -39,16 +54,7 @@ export function App() {
   } = useGame();
   const role = roleOf(state.privateState);
 
-  // Which screen is showing. The village is open while the room is in its village phase, after the overview.
-  const village = state.room?.phase === 'village' && state.overviewDismissed && state.room.village;
-  const endgame = state.screen === 'endgame' && state.endgame && state.room ? state.endgame : null;
-  const activeScreen = village
-    ? 'village'
-    : state.screen === 'round'
-      ? 'round'
-      : endgame
-        ? 'endgame'
-        : null;
+  const view = viewOf(state);
 
   return (
     <PhoneFrame>
@@ -75,7 +81,7 @@ export function App() {
         <StatusMessage tone="error">You are offline.</StatusMessage>
       ) : null}
 
-      {state.screen === 'lobby' ? (
+      {view === 'lobby' ? (
         <LobbyScreen
           room={state.room}
           selfId={state.playerId}
@@ -89,7 +95,7 @@ export function App() {
       ) : null}
 
       <AnimatePresence mode="wait" initial={false}>
-        {activeScreen === 'round' ? (
+        {view === 'round' ? (
           <motion.div
             key="round"
             initial={{ opacity: 0 }}
@@ -109,7 +115,7 @@ export function App() {
           </motion.div>
         ) : null}
 
-        {activeScreen === 'village' && state.room ? (
+        {view === 'village' && state.room ? (
           <motion.div
             key="village"
             initial={{ opacity: 0, y: 12 }}
@@ -128,7 +134,7 @@ export function App() {
           </motion.div>
         ) : null}
 
-        {activeScreen === 'endgame' && endgame && state.room ? (
+        {view === 'overview' && state.endgame && state.room ? (
           <motion.div
             key="endgame"
             initial={{ opacity: 0 }}
@@ -137,7 +143,7 @@ export function App() {
             transition={FADE}
           >
             <EndgameSummary
-              summary={endgame}
+              summary={state.endgame}
               players={state.room.players}
               onBackToStart={leaveRoom}
               onContinue={state.room.phase === 'village' ? continueToVillage : undefined}
