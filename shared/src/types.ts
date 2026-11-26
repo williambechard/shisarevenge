@@ -65,6 +65,10 @@ export type PrivatePlayerState = {
   encounter: {
     opponentId: string;
     selectionLocked: boolean;
+    // The opponent's card count, shown only to the two players in this duel. Changes when a card is played or taken.
+    opponentCardCount: number;
+    // True once the opponent has locked in this duel. Their card then leaves their hand for the table.
+    opponentLocked: boolean;
     lastResult: DuelOutcome | null;
   } | null;
   notices: PrivateNotice[];

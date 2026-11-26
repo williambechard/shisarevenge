@@ -196,3 +196,5 @@ Added with the take rule (design/04 sections 4.6 and 4.7).
 - Team counts count active players only.
 
 Order: the round summary (`round:ended`) waits until every take is made.
+
+- `encounter` in `player:private-state` adds `opponentCardCount` (the opponent's cards held, for the face-down hand) and `opponentLocked` (whether the opponent has locked in this duel). Sent only to the two players in the duel.

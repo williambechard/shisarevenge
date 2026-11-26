@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import {
   CARD_NAMES,
   ROUND_COUNT,
@@ -10,13 +10,14 @@ import {
 import { Countdown } from '../components/atoms/Countdown.js';
 import { Announcement } from '../components/molecules/Announcement.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
-import { TeamBar } from '../components/molecules/TeamBar.js';
+import { TickLine } from '../components/molecules/TickLine.js';
 import { WaitingIndicator } from '../components/molecules/WaitingIndicator.js';
 import { GainedCard } from '../components/organisms/GainedCard.js';
 import { HandTray } from '../components/organisms/HandTray.js';
 import { PickPanel } from '../components/organisms/PickPanel.js';
 import { PlayArea } from '../components/organisms/PlayArea.js';
 import { RevealPanel } from '../components/organisms/RevealPanel.js';
+import { RoundTrack } from '../components/organisms/RoundTrack.js';
 import { cardArt, NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../assets/cards/index.js';
 import type { GameState } from '../state/gameState.js';
 import { canChooseCard, opponentIn } from '../state/roundPhase.js';
@@ -61,32 +62,6 @@ function noticeText(notice: PrivateNotice): { text: string; tone: 'info' | 'erro
     };
   }
   return null;
-}
-
-// Everyone can see how many cards each player holds, updated at each round summary.
-// An eliminated player fades to grey, so the change is easy to see.
-function CardCounts({ room }: { room: PublicRoomState }) {
-  return (
-    <section aria-label="Cards left" className="text-xs text-navy/80">
-      <p className="font-semibold">Cards left</p>
-      <ul className="flex flex-wrap gap-x-3 gap-y-1">
-        {room.players.map((player) => (
-          <motion.li
-            key={player.id}
-            animate={{
-              opacity: player.eliminated ? 0.45 : 1,
-              filter: player.eliminated ? 'grayscale(1)' : 'grayscale(0)',
-            }}
-            transition={{ duration: 0.35 }}
-            className={player.eliminated ? 'line-through' : ''}
-          >
-            {player.name}:{' '}
-            {player.eliminated ? 'out' : player.cardCount === null ? '-' : String(player.cardCount)}
-          </motion.li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 // The round screen: team bar, card counts, the table, the fan of cards, and the reveal once both
@@ -170,21 +145,17 @@ export function RoundScreen({
 
   return (
     <section aria-labelledby="round-heading" className="flex flex-1 flex-col gap-5 pt-4">
-      <header className="flex flex-col gap-2">
-        <h1 id="round-heading" className="text-2xl font-bold text-shisa">
+      <header className="flex flex-col gap-3">
+        <h1 className="sr-only">
           Round {String(round)} of {String(ROUND_COUNT)}
         </h1>
+        <RoundTrack current={round} total={ROUND_COUNT} />
         {room ? (
-          <TeamBar
-            survivors={room.teamCounts.survivors}
-            infected={room.teamCounts.infected}
-            round={round}
-          />
+          <TickLine survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
         ) : null}
-        {room ? <CardCounts room={room} /> : null}
         {view?.deadline && !reveal && !isWarmUp && !out && canChooseCard(phase) && !locked ? (
           <Countdown deadline={view.deadline} label="Choose before" />
-        ) : null}
+        ) : null}{' '}
       </header>
 
       {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}
@@ -194,6 +165,8 @@ export function RoundScreen({
       ) : opponentId && phase !== 'announce' ? (
         <PlayArea
           opponentName={opponentName}
+          opponentCount={self?.encounter?.opponentCardCount ?? 0}
+          opponentLocked={self?.encounter?.opponentLocked ?? false}
           mySlot={mySlot}
           opponentFront={opponentFront}
           revealed={reveal !== null}

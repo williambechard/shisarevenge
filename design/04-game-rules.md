@@ -230,3 +230,4 @@ These fill gaps in `01-game-design.md` and the original doc. Review them after p
 24. A player who holds no cards at the round summary is eliminated. Eliminated players are not paired and watch the rest of the match.
 25. Public card counts and eliminated flags are shared at the round summary only. Hand contents are never shared.
 26. Team counts and win checks count only active players. If every player is out in the same round, the Survivors win. This covers the last two players when their final duel removes both. If some player remains and no active player is a survivor, Shisa's Army wins.
+27. The paired opponent's card count and whether they have locked in are shared privately with the two players in that duel. They update during the round, as cards are played and taken. Other players never see them.

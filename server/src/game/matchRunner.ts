@@ -531,6 +531,10 @@ export class MatchRunner {
       const seat = room.players.find((candidate) => candidate.id === player.id);
       if (!seat || seat.socketId === null) continue;
 
+      const opponentPlayer = opponentId
+        ? match.state.players.find((candidate) => candidate.id === opponentId)
+        : undefined;
+
       const lastDuel = match.state.results.find(
         (entry) => entry.pair[0] === player.id || entry.pair[1] === player.id,
       );
@@ -544,6 +548,8 @@ export class MatchRunner {
           ? {
               opponentId,
               selectionLocked: match.state.locked.has(player.id),
+              opponentCardCount: opponentPlayer ? cardCountOf(opponentPlayer) : 0,
+              opponentLocked: match.state.locked.has(opponentId),
               lastResult: lastDuel ? duelView(lastDuel, player.id) : null,
             }
           : null,

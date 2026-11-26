@@ -87,10 +87,14 @@ client/src/
 | WaitingIndicator | A visible wait: a spinner, what is waited on, and why. Used for every wait on another player, the server, or a timer. | 	itle, detail, 	one |
 | GainedCard | The card a winner took: it rises, turns face up, and drops into the hand. | alue, onDone |
 | PickPanel | The blind pick: the loser's cards face down, with their count and a countdown. | loserName, poolSize, deadline, onPick |
+| `Tick` (atom) | One tick on the team line, in a team colour. The leader's ticks stand taller. | `variant`, `leading` |
+| `RoundChip` (molecule) | One round, R1 to R5. The current round is coral and ringed. | `round`, `state` |
+| `TickLine` (molecule) | Survivor and Shisa's Army ticks from opposite ends. The side with more ticks leads, and the gap is the margin. | `survivors`, `infected` |
+| `FaceDownHand` (molecule) | A fan of face-down cards. The number of backs shows how many cards are held. | `count`, `hideLast`, `layoutId` |
+| `RoundTrack` (organism) | The rounds of the match as chips, with the current round marked. | `current`, `total` |
 | `PlayArea` | The table: the opponent's card above, this player's card below. Cards turn face up at reveal. | `opponentName`, `mySlot`, `opponentFront`, `revealed` |
 | `PlayerChip` | Name, avatar, and team badge in a compact row | `player`, `isSelf` |
 | `TeamCount` | Survivor and Shisa's Army counts | `survivors`, `infected` |
-| `TeamBar` | Segmented progress bar: one segment per player, 100% win marker, five round ticks, text caption | `survivors`, `infected`, `round`, `roundCount` |
 | `StatusMessage` | Live status text, for example "Waiting for opponent" | `message`, `tone` |
 | `EmoteBar` | Row of preset emote buttons, with cooldown state | `emotes`, `onSend`, `cooldownMs` |
 | `Announcement` | Banner for round-summary messages, read aloud by screen readers | `text`, `round` |
