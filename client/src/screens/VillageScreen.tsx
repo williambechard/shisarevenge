@@ -69,12 +69,6 @@ function villageNoticeText(
   return null;
 }
 
-function cardLabel(hand: CardValue[], special: SpecialKind | null): string {
-  const numbers = [...hand].sort().map((value) => `${String(value)} ${CARD_NAMES[value]}`);
-  const parts = special ? [...numbers, SPECIAL_NAMES[special]] : numbers;
-  return parts.length > 0 ? parts.join(', ') : 'none';
-}
-
 // The village between rounds and between matches: the walkway, the public log, the timer, and the
 // meeting overlay when two or more players share a tile.
 export function VillageScreen({
@@ -115,18 +109,10 @@ export function VillageScreen({
       aria-labelledby="village-heading"
       className="flex flex-1 flex-col gap-4 rounded-xl bg-cover bg-center p-3"
       style={{
-        backgroundImage: `linear-gradient(rgba(247,241,227,0.86), rgba(247,241,227,0.94)), url(${VILLAGE_BACKGROUND_ART})`,
+        backgroundImage: `linear-gradient(rgba(247,241,227,0.25), rgba(247,241,227,0.45)), url(${VILLAGE_BACKGROUND_ART})`,
       }}
     >
-      <header className="flex flex-col gap-2">
-        <h1 id="village-heading" className="text-xl font-bold text-navy">
-          The village
-        </h1>
-        <p className="text-sm text-navy/80">
-          {out
-            ? 'You are out of the match. You can watch, but not accuse or challenge.'
-            : 'Walk the walkway. Stand with someone to challenge or accuse them. Use the vending machine.'}
-        </p>
+      <header className="flex justify-center">
         <Countdown deadline={village.endsAt} label="Next round in" />
       </header>
 
@@ -167,8 +153,6 @@ export function VillageScreen({
       />
 
       {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}
-
-      {out ? null : <p className="text-xs text-navy/80">Your cards: {cardLabel(hand, special)}</p>}
 
       {overlayOpen ? (
         <div
