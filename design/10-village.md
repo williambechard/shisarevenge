@@ -88,8 +88,8 @@ If you'd rather not draw these yet, I can build placeholder SVG versions in the 
 3. **Village cards carry into the next match** as extra cards, on top of that match's starting hand.
 4. **Vending odds and limits are adjustable.** They live in a settings file (section 10), so they can be changed without code.
 5. **The accusation cost is any card**, number or special.
-6. **Village length:** `VILLAGE_SECONDS`. Testing value to be confirmed (see section 11).
-7. **Out players can accuse for free and cannot join the next match.** Their accusations still resolve. Whether a correct accusation still pays a card is open (section 11).
+6. **Village length:** `VILLAGE_SECONDS` in `data/settings.json`. 60 seconds for testing (section 11).
+7. **Out players can accuse for free and cannot join the next match.** Their accusations still resolve, but a correct one pays no card (section 11).
 
 ## 10. Settings file
 
@@ -97,7 +97,7 @@ Tunable values for the village (and later, other tuning) live in one JSON file, 
 
 Settings covered: `villageSeconds`, `moveCooldownMs`, vending odds, vending limit per village, and accusation limit per village.
 
-## 11. Open questions for the next review
+## 11. Decisions (second review)
 
-1. **Village length for testing.** "Keep at 15 seconds" could mean the village timer or the lobby wait. The lobby wait is already 15 seconds for testing, and it returns to 60 before the party. Is the village timer also 15 seconds for testing?
-2. **Free accusations for out players.** If an out player makes a correct accusation, do they still get a card? They can't join the next match, so the card would have no use. Proposal: no card, but the correct result is still shown privately.
+1. **Village timer:** 60 seconds for testing. Set in `data/settings.json` as `villageSeconds`, so it can be changed without code. (The lobby wait stays at 15 seconds for testing, and returns to 60 before the party.)
+2. **Out players get no card.** A correct accusation by an out player shows the result privately, and nothing else changes.
