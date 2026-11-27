@@ -8,7 +8,7 @@ import {
   type PublicRoomState,
 } from '@shisa-revenge/shared';
 import { Button } from '../components/atoms/Button.js';
-import { Countdown } from '../components/atoms/Countdown.js';
+import { RingTimer } from '../components/atoms/RingTimer.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
 import { AccusePanel } from '../components/organisms/AccusePanel.js';
@@ -201,9 +201,11 @@ export function VillageScreen({
 
   return (
     <section aria-labelledby="village-heading" className="flex min-h-0 flex-1 flex-col gap-4">
-      <header className="flex flex-col gap-2">
-        <Countdown deadline={village.endsAt} label="Next round in" />
-        <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
+      <header className="flex items-center gap-4 pr-2">
+        <div className="min-w-0 flex-1">
+          <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
+        </div>
+        <RingTimer deadline={village.endsAt} label="Time until the next round" />
       </header>
 
       {note ? (

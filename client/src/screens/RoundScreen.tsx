@@ -8,7 +8,7 @@ import {
   type PrivateNotice,
   type PublicRoomState,
 } from '@shisa-revenge/shared';
-import { Countdown } from '../components/atoms/Countdown.js';
+import { RingTimer } from '../components/atoms/RingTimer.js';
 import { Announcement } from '../components/molecules/Announcement.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
@@ -155,12 +155,16 @@ export function RoundScreen({
           Round {String(round)} of {String(ROUND_COUNT)}
         </h1>
         <RoundTrack current={round} total={ROUND_COUNT} />
-        {room ? (
-          <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
-        ) : null}
-        {view?.deadline && !reveal && !isWarmUp && !out && canChooseCard(phase) && !locked ? (
-          <Countdown deadline={view.deadline} label="Choose before" />
-        ) : null}{' '}
+        <div className="flex items-center gap-4 pr-2">
+          <div className="min-w-0 flex-1">
+            {room ? (
+              <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
+            ) : null}
+          </div>
+          {view?.deadline && !reveal && !isWarmUp && !out && canChooseCard(phase) && !locked ? (
+            <RingTimer deadline={view.deadline} label="Time to choose" />
+          ) : null}
+        </div>
       </header>
 
       {notice ? <StatusMessage tone={notice.tone}>{notice.text}</StatusMessage> : null}

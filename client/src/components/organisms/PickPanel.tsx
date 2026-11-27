@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { NUMBER_CARD_ART } from '../../assets/cards/index.js';
-import { Countdown } from '../atoms/Countdown.js';
+import { RingTimer } from '../atoms/RingTimer.js';
 import { PlayingCard } from '../molecules/PlayingCard.js';
 import { WaitingIndicator } from '../molecules/WaitingIndicator.js';
 
@@ -57,7 +57,7 @@ export function PickPanel({ loserName, poolSize, deadline, onPick }: PickPanelPr
           take one.
         </p>
         <div className="text-sand">
-          <Countdown deadline={deadline} label="Choose before" />
+          <RingTimer deadline={deadline} label="Time to choose" />
         </div>
 
         <div className="flex flex-wrap justify-center gap-3">

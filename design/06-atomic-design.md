@@ -78,6 +78,8 @@ client/src/
 | `Avatar` | Player avatar with team overlay | `name`, `team`, `size` |
 | `Icon` | Wraps a Lucide icon with an accessible label | `name`, `label` |
 | `Countdown` | Shows seconds left, announces at 10 and 0 | `secondsLeft` |
+| `RingTimer` (atom) | A circle that starts full and empties at the deadline. No text. Used on the village and duel screens beside the team bar. Screen readers get the label. | `deadline`, `label` |
+| `BarFill` (atom) | One team's share of the team bar, in its team colour. Width animates when the share changes. | `side`, `percent` |
 | `DirectionArrow` | Arrow pointing from the player's token toward a reachable walkway tile. Turns with the direction. | `dx`, `dy`, `className` |
 
 ### Molecules
