@@ -56,7 +56,10 @@ export type PublicVillage = {
   // Pairs locked in for a pre-battle: a challenge for the next round. Both players are locked until it starts.
   partners: Array<[string, string]>;
   // Epoch ms when the village closes and the next match starts.
-  endsAt: number;
+  // Epoch ms when the village closes and the next match starts. Null while the story is being read.
+  endsAt: number | null;
+  // Players who have not yet finished the story. The first match waits for them before its village timer starts.
+  storyPending: string[];
 };
 
 export type PublicRoomState = {

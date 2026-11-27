@@ -82,6 +82,9 @@ export const villageChallengePayload = z.strictObject({
   targetId: z.string().min(1).max(64).nullable(),
 });
 
+// The player is done with the story pictures (or skipped them).
+export const storyDonePayload = z.strictObject({});
+
 export const villageVendPayload = z.strictObject({
   value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
 });

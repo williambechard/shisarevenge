@@ -95,6 +95,7 @@ export type GameActions = {
   villageAccuse: (targetId: string, card: PlayedCard | null) => void;
   villageInsert: (value: CardValue) => void;
   villageChallenge: (targetId: string | null) => void;
+  storyDone: () => void;
   clearNotice: () => void;
 };
 
@@ -325,6 +326,13 @@ export function useGame(): { state: GameState } & GameActions {
     });
   }, []);
 
+  // The player has read the story, or skipped it. The village timer starts once everyone is past it.
+  const storyDone = useCallback((): void => {
+    getSocket().emit('story:done', {}, (response: PlainAck) => {
+      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+    });
+  }, []);
+
   const clearNotice = useCallback((): void => {
     dispatch({ type: 'notice', message: null });
   }, []);
@@ -342,6 +350,7 @@ export function useGame(): { state: GameState } & GameActions {
     villageAccuse,
     villageInsert,
     villageChallenge,
+    storyDone,
     clearNotice,
   };
 }

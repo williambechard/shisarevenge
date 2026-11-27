@@ -26,6 +26,7 @@ beforeEach(async () => {
           resultMs: 2,
           pickMs: 5,
           villageMs: 300,
+          storyGate: false,
           lobbyWaitMs: 50,
         },
       },

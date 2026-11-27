@@ -10,6 +10,7 @@ import {
   villageChallengePayload,
   villageMovePayload,
   villageVendPayload,
+  storyDonePayload,
   RATE_LIMIT_EVENTS_PER_SECOND,
   roomEnterPayload,
   lobbyStartNowPayload,
@@ -165,7 +166,18 @@ export function registerConnectionHandlers(
       if (!parse(roomLeavePayload, raw)) return ack?.(fail('INVALID_PAYLOAD'));
       if (!session.roomCode) return ack?.(fail('ROOM_NOT_FOUND'));
 
+      const leftCode = session.roomCode;
       leaveCurrentRoom();
+      matches.checkStory(leftCode);
+      ack?.({ ok: true });
+    });
+
+    socket.on('story:done', (raw: unknown, ack?: (response: PlainAck) => void) => {
+      if (!eventLimiter.take()) return ack?.(fail('RATE_LIMITED'));
+      if (!parse(storyDonePayload, raw)) return ack?.(fail('INVALID_PAYLOAD'));
+      if (!session.roomCode || !session.playerId) return ack?.(fail('ROOM_NOT_FOUND'));
+      const result = matches.storyDone(session.roomCode, session.playerId);
+      if (!result.ok) return ack?.(fail(result.error));
       ack?.({ ok: true });
     });
 
@@ -254,6 +266,7 @@ export function registerConnectionHandlers(
 
       io.to(code).emit('player:disconnected', { playerId: player.id, name: player.name });
       broadcastState(io, registry, room);
+      matches.checkStory(code);
       if (room.phase === 'lobby') releaseLobbySeatLater(code, player.id, socket.id);
     });
   });

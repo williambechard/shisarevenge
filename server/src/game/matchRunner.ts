@@ -58,6 +58,8 @@ export type MatchTiming = {
   lobbyWaitMs: number;
   pickMs: number;
   villageMs: number;
+  // Whether the first match waits for players to read the story. Tests that are not about the story turn it off.
+  storyGate?: boolean;
 };
 
 export const DEFAULT_TIMING: MatchTiming = {
@@ -113,7 +115,9 @@ export class MatchRunner {
   private readonly pickTimers = new Map<string, Timer>();
   private readonly pickDeadlines = new Map<string, number>();
   private readonly villageTimers = new Map<string, Timer>();
-  private readonly villageEndsAt = new Map<string, number>();
+  private readonly villageEndsAt = new Map<string, number | null>();
+  // The first match of a room waits here: players still reading the story. Absent once everyone is past it.
+  private readonly storyPending = new Map<string, Set<string>>();
   private readonly village: GameSettings['village'];
   private readonly timing: MatchTiming;
   private readonly random: RandomFn;
@@ -145,11 +149,11 @@ export class MatchRunner {
     }
     this.clearLobbyTimer(code);
     this.waitElapsed.delete(code);
-    return this.beginMatch(
-      code,
-      room.players.map((player) => player.id),
-      {},
-    );
+    const ids = room.players.map((player) => player.id);
+    if (this.timing.storyGate ?? true) this.storyPending.set(code, new Set(ids));
+    const result = this.beginMatch(code, ids, {});
+    if (!result.ok) this.storyPending.delete(code);
+    return result;
   }
 
   // Starts a match with the given players. Cards carried out of the village are added to their hands.
@@ -581,14 +585,48 @@ export class MatchRunner {
       this.random,
     );
     this.setPhase(code, 'village');
+    // While the story is read, the village waits: its timer starts when every player is past it.
+    if (this.storyPending.has(code)) {
+      this.villageEndsAt.set(code, null);
+    } else {
+      this.startVillageTimer(code);
+    }
+    this.publishVillage(code);
+    this.syncPrivate(code);
+  }
+
+  private startVillageTimer(code: string): void {
     this.villageEndsAt.set(code, Date.now() + this.timing.villageMs);
     const handle = this.clock.setTimeout(() => {
       this.villageTimers.delete(code);
       this.closeVillage(code);
     }, this.timing.villageMs);
     this.villageTimers.set(code, handle);
+  }
+
+  // A player has read the story or skipped it. When nobody still connected is left, the village timer starts.
+  storyDone(code: string, playerId: string): MatchResult {
+    const pending = this.storyPending.get(code);
+    if (!pending) return { ok: false, error: 'WRONG_PHASE' };
+    pending.delete(playerId);
+    this.checkStory(code);
+    return { ok: true };
+  }
+
+  // Starts the village timer once every connected player is past the story. A disconnected player does not
+  // hold the room; when they return, they still read the story before they move on.
+  checkStory(code: string): void {
+    const pending = this.storyPending.get(code);
+    if (!pending) return;
+    const room = this.registry.find(code);
+    const waiting = [...pending].some((id) =>
+      room?.players.some((seat) => seat.id === id && seat.connected),
+    );
+    if (!waiting) {
+      this.storyPending.delete(code);
+      if (this.matches.get(code)?.village) this.startVillageTimer(code);
+    }
     this.publishVillage(code);
-    this.syncPrivate(code);
   }
 
   // The village time is up. Cards are kept. Then the next round starts, or the next match does.
@@ -658,6 +696,7 @@ export class MatchRunner {
         meeting: village.meeting,
         partners: village.partners,
         endsAt,
+        storyPending: [...(this.storyPending.get(code) ?? [])],
       });
     }
     this.broadcastRoomByCode(code);

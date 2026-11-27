@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { playSfx, setMusic } from './audio/audioManager.js';
 import type { MusicTrack } from './audio/tracks.js';
 import { MuteToggle } from './components/atoms/MuteToggle.js';
+import { STORY_PAGES } from './assets/story/index.js';
+import { StoryScreen } from './components/organisms/StoryScreen.js';
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
 import { VILLAGE_BACKGROUND_ART } from './assets/village/index.js';
 import { PlayerBanner } from './components/molecules/PlayerBanner.js';
@@ -26,6 +28,7 @@ function roleOf(
 
 // The background track for each screen. The overview after a match plays no music.
 function musicFor(view: View): MusicTrack | null {
+  if (view === 'story') return 'story';
   if (view === 'village') return 'village';
   if (view === 'round') return 'duel';
   if (view === 'overview') return null;
@@ -37,12 +40,21 @@ const FADE = { duration: 0.35 };
 
 // Which screen to show. The overview comes first after a match, until the player continues to the village.
 // The village comes next, while the room is in its village phase. The round, then the lobby, follow.
-type View = 'overview' | 'village' | 'round' | 'lobby' | null;
+type View = 'overview' | 'village' | 'round' | 'lobby' | 'story' | null;
 
 function viewOf(state: GameState): View {
   const room = state.room;
   if (state.screen === 'endgame' && state.endgame && room && !state.overviewDismissed)
     return 'overview';
+  // Before the first village of a room, each player reads the story until they finish or skip it.
+  if (
+    room?.phase === 'village' &&
+    room.village &&
+    state.playerId !== null &&
+    room.village.storyPending.includes(state.playerId)
+  ) {
+    return 'story';
+  }
   if (room?.phase === 'village' && room.village) return 'village';
   if (state.screen === 'round') return 'round';
   if (state.screen === 'endgame' && state.endgame && room) return 'overview';
@@ -63,6 +75,7 @@ export function App() {
     villageStep,
     villageAccuse,
     villageInsert,
+    storyDone,
     villageChallenge,
     clearNotice,
   } = useGame();
@@ -125,6 +138,10 @@ export function App() {
       ) : null}
 
       <AnimatePresence mode="wait" initial={false}>
+        {view === 'story' ? (
+          <StoryScreen key="story" pages={STORY_PAGES} onDone={storyDone} />
+        ) : null}
+
         {view === 'round' ? (
           <motion.div
             key="round"

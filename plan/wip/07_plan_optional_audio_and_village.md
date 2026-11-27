@@ -57,6 +57,10 @@
 - [x] Accusing closes the meeting overlay. The result shows as the village notice, so the player is back to moving.
 - [ ] Playtest audio on phones: music start after the first tap, tick speed, and mute.
 - [x] Music compressed to MP3 at 80 to 96 kbps. Every track is under 1 MB (duel is 899 KB). Originals are in design/art-source/audio/music.
+- [x] Story screen (design/12): full screen after the room first starts, before the first village. Skip goes to the village. The village timer waits until every connected player is past the story.
+- [x] Story pictures load from `client/src/assets/story/` in filename order. The story track plays on this screen.
+- [ ] Add the story pictures in `client/src/assets/story/` (none yet).
+- [ ] Playtest the story flow: page animation, Skip, and the village timer starting after the last player.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Optional art: a cold or wind graphic for the cold overlay, placed in `client/src/assets/shisa/` (the overlay works without it).
 - [ ] Server validates each move and limits position updates to 5 per second per socket.

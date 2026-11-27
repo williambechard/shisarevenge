@@ -16,7 +16,14 @@ beforeEach(async () => {
     { CLIENT_ORIGIN: 'http://localhost:5173' },
     {
       matches: {
-        timing: { villageMs: 5, announceMs: 2, selectionMs: 15, resultMs: 2, lobbyWaitMs: 60_000 },
+        timing: {
+          villageMs: 5,
+          announceMs: 2,
+          selectionMs: 15,
+          resultMs: 2,
+          lobbyWaitMs: 60_000,
+          storyGate: false,
+        },
       },
     },
   );

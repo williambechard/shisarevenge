@@ -207,7 +207,9 @@ export function VillageScreen({
         <div className="min-w-0 flex-1">
           <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
         </div>
-        <RingTimer deadline={village.endsAt} label="Time until the next round" />
+        {village.endsAt !== null ? (
+          <RingTimer deadline={village.endsAt} label="Time until the next round" />
+        ) : null}
       </header>
 
       {note ? (
