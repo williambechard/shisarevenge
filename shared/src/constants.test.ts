@@ -9,7 +9,7 @@ describe('shared constants', () => {
   it('uses five numbered cards and five rounds', () => {
     expect(CARD_VALUES).toEqual([1, 2, 3, 4, 5]);
     expect(roundCountFor(4)).toBe(5);
-    expect(roundCountFor(6)).toBe(8);
-    expect(roundCountFor(8)).toBe(8);
+    expect(roundCountFor(6)).toBe(7);
+    expect(roundCountFor(8)).toBe(7);
   });
 });

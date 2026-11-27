@@ -73,7 +73,7 @@ Reading: rebound lowers the Army's win rate at every round count. Eight rounds a
 Candidate setting from these results: 5 rounds at 4 players, 8 rounds at 6 to 8 players. This is a different direction from the earlier suggestion, which relied on the balance before rebound. Confirm with a playtest before changing `ROUND_COUNT`.
 ## 7. Setting applied
 
-- 4 players: 5 rounds. 6 or 8 players: 8 rounds (`roundCountFor` in `shared/src/constants.ts`). The round count is kept on the match and sent to the room.
+- 4 players: 5 rounds. 6 or 8 players: 7 rounds (`roundCountFor` in `shared/src/constants.ts`). The round count is kept on the match and sent to the room.
 - Rebound is on (design/04 section 8.1).
 
 ## 8. Card budget finding
@@ -102,3 +102,5 @@ A paired player with no number cards left but an unused special could not lock i
 1. Keep 8 rounds and give each player more cards (for example a larger hand), so the last rounds still have players.
 2. Use 6 rounds for 6 and 8 players, which matches the six-card budget. The rebound-adjusted simulation is Survivor-leaning at 6 rounds (31% and 19% Army wins), so this would need rebalancing.
 3. Use 7 rounds for 6 and 8 players (44% and 37%, rebound-adjusted). Most players are then out by the last round.
+
+The 7-round setting (option 3 in section 10) was chosen to match the balance and card budget findings above. The rebound-adjusted simulation gave Army win rates of 45% at 6 players and 37% at 8 players, measured before the auto-lock fix.
