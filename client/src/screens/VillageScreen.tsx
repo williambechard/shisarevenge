@@ -296,7 +296,11 @@ export function VillageScreen({
                     targets={[{ id: player.id, name: player.name }]}
                     hand={hand}
                     special={special}
-                    onAccuse={onAccuse}
+                    onAccuse={(targetId, card) => {
+                      // The accusation is made, so the meeting is over: the overlay closes and the result shows on the village.
+                      setWalkedOn(meetingKey);
+                      onAccuse(targetId, card);
+                    }}
                   />
                 </div>
               );
