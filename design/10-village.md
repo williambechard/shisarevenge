@@ -151,4 +151,4 @@ Open questions for review:
 
 - A player publicly revealed as Shisa's Army (by a correct accusation) wears the Shisa mask on their walkway token. The origin is revealed the same way, so the origin's mask shows only after a correct accusation against them.
 - The mask position is set in `MASK_STYLE` in `client/src/components/molecules/Token.tsx`.
-- Testing: `VillageScreen.tsx` puts the mask on the first player in the list. Remove that test line once the position is tuned.
+- The test that put the mask on the first player has been removed.

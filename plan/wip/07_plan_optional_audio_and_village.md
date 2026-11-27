@@ -44,7 +44,7 @@
 - [x] Entering a round clears last round's text (playtest bug): the duel starts fresh when the room enters the announce step.
 - [x] Round summary explains a cold when anyone catches one: switching sides, and the lost Survivor special (playtest question).
 - [x] The player who catches a cold gets a full-screen overlay, shown to them only: they switched to Shisa's Army, their goal changes, their lost special, and the Shisa Mask they now have (`ColdOverlay`, design/04 section 7).
-- [x] Shisa mask on revealed Shisa's Army players, on the walkway token (design/10 section 16). Test: the first player wears it. Tune MASK_STYLE, then remove the test line in VillageScreen.
+- [x] Shisa mask on revealed Shisa's Army players, on the walkway token (design/10 section 16). Tuned, and the test line in VillageScreen is removed.
 - [x] Team line is one bar showing each team's share of the room, on the duel and village screens (`TeamBar`, `BarFill`). Replaces the tick line.
 - [x] Team bar shows the Cursed Shisa's Army share from the start. The server sent zero counts to clients (playtest bug). Team counts now come from the room.
 - [x] Village and duel timers are a circular ring (`RingTimer`) beside the team bar, with no text. It starts full and empties at the deadline. The pick panel uses it too.
