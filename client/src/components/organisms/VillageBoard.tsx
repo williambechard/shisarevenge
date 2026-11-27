@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'motion/react';
 import type { PublicPlayer, PublicVillage } from '@shisa-revenge/shared';
 import { VENDING_ART } from '../../assets/village/index.js';
 import { CardCountBadge } from '../atoms/CardCountBadge.js';
@@ -51,6 +52,8 @@ export function VillageBoard({
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
   const own = selfId === null ? undefined : positions[selfId];
+  // Tiles you can step to pulse softly. Players who prefer less motion get a steady dim instead.
+  const reduceMotion = useReducedMotion() ?? false;
   const machine = board
     .flatMap((row, y) => Array.from(row, (char, x) => ({ char, x, y })))
     .find((cell) => cell.char === 'V');
@@ -111,7 +114,17 @@ export function VillageBoard({
                     />
                   ) : null}
                   {enabled ? (
-                    <div aria-hidden="true" className="absolute inset-0 bg-black/40" />
+                    <motion.div
+                      aria-hidden="true"
+                      className="absolute inset-0 bg-black"
+                      initial={{ opacity: 0.3 }}
+                      animate={reduceMotion ? { opacity: 0.4 } : { opacity: [0.2, 0.5, 0.2] }}
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                      }
+                    />
                   ) : null}
                   {enabled && own ? (
                     <DirectionArrow
