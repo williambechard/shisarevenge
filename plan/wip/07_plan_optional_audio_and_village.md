@@ -39,7 +39,7 @@
 - [x] Card-count badge is a narrow card rectangle.
 - [x] Challenge locks both players for the next round, at once. Full-screen CHALLENGE overlay for both, with animation. Locked players cannot act, and nobody walks onto them (design/10 section 15).
 - [x] Movement arrows are white with a shadow. Tiles the player can move to are dimmed with a transparent black overlay.
-- [x] Walkable-tile overlay pulses between light and dark (about 1.6 s cycle). Steady when the device asks for reduced motion.
+- [x] Walkable-tile overlay pulses between light and dark (about 1.6 s cycle, between 25% and 40% black). Steady when the device asks for reduced motion.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.

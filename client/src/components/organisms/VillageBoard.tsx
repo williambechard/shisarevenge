@@ -118,7 +118,7 @@ export function VillageBoard({
                       aria-hidden="true"
                       className="absolute inset-0 bg-black"
                       initial={{ opacity: 0.3 }}
-                      animate={reduceMotion ? { opacity: 0.4 } : { opacity: [0.2, 0.5, 0.2] }}
+                      animate={reduceMotion ? { opacity: 0.3 } : { opacity: [0.25, 0.4, 0.25] }}
                       transition={
                         reduceMotion
                           ? { duration: 0 }
