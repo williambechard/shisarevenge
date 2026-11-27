@@ -32,7 +32,7 @@ export function RingTimer({ deadline, label }: RingTimerProps) {
     <span
       role="timer"
       aria-label={label}
-      className="inline-flex size-11 shrink-0 items-center justify-center drop-shadow"
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-navy/85 p-1 shadow-md"
     >
       <svg viewBox="0 0 36 36" aria-hidden="true" className="size-full -rotate-90">
         <circle
@@ -42,7 +42,7 @@ export function RingTimer({ deadline, label }: RingTimerProps) {
           fill="none"
           stroke="currentColor"
           strokeWidth="4"
-          className="text-navy/30"
+          className="text-white/35"
         />
         <circle
           cx="18"

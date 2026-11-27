@@ -19,16 +19,16 @@ export function TeamBar({ survivors, infected }: TeamBarProps) {
       : `Shisa's Army controls ${String(controlled)}% and the Survivors control ${String(100 - controlled)}%.`;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 rounded-lg bg-navy/85 px-2.5 py-1.5 text-white shadow-md">
       <div
         role="img"
         aria-label={caption}
-        className="flex h-4 w-full overflow-hidden rounded-full border border-navy/30"
+        className="flex h-3.5 w-full overflow-hidden rounded-full border border-white/50"
       >
         <BarFill side="survivor" percent={survivorPercent} />
         <BarFill side="infected" percent={infectedPercent} />
       </div>
-      <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wide text-navy/70">
+      <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wide text-white">
         <span>Survivors {String(survivors)}</span>
         <span>Shisa&apos;s Army {String(infected)}</span>
       </div>
