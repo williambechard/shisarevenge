@@ -15,7 +15,7 @@ Put the pictures in `client/src/assets/story/`. They are shown in filename order
 
 ## 3. Pages
 
-Each picture is one full-screen page. Pages slide in from the side the player moves toward, tilt slightly, and settle with a spring. The picture drifts slowly. Tapping the picture or the Next button moves on. The last page's button reads Start playing. A dot shows each page. Skip is at the top right.
+Each picture is one full-screen page. Pages slide in from the side the player moves toward, tilt slightly, and settle with a spring. The picture drifts slowly. Each page stays up for 5 seconds, then the story moves on by itself. Tapping the picture or the Next button also moves on. The last page ends the story after its 5 seconds, so no player can sit on the story forever. The server also opens the village after storyMaxMs (60 seconds) if a player never sends their done message. The last page's button reads Start playing. A dot shows each page. Skip is at the top right.
 
 ## 4. Server
 

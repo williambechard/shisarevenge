@@ -59,6 +59,7 @@
 - [x] Music compressed to MP3 at 80 to 96 kbps. Every track is under 1 MB (duel is 899 KB). Originals are in design/art-source/audio/music.
 - [x] Story screen (design/12): full screen after the room first starts, before the first village. Skip goes to the village. The village timer waits until every connected player is past the story.
 - [x] Story pictures load from `client/src/assets/story/` in filename order. The story track plays on this screen.
+- [x] Story pages auto-advance every 5 seconds, and the story ends itself after the last page. The server opens the village after 60 seconds even if a client never reports done.
 - [ ] Add the story pictures in `client/src/assets/story/` (none yet).
 - [ ] Playtest the story flow: page animation, Skip, and the village timer starting after the last player.
 - [ ] Playtest the movement feel and arrows on a phone.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
 import { Button } from '../atoms/Button.js';
 
@@ -8,6 +8,9 @@ type StoryScreenProps = {
   // Called when the player finishes the story, or skips it.
   onDone: () => void;
 };
+
+// How long each page stays up before the story moves on by itself.
+const PAGE_SECONDS = 5;
 
 // Each page slides in from the side the player is moving toward, tilts a little, and settles with a spring.
 // The picture then drifts slowly, so the page never looks frozen.
@@ -41,14 +44,22 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
   const last = pages.length - 1;
   const current = pages[index];
 
-  const next = (): void => {
+  // Moves on by hand, or when the page has been up for PAGE_SECONDS. The last page finishes the story.
+  const next = useCallback((): void => {
     if (index >= last) {
       onDone();
       return;
     }
     setDirection(1);
     setIndex(index + 1);
-  };
+  }, [index, last, onDone]);
+
+  useEffect(() => {
+    const handle = setTimeout(next, PAGE_SECONDS * 1000);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [next]);
 
   return (
     <motion.section

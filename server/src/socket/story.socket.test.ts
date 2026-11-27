@@ -20,6 +20,7 @@ beforeEach(async () => {
           selectionMs: 60_000,
           resultMs: 60_000,
           lobbyWaitMs: 20,
+          storyMaxMs: 1500,
         },
       },
     },
@@ -102,6 +103,13 @@ describe('the story gate before the first village', () => {
     gone?.disconnect();
     await wait(30);
     for (const socket of stayed) await emitAck(socket, 'story:done', {});
+    expect(game.registry.find(roomCode)?.village?.endsAt).toEqual(expect.any(Number));
+  });
+
+  it('opens the village after the story time limit, even if nobody finishes', async () => {
+    const { roomCode } = await startMatch();
+    expect(game.registry.find(roomCode)?.village?.endsAt).toBeNull();
+    await wait(1700);
     expect(game.registry.find(roomCode)?.village?.endsAt).toEqual(expect.any(Number));
   });
 });

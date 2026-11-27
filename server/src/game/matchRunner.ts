@@ -60,6 +60,8 @@ export type MatchTiming = {
   villageMs: number;
   // Whether the first match waits for players to read the story. Tests that are not about the story turn it off.
   storyGate?: boolean;
+  // The longest the story can hold the village. A player who never finishes it cannot hold the room.
+  storyMaxMs: number;
 };
 
 export const DEFAULT_TIMING: MatchTiming = {
@@ -69,6 +71,7 @@ export const DEFAULT_TIMING: MatchTiming = {
   lobbyWaitMs: LOBBY_START_WAIT_SECONDS * 1000,
   pickMs: PICK_SECONDS * 1000,
   villageMs: 60_000,
+  storyMaxMs: 60_000,
 };
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -118,6 +121,7 @@ export class MatchRunner {
   private readonly villageEndsAt = new Map<string, number | null>();
   // The first match of a room waits here: players still reading the story. Absent once everyone is past it.
   private readonly storyPending = new Map<string, Set<string>>();
+  private readonly storyTimers = new Map<string, Timer>();
   private readonly village: GameSettings['village'];
   private readonly timing: MatchTiming;
   private readonly random: RandomFn;
@@ -150,7 +154,17 @@ export class MatchRunner {
     this.clearLobbyTimer(code);
     this.waitElapsed.delete(code);
     const ids = room.players.map((player) => player.id);
-    if (this.timing.storyGate ?? true) this.storyPending.set(code, new Set(ids));
+    if (this.timing.storyGate ?? true) {
+      this.storyPending.set(code, new Set(ids));
+      this.storyTimers.set(
+        code,
+        this.clock.setTimeout(() => {
+          this.storyTimers.delete(code);
+          this.releaseStory(code);
+          this.publishVillage(code);
+        }, this.timing.storyMaxMs),
+      );
+    }
     const result = this.beginMatch(code, ids, {});
     if (!result.ok) this.storyPending.delete(code);
     return result;
@@ -622,11 +636,19 @@ export class MatchRunner {
     const waiting = [...pending].some((id) =>
       room?.players.some((seat) => seat.id === id && seat.connected),
     );
-    if (!waiting) {
-      this.storyPending.delete(code);
-      if (this.matches.get(code)?.village) this.startVillageTimer(code);
-    }
+    if (!waiting) this.releaseStory(code);
     this.publishVillage(code);
+  }
+
+  // Ends the story gate and starts the village timer.
+  private releaseStory(code: string): void {
+    this.storyPending.delete(code);
+    const fallback = this.storyTimers.get(code);
+    if (fallback) {
+      this.clock.clearTimeout(fallback);
+      this.storyTimers.delete(code);
+    }
+    if (this.matches.get(code)?.village) this.startVillageTimer(code);
   }
 
   // The village time is up. Cards are kept. Then the next round starts, or the next match does.
