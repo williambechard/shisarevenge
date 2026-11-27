@@ -42,6 +42,7 @@
 - [x] Walkable-tile overlay pulses between light and dark (about 1.6 s cycle, between 25% and 40% black). Steady when the device asks for reduced motion.
 - [x] The vending machine tile is walkable. Stepping onto it opens the panel when a duplicate is held, or shows the hint.
 - [x] Entering a round clears last round's text (playtest bug): the duel starts fresh when the room enters the announce step.
+- [x] Round summary explains a cold when anyone catches one: switching sides, and the lost Survivor special (playtest question).
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
 - [ ] Add `emote:send` with the preset list from `shared/constants.ts`. Limit it to 1 emote per 3 seconds.
