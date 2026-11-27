@@ -15,6 +15,8 @@ Put the pictures in `client/src/assets/story/`. They are shown in filename order
 
 ## 3. Pages
 
+Pages can carry text. A caption sits under the picture, or on its own page when there is no picture. Captions are keyed by the picture's filename in client/src/assets/story/index.ts. Text-only pages (for example the special card rules, between the 5 and 6 pictures) are listed there too. Each page stays up for 5 seconds, so long text may need a longer time or a page split.
+
 Each picture is one full-screen page. Pages slide in from the side the player moves toward, tilt slightly, and settle with a spring. The picture drifts slowly. Each page stays up for 5 seconds, then the story moves on by itself. Tapping the picture or the Next button also moves on. The last page ends the story after its 5 seconds, so no player can sit on the story forever. The server also opens the village after storyMaxMs (60 seconds) if a player never sends their done message. The last page's button reads Start playing. A dot shows each page. Skip is at the top right.
 
 ## 4. Server

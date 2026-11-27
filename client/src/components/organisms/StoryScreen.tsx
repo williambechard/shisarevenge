@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
+import type { StoryPage } from '../../assets/story/index.js';
 import { Button } from '../atoms/Button.js';
 
 type StoryScreenProps = {
-  // The story pictures in reading order. Empty shows a short welcome instead.
-  pages: readonly string[];
+  // The story pages in reading order. Empty shows a short welcome instead.
+  pages: readonly StoryPage[];
   // Called when the player finishes the story, or skips it.
   onDone: () => void;
 };
@@ -13,7 +14,6 @@ type StoryScreenProps = {
 const PAGE_SECONDS = 5;
 
 // Each page slides in from the side the player is moving toward, tilts a little, and settles with a spring.
-// The picture then drifts slowly, so the page never looks frozen.
 const PAGE: Variants = {
   enter: (direction: number) => ({
     x: direction * 90,
@@ -37,7 +37,27 @@ const PAGE: Variants = {
   }),
 };
 
-// The full-screen story: one picture per page, with Next, a dot for each page, and Skip.
+// The text on a page that has no picture, or the caption under a picture.
+function TextCard({ page, below }: { page: StoryPage; below: boolean }) {
+  return (
+    <div
+      className={`flex max-w-sm flex-col gap-3 rounded-2xl bg-navy/90 p-5 text-left text-white shadow-2xl ${below ? 'text-base' : ''}`}
+    >
+      {page.title ? (
+        <h2 className="text-2xl font-black text-bingata-yellow">{page.title}</h2>
+      ) : null}
+      {page.body?.map((paragraph) => (
+        <p key={paragraph} className="text-sm font-semibold leading-snug">
+          {paragraph}
+        </p>
+      ))}
+      {page.caption ? <p className="text-base font-semibold leading-snug">{page.caption}</p> : null}
+    </div>
+  );
+}
+
+// The full-screen story: one page at a time, with Next, a dot for each page, and Skip.
+// Pages move on by themselves after PAGE_SECONDS. The last page ends the story.
 export function StoryScreen({ pages, onDone }: StoryScreenProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -103,17 +123,23 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
               animate="center"
               exit="exit"
               onClick={next}
-              className="absolute inset-0 flex items-center justify-center p-3"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4"
             >
-              <motion.img
-                src={current}
-                alt={`Story picture ${String(index + 1)} of ${String(pages.length)}`}
-                draggable={false}
-                initial={{ scale: 1.05 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 6, ease: 'easeOut' }}
-                className="max-h-full max-w-full object-contain"
-              />
+              {current.src ? (
+                <motion.img
+                  src={current.src}
+                  alt={`Story picture ${String(index + 1)} of ${String(pages.length)}`}
+                  draggable={false}
+                  initial={{ scale: 1.05 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 6, ease: 'easeOut' }}
+                  className={`min-h-0 max-w-full object-contain ${current.caption ? 'max-h-[60%]' : 'max-h-full'}`}
+                />
+              ) : null}
+              {current.src && current.caption ? (
+                <TextCard page={{ caption: current.caption }} below />
+              ) : null}
+              {!current.src ? <TextCard page={current} below={false} /> : null}
             </motion.div>
           ) : (
             <motion.div

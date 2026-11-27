@@ -61,6 +61,8 @@
 - [x] Story pictures load from `client/src/assets/story/` in filename order. The story track plays on this screen.
 - [x] Story pages auto-advance every 5 seconds, and the story ends itself after the last page. The server opens the village after 60 seconds even if a client never reports done.
 - [x] Village tour after the story: five 5-second tips with arrows (team bar, timer, vending machine, own token, another player). Design/12 section 6.
+- [x] Story text: the duel page for 5_story, and a special cards page with the rules (Protection Talisman, Ramen, Shisa Mask). Captions and text pages live in `assets/story/index.ts`.
+- [ ] Check the 5-second page time against the 5_story text, which is long. Say if it needs more time.
 - [ ] Add the story pictures in `client/src/assets/story/` (none yet).
 - [ ] Playtest the story flow: page animation, Skip, and the village timer starting after the last player.
 - [ ] Playtest the movement feel and arrows on a phone.
