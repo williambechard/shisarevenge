@@ -46,6 +46,7 @@
 - [x] The player who catches a cold gets a full-screen overlay, shown to them only: they switched to Shisa's Army, their goal changes, their lost special, and the Shisa Mask they now have (`ColdOverlay`, design/04 section 7).
 - [x] Shisa mask on revealed Shisa's Army players, on the walkway token (design/10 section 16). Test: the first player wears it. Tune MASK_STYLE, then remove the test line in VillageScreen.
 - [x] Team line is one bar showing each team's share of the room, on the duel and village screens (`TeamBar`, `BarFill`). Replaces the tick line.
+- [x] Team bar shows the Cursed Shisa's Army share from the start. The server sent zero counts to clients (playtest bug). Team counts now come from the room.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Optional art: a cold or wind graphic for the cold overlay, placed in `client/src/assets/shisa/` (the overlay works without it).
 - [ ] Server validates each move and limits position updates to 5 per second per socket.

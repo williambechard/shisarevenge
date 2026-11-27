@@ -240,7 +240,7 @@ export class RoomRegistry {
       })),
       pairings: [],
       warmUpPlayerId: null,
-      teamCounts: { survivors: 0, infected: 0 },
+      teamCounts: room.teamCounts,
       secondsLeft: null,
       winner: room.endgame?.winner ?? null,
       originPlayerId: null,

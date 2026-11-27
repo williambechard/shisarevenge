@@ -261,3 +261,12 @@ describe('RoomRegistry lobby with a held seat', () => {
     expect(fresh.room.code).toBe(first.room.code);
   });
 });
+
+describe('RoomRegistry public team counts', () => {
+  it('publishes the team counts the match set, not zeros', () => {
+    const { registry } = makeRegistry();
+    const first = enterOk(registry, 's1');
+    registry.setTeamCounts(first.room.code, { survivors: 7, infected: 1 });
+    expect(registry.toPublicState(first.room).teamCounts).toEqual({ survivors: 7, infected: 1 });
+  });
+});
