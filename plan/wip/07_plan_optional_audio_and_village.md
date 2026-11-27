@@ -63,6 +63,7 @@
 - [x] Tour moved from the village to the 4 story page: five arrows with text, 10 seconds each, measured on the picture (design/12 section 6).
 - [x] Captions for 1, 2 and 3 story pages; each story page stays up for 10 seconds.
 - [x] Story text: the duel page for 5_story, and a special cards page with the rules (Protection Talisman, Ramen, Shisa Mask). Captions and text pages live in `assets/story/index.ts`.
+- [x] On the 4 page, Next moves to the next arrow. Only after the last arrow does it move to the next page.
 - [ ] Check the 10-second page time against the longer story text. Say if it needs more time.
 - [ ] Add the story pictures in `client/src/assets/story/` (none yet).
 - [ ] Playtest the story flow: page animation, Skip, and the village timer starting after the last player.

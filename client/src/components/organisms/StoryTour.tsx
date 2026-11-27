@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import type { PictureTour } from '../../assets/story/index.js';
 import { DirectionArrow } from '../atoms/DirectionArrow.js';
@@ -11,33 +11,28 @@ const ARROW_OFFSET = 14;
 
 type StoryTourProps = {
   tour: PictureTour;
-  // Called after the last tip.
-  onDone: () => void;
+  // Which arrow is showing. The story screen owns this, so Next and taps move it on.
+  step: number;
+  // Called when the current arrow has been up for TIP_SECONDS, or when the player moves on by hand.
+  onAdvance: () => void;
 };
 
 // Arrows and text laid over a picture, one tip at a time. Each tip stays for TIP_SECONDS, with a bar that
-// empties to show the time left. The overlay ignores taps.
-export function StoryTour({ tour, onDone }: StoryTourProps) {
-  const [index, setIndex] = useState(0);
-  const step = tour.steps[index];
+// empties to show the time left. The overlay ignores taps; the story screen handles them.
+export function StoryTour({ tour, step, onAdvance }: StoryTourProps) {
+  const tip = tour.steps[step];
 
   useEffect(() => {
-    const handle = setTimeout(() => {
-      if (index + 1 >= tour.steps.length) {
-        onDone();
-      } else {
-        setIndex(index + 1);
-      }
-    }, TIP_SECONDS * 1000);
+    const handle = setTimeout(onAdvance, TIP_SECONDS * 1000);
     return () => {
       clearTimeout(handle);
     };
-  }, [index, onDone, tour.steps.length]);
+  }, [step, onAdvance]);
 
-  if (!step) return null;
+  if (!tip) return null;
 
-  const x = (step.x / tour.width) * 100;
-  const y = (step.y / tour.height) * 100;
+  const x = (tip.x / tour.width) * 100;
+  const y = (tip.y / tour.height) * 100;
   const below = y < MIDDLE;
   // Keep the text box inside the picture, even for a point near an edge.
   const boxCentre = Math.min(Math.max(x, 36), 64);
@@ -45,7 +40,7 @@ export function StoryTour({ tour, onDone }: StoryTourProps) {
   return (
     <div aria-live="polite" className="pointer-events-none absolute inset-0">
       <motion.div
-        key={`arrow-${String(index)}`}
+        key={`arrow-${String(step)}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1, y: [0, below ? -6 : 6, 0] }}
         transition={{ opacity: { duration: 0.3 }, y: { repeat: Infinity, duration: 0.9 } }}
@@ -61,7 +56,7 @@ export function StoryTour({ tour, onDone }: StoryTourProps) {
       </motion.div>
 
       <motion.div
-        key={`tip-${String(index)}`}
+        key={`tip-${String(step)}`}
         role="status"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -74,9 +69,10 @@ export function StoryTour({ tour, onDone }: StoryTourProps) {
             : { bottom: `calc(${String(100 - y)}% + ${String(ARROW_OFFSET + 40)}px)` }),
         }}
       >
-        <p>{step.text}</p>
+        <p>{tip.text}</p>
         <div className="h-1 w-full overflow-hidden rounded-full bg-white/25">
           <motion.div
+            key={`bar-${String(step)}`}
             initial={{ width: '100%' }}
             animate={{ width: '0%' }}
             transition={{ duration: TIP_SECONDS, ease: 'linear' }}

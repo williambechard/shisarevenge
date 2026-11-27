@@ -11,7 +11,7 @@ type StoryScreenProps = {
   onDone: () => void;
 };
 
-// How long each page stays up before the story moves on by itself.
+// How long each page, or each arrow on a tour page, stays up before the story moves on by itself.
 const PAGE_SECONDS = 10;
 
 // Each page slides in from the side the player is moving toward, tilts a little, and settles with a spring.
@@ -58,32 +58,45 @@ function TextCard({ page, below }: { page: StoryPage; below: boolean }) {
 }
 
 // The full-screen story: one page at a time, with Next, a dot for each page, and Skip.
-// Pages move on by themselves after PAGE_SECONDS. The last page ends the story.
+// Pages move on by themselves after PAGE_SECONDS. On a page with a tour, Next and taps move to the next
+// arrow instead, and the page moves on after the last one. The last page ends the story.
 export function StoryScreen({ pages, onDone }: StoryScreenProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  // Which arrow of a tour page is showing.
+  const [tip, setTip] = useState(0);
   const last = pages.length - 1;
   const current = pages[index];
+  const tour = current?.tour;
 
-  // Moves on by hand, or when the page has been up for PAGE_SECONDS. The last page finishes the story.
-  const next = useCallback((): void => {
+  // Moves to the next page. The last page finishes the story.
+  const nextPage = useCallback((): void => {
     if (index >= last) {
       onDone();
       return;
     }
     setDirection(1);
+    setTip(0);
     setIndex(index + 1);
   }, [index, last, onDone]);
 
-  // A page with a tour stays up until the tour has shown its last tip.
-  const touring = current?.tour !== undefined;
+  // On a tour page, moves to the next arrow until the last one has shown, then to the next page.
+  const advance = useCallback((): void => {
+    if (tour && tip + 1 < tour.steps.length) {
+      setTip(tip + 1);
+      return;
+    }
+    nextPage();
+  }, [tour, tip, nextPage]);
+
+  // A plain page moves on after PAGE_SECONDS. A tour page moves its arrows on from StoryTour instead.
   useEffect(() => {
-    if (touring) return;
-    const handle = setTimeout(next, PAGE_SECONDS * 1000);
+    if (tour) return;
+    const handle = setTimeout(nextPage, PAGE_SECONDS * 1000);
     return () => {
       clearTimeout(handle);
     };
-  }, [next, touring]);
+  }, [nextPage, tour]);
 
   return (
     <motion.section
@@ -126,14 +139,14 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
               initial="enter"
               animate="center"
               exit="exit"
-              onClick={next}
+              onClick={advance}
               className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4"
             >
-              {current.tour && current.src ? (
+              {tour && current.src ? (
                 <div
                   className="relative h-full max-w-full"
                   style={{
-                    aspectRatio: `${String(current.tour.width)} / ${String(current.tour.height)}`,
+                    aspectRatio: `${String(tour.width)} / ${String(tour.height)}`,
                   }}
                 >
                   <img
@@ -142,11 +155,11 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
                     draggable={false}
                     className="size-full object-contain"
                   />
-                  <StoryTour tour={current.tour} onDone={next} />
+                  <StoryTour tour={tour} step={tip} onAdvance={advance} />
                 </div>
               ) : null}
 
-              {current.src && !current.tour ? (
+              {current.src && !tour ? (
                 <motion.img
                   src={current.src}
                   alt={`Story picture ${String(index + 1)} of ${String(pages.length)}`}
@@ -157,7 +170,7 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
                   className={`min-h-0 max-w-full object-contain ${current.caption ? 'max-h-[60%]' : 'max-h-full'}`}
                 />
               ) : null}
-              {current.src && current.caption && !current.tour ? (
+              {current.src && current.caption && !tour ? (
                 <TextCard page={{ caption: current.caption }} below />
               ) : null}
               {!current.src ? <TextCard page={current} below={false} /> : null}
@@ -179,7 +192,7 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
       </div>
 
       <div className="p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <Button onClick={next}>{index >= last ? 'Start playing' : 'Next'}</Button>
+        <Button onClick={advance}>{index >= last && !tour ? 'Start playing' : 'Next'}</Button>
       </div>
     </motion.section>
   );
