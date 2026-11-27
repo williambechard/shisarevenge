@@ -30,4 +30,4 @@ A mute toggle sits at the top right of every screen. The choice is saved in `loc
 
 ## 4. Size
 
-The music files are large: duel is about 2.9 MB. Browsers fetch them only when they play. This is above the 1 MB guideline for background tracks in the original plan. Shrink them if load time matters on phones.
+Music is encoded as MP3 at 80 to 96 kbps stereo. Each track is under 1 MB: duel 899 KB, lobby 301 KB, village 363 KB, story 405 KB. The original files are kept in design/art-source/audio/music/. Browsers fetch a track only when it plays.

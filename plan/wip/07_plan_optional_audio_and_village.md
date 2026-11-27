@@ -53,7 +53,7 @@
 - [x] Sound effects: select, no, bad, success, step, and the 10-second tick that speeds up (design/11 section 2).
 - [x] Mute toggle on every screen, saved in localStorage (design/11 section 3).
 - [ ] Playtest audio on phones: music start after the first tap, tick speed, and mute.
-- [ ] Music file sizes are above the 1 MB guideline (duel is about 2.9 MB). Decide whether to compress them.
+- [x] Music compressed to MP3 at 80 to 96 kbps. Every track is under 1 MB (duel is 899 KB). Originals are in design/art-source/audio/music.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Optional art: a cold or wind graphic for the cold overlay, placed in `client/src/assets/shisa/` (the overlay works without it).
 - [ ] Server validates each move and limits position updates to 5 per second per socket.
