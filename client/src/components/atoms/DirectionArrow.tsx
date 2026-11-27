@@ -1,4 +1,4 @@
-﻿type DirectionArrowProps = {
+type DirectionArrowProps = {
   // Change in tile position: which way the arrow points. Zero means no arrow.
   dx: number;
   dy: number;
@@ -12,7 +12,7 @@ export function DirectionArrow({ dx, dy, className = '' }: DirectionArrowProps) 
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className={`pointer-events-none size-1/2 text-gold drop-shadow ${className}`}
+      className={`pointer-events-none size-1/2 text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.9)] ${className}`}
       style={{ transform: `rotate(${String(degrees)}deg)` }}
     >
       <path

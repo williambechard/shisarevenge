@@ -100,7 +100,7 @@ export function VillageBoard({
                       onStep(x, y);
                     }
                   }}
-                  className={`relative overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold ${enabled ? 'ring-2 ring-inset ring-gold' : ''}`}
+                  className="relative overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold"
                 >
                   {char === 'V' ? (
                     <img
@@ -109,6 +109,9 @@ export function VillageBoard({
                       className="absolute inset-0 size-full object-contain"
                       draggable={false}
                     />
+                  ) : null}
+                  {enabled ? (
+                    <div aria-hidden="true" className="absolute inset-0 bg-black/40" />
                   ) : null}
                   {enabled && own ? (
                     <DirectionArrow
