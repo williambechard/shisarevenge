@@ -71,3 +71,34 @@ A caught player may rebound once: when they win a duel against another Shisa's A
 Reading: rebound lowers the Army's win rate at every round count. Eight rounds at 6 or 8 players now gives an Army win rate near half (47% and 42%). At 4 players, 5 rounds gives 43%. The same play policy caveats apply: simple choices, no village.
 
 Candidate setting from these results: 5 rounds at 4 players, 8 rounds at 6 to 8 players. This is a different direction from the earlier suggestion, which relied on the balance before rebound. Confirm with a playtest before changing `ROUND_COUNT`.
+## 7. Setting applied
+
+- 4 players: 5 rounds. 6 or 8 players: 8 rounds (`roundCountFor` in `shared/src/constants.ts`). The round count is kept on the match and sent to the room.
+- Rebound is on (design/04 section 8.1).
+
+## 8. Card budget finding
+
+Each player starts with six cards (five numbers and a special) and plays one card each round. Winners take a card from losers, so the total number of cards falls every round. A measured run with 8 players and 8 rounds (2,000 matches, real engine) shows how many players are still in the game at the start of each round:
+
+| Round | Players in the game |
+|---|---|
+| 1 | 8.0 |
+| 2 | 8.0 |
+| 3 | 8.0 |
+| 4 | 7.9 |
+| 5 | 6.8 |
+| 6 | 4.8 |
+| 7 | 2.7 |
+| 8 | 1.2 |
+
+So the last rounds of an 8-round game have very few players. Eight rounds is effectively about six with six-card hands.
+
+## 9. Bug found while playing 8 rounds
+
+A paired player with no number cards left but an unused special could not lock in, because auto-lock only played numbers. The round then never resolved. Auto-lock now plays the unused special in that case, with a unit test.
+
+## 10. Options
+
+1. Keep 8 rounds and give each player more cards (for example a larger hand), so the last rounds still have players.
+2. Use 6 rounds for 6 and 8 players, which matches the six-card budget. The rebound-adjusted simulation is Survivor-leaning at 6 rounds (31% and 19% Army wins), so this would need rebalancing.
+3. Use 7 rounds for 6 and 8 players (44% and 37%, rebound-adjusted). Most players are then out by the last round.

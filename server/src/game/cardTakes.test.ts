@@ -198,10 +198,10 @@ describe('win checks with elimination (design section 9)', () => {
       { id: 'b', team: 'infected' as const, special: null },
       { id: 'a', team: 'infected' as const, special: null },
     ];
-    expect(checkWin(active, 2)).toEqual({ winner: 'infected', reason: 'all-infected' });
+    expect(checkWin(active, 2, 5)).toEqual({ winner: 'infected', reason: 'all-infected' });
   });
 
   it('gives the Survivors the win when every player is out in the same round', () => {
-    expect(checkWin([], 2)).toEqual({ winner: 'survivor', reason: 'shared-elimination' });
+    expect(checkWin([], 2, 5)).toEqual({ winner: 'survivor', reason: 'shared-elimination' });
   });
 });

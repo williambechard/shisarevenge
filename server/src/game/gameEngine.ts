@@ -10,6 +10,7 @@ import {
   type Result,
   type SpecialKind,
   type Team,
+  roundCountFor,
 } from '@shisa-revenge/shared';
 import { createHand } from './deck.js';
 import { pairKey, pairPlayers, type RandomFn } from './pairing.js';
@@ -60,6 +61,8 @@ export type PendingPick = {
 };
 
 export type MatchState = {
+  // Rounds in this match, set by the number of players (roundCountFor).
+  roundCount: number;
   phase: Phase;
   round: number;
   players: MatchPlayer[];
@@ -92,6 +95,7 @@ export function createMatch(
   carry: Readonly<Record<string, VillageCards>> = {},
 ): MatchState {
   return {
+    roundCount: roundCountFor(players.length),
     phase: 'lobby',
     round: 0,
     players: players.map((player) => {
@@ -439,7 +443,12 @@ export function autoLockUnlocked(state: MatchState): MatchState {
       if (locked.has(id)) continue;
       const player = playerFor(state, id);
       const lowest = player && player.hand.length > 0 ? Math.min(...player.hand) : undefined;
-      if (lowest !== undefined) locked.set(id, { type: 'number', value: lowest as CardValue });
+      if (lowest !== undefined) {
+        locked.set(id, { type: 'number', value: lowest as CardValue });
+      } else if (player?.special?.status === 'available') {
+        // No number left, so the unused special is the only card. Without this the duel could never lock.
+        locked.set(id, { type: 'special', kind: player.special.kind });
+      }
     }
   }
   return { ...state, locked };

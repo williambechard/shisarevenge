@@ -21,6 +21,7 @@ beforeEach(async () => {
           announceMs: 2,
           selectionMs: 15,
           resultMs: 2,
+          pickMs: 5,
           lobbyWaitMs: 60_000,
           storyGate: false,
         },
@@ -79,8 +80,10 @@ describe('a full match', () => {
     const summary = await ended;
     expect(['survivor', 'infected']).toContain(summary.winner);
     expect(summary.history).toHaveLength(MAX_PLAYERS);
-    expect(summary.survivors + summary.infected).toBe(MAX_PLAYERS);
-    expect(summary.infected).toBeGreaterThanOrEqual(1);
+    // Eliminated players (no cards left) are not counted in the team totals.
+    expect(summary.survivors + summary.infected).toBeLessThanOrEqual(MAX_PLAYERS);
+    // With no Shisa's Army member left, the Survivors win (design/04 section 9).
+    if (summary.infected === 0) expect(summary.winner).toBe('survivor');
 
     const room = game.registry.find(firstSeat.roomCode);
     expect(room?.phase).toBe('village');

@@ -9,7 +9,7 @@ import {
   RECONNECT_GRACE_SECONDS,
   PLAYER_NAMES,
   ROOM_INACTIVITY_HOURS,
-  ROUND_COUNT,
+  roundCountFor,
   type EndgameSummary,
   type Phase,
   type PublicRoomState,
@@ -46,6 +46,8 @@ export type RoomRecord = {
   startAvailable: boolean;
   // Public counts, updated at each round summary. Start at 1 Army member and the rest Survivors.
   teamCounts: { survivors: number; infected: number };
+  // Rounds in this room's match. Set when the match starts.
+  roundCount: number;
   originPlayerId: string | null;
   endgame: EndgameSummary | null;
   village: PublicVillage | null;
@@ -161,6 +163,11 @@ export class RoomRegistry {
     if (room) room.teamCounts = teamCounts;
   }
 
+  setRoundCount(code: string, roundCount: number): void {
+    const room = this.rooms.get(code);
+    if (room) room.roundCount = roundCount;
+  }
+
   // Sets the village shown to every player. Null when no village is open.
   setVillage(code: string, village: PublicVillage | null): void {
     const room = this.rooms.get(code);
@@ -227,7 +234,7 @@ export class RoomRegistry {
       roomCode: room.code,
       phase: room.phase,
       round: 0,
-      roundCount: ROUND_COUNT,
+      roundCount: room.roundCount,
       startsAt: room.startsAt,
       startAvailable: room.startAvailable,
       players: room.players.map((player) => ({
@@ -278,6 +285,7 @@ export class RoomRegistry {
       startsAt: null,
       startAvailable: false,
       teamCounts: { survivors: 0, infected: 0 },
+      roundCount: roundCountFor(MAX_PLAYERS),
       originPlayerId: null,
       endgame: null,
       village: null,

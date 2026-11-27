@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
   CARD_NAMES,
-  ROUND_COUNT,
+  MIN_PLAYERS,
+  roundCountFor,
   SPECIAL_NAMES,
   type PlayedCard,
   type PrivateNotice,
@@ -89,6 +90,7 @@ export function RoundScreen({
   const locked = self?.encounter?.selectionLocked ?? false;
   const reveal = state.reveal;
   const round = view?.round ?? 1;
+  const total = room?.roundCount ?? roundCountFor(MIN_PLAYERS);
   const phase = room?.phase ?? null;
   const notice = state.specialNotice ? noticeText(state.specialNotice) : null;
   // The cold overlay is shown once per notice, to the player who caught the cold only.
@@ -152,9 +154,9 @@ export function RoundScreen({
     <section aria-labelledby="round-heading" className="flex flex-1 flex-col gap-5 pt-4">
       <header className="flex flex-col gap-3">
         <h1 className="sr-only">
-          Round {String(round)} of {String(ROUND_COUNT)}
+          Round {String(round)} of {String(total)}
         </h1>
-        <RoundTrack current={round} total={ROUND_COUNT} />
+        <RoundTrack current={round} total={total} />
         <div className="flex items-center gap-4 pr-2">
           <div className="min-w-0 flex-1">
             {room ? (

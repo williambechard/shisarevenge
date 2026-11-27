@@ -16,7 +16,7 @@ export function RoundChip({ round, state }: RoundChipProps) {
   return (
     <span
       aria-current={state === 'current' ? 'step' : undefined}
-      className={`flex h-7 min-w-10 items-center justify-center rounded-md px-2.5 text-xs font-bold transition-colors ${STYLE[state]}`}
+      className={`flex h-7 min-w-0 flex-1 items-center justify-center rounded-md text-xs font-bold transition-colors ${STYLE[state]}`}
     >
       R{String(round)}
     </span>

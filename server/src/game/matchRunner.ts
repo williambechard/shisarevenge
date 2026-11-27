@@ -193,6 +193,7 @@ export class MatchRunner {
       partners: [],
     });
     this.registry.setTeamCounts(code, teamCounts(matchState));
+    this.registry.setRoundCount(code, matchState.roundCount);
     this.publishCards(code, matchState);
     this.registry.setMatchResult(code, originId, null);
     this.io.to(code).emit('game:started', { originPlayerId: originId });
@@ -569,6 +570,7 @@ export class MatchRunner {
     const win = checkWin(
       state.players.filter((player) => !player.eliminated),
       state.round,
+      state.roundCount,
     );
     this.schedule(code, this.timing.resultMs, () => {
       if (win) {

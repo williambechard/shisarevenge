@@ -3,7 +3,10 @@
 
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 8;
-export const ROUND_COUNT = 5;
+// Rounds per match, by player count (design/14-balance-rounds.md). Four players get five rounds; six and eight get eight.
+export function roundCountFor(players: number): number {
+  return players <= 4 ? 5 : 8;
+}
 
 export const CARD_VALUES = [1, 2, 3, 4, 5] as const;
 

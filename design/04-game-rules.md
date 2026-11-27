@@ -8,7 +8,7 @@
 |---|---|---|
 | `MIN_PLAYERS` | 4 | |
 | `MAX_PLAYERS` | 8 | |
-| `ROUND_COUNT` | 5 | |
+| `roundCountFor(players)` | 4 players: 5 rounds. 6 or 8 players: 8 rounds | Set per match. See design/14. |
 | `CARD_VALUES` | 1, 2, 3, 4, 5 | Each once per game. |
 | `SPECIAL_STRENGTH` | Talisman 2, Ramen 3, Shisa Mask 4 | Strength of a special card when it is played. See section 5. |
 | `SELECTION_SECONDS` | 45 | Tunable. |
