@@ -94,6 +94,7 @@ client/src/
 | `TickLine` (molecule) | Survivor and Shisa's Army ticks from opposite ends. The side with more ticks leads, and the gap is the margin. | `survivors`, `infected` |
 | `FaceDownHand` (molecule) | A fan of face-down cards. The number of backs shows how many cards are held. | `count`, `hideLast`, `layoutId` |
 | `CardChoice` (organism) | Cards laid side by side. Tapping one opens the duel preview (zoom, text, action button or Back). Used for vending duplicates and accusation cards. | `items`, `actionLabel`, `layoutId`, `onChoose` |
+| `ColdOverlay` (organism) | Full-screen notice for the player who caught a cold only: what happened, what the switch means, the lost special, and the Shisa Mask. Shown once per cold. | `lostSpecial`, `newSpecial`, `onDone` |
 | `RoundTrack` (organism) | The rounds of the match as chips, with the current round marked. | `current`, `total` |
 | `PlayArea` | The table: the opponent's card above, this player's card below. Cards turn face up at reveal. On screens 760 px tall or less, the two card slots sit side by side. | `opponentName`, `mySlot`, `opponentFront`, `revealed` |
 | `PlayerChip` | Name, avatar, and team badge in a compact row | `player`, `isSelf` |

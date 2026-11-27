@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
   CARD_NAMES,
@@ -20,6 +21,7 @@ import { RevealPanel } from '../components/organisms/RevealPanel.js';
 import { RoundTrack } from '../components/organisms/RoundTrack.js';
 import { cardArt, NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../assets/cards/index.js';
 import type { GameState } from '../state/gameState.js';
+import { ColdOverlay } from '../components/organisms/ColdOverlay.js';
 import { canChooseCard, opponentIn } from '../state/roundPhase.js';
 
 type RoundScreenProps = {
@@ -89,6 +91,9 @@ export function RoundScreen({
   const round = view?.round ?? 1;
   const phase = room?.phase ?? null;
   const notice = state.specialNotice ? noticeText(state.specialNotice) : null;
+  // The cold overlay is shown once per notice, to the player who caught the cold only.
+  const [coldSeen, setColdSeen] = useState<PrivateNotice | null>(null);
+  const coldNotice = state.specialNotice?.kind === 'caught-cold' ? state.specialNotice : null;
   const out = room?.players.find((player) => player.id === state.playerId)?.eliminated === true;
   const pending = self?.pendingPick ?? null;
 
@@ -199,6 +204,16 @@ export function RoundScreen({
       ) : null}
 
       {waiting ? <WaitingIndicator title={waiting.title} detail={waiting.detail} /> : null}
+
+      {coldNotice && coldNotice !== coldSeen ? (
+        <ColdOverlay
+          lostSpecial={coldNotice.lostSpecial}
+          newSpecial={coldNotice.newSpecial}
+          onDone={() => {
+            setColdSeen(coldNotice);
+          }}
+        />
+      ) : null}
 
       {state.autoLocked && reveal === null ? (
         <StatusMessage>Time ran out. Your lowest card was locked in for you.</StatusMessage>
