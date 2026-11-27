@@ -10,6 +10,7 @@ import {
 import { Button } from '../components/atoms/Button.js';
 import { Countdown } from '../components/atoms/Countdown.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
+import { TeamBar } from '../components/molecules/TeamBar.js';
 import { AccusePanel } from '../components/organisms/AccusePanel.js';
 import { LockInOverlay } from '../components/organisms/LockInOverlay.js';
 import { VendingPanel } from '../components/organisms/VendingPanel.js';
@@ -200,8 +201,9 @@ export function VillageScreen({
 
   return (
     <section aria-labelledby="village-heading" className="flex min-h-0 flex-1 flex-col gap-4">
-      <header className="flex justify-center">
+      <header className="flex flex-col gap-2">
         <Countdown deadline={village.endsAt} label="Next round in" />
+        <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
       </header>
 
       {note ? (

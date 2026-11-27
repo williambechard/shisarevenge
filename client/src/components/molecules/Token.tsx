@@ -27,7 +27,7 @@ type TokenProps = {
 
 // The Shisa mask worn by revealed Shisa's Army members. Tune the position here: left and top are the mask centre,
 // as a percentage of the icon, and width is a percentage of the icon width.
-const MASK_STYLE = { left: '50%', top: 'calc(40% - 50px)', width: '150%' } as const;
+const MASK_STYLE = { left: '50%', top: 'calc(40% - 10px)', width: '140%' } as const;
 const MOVE_MS = 450;
 const BOUNCE_MS = 300;
 // How far the token recoils, in pixels.

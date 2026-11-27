@@ -11,7 +11,7 @@ import {
 import { Countdown } from '../components/atoms/Countdown.js';
 import { Announcement } from '../components/molecules/Announcement.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
-import { TickLine } from '../components/molecules/TickLine.js';
+import { TeamBar } from '../components/molecules/TeamBar.js';
 import { WaitingIndicator } from '../components/molecules/WaitingIndicator.js';
 import { GainedCard } from '../components/organisms/GainedCard.js';
 import { HandTray } from '../components/organisms/HandTray.js';
@@ -156,7 +156,7 @@ export function RoundScreen({
         </h1>
         <RoundTrack current={round} total={ROUND_COUNT} />
         {room ? (
-          <TickLine survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
+          <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
         ) : null}
         {view?.deadline && !reveal && !isWarmUp && !out && canChooseCard(phase) && !locked ? (
           <Countdown deadline={view.deadline} label="Choose before" />
