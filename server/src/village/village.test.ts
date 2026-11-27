@@ -179,9 +179,9 @@ describe('accusations (design/10 section 4)', () => {
 });
 
 describe('vending machine (design/10 section 5)', () => {
-  it('refuses to walk onto the machine tile', () => {
+  it('lets a player step onto the machine tile', () => {
     const state = villageAt({ a: standing }, {});
-    expect(moveTo(state, 'a', vendingTile, 1000)).toEqual({ ok: false, error: 'BLOCKED_TILE' });
+    expect(moveTo(state, 'a', vendingTile, 1000).ok).toBe(true);
   });
 
   const vendingTile = { x: 3, y: 2 };

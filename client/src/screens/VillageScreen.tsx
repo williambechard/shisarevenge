@@ -179,6 +179,7 @@ export function VillageScreen({
     walkedOn !== meetingKey &&
     (meetingAt === 0 || readyFor === meetingAt);
   const isMachine = (x: number, y: number): boolean => village.board[y]?.[x] === 'V';
+  const onMachine = here !== undefined && isMachine(here.x, here.y);
   const nextToMachine =
     here !== undefined &&
     [
@@ -212,20 +213,20 @@ export function VillageScreen({
         onStep={(x, y) => {
           setVendingOpen(false);
           onStep(x, y);
+          // Stepping onto the machine opens its panel when you hold a duplicate, or shows the hint otherwise.
+          if (village.board[y]?.[x] === 'V') {
+            if (hasDuplicate) {
+              setVendingOpen(true);
+            } else {
+              setHint({ id: Date.now() });
+            }
+          }
         }}
         vendingHint={
           hint
             ? 'Vending machine. Insert two copies of a card to get a random one. No duplicates in your hand.'
             : null
         }
-        onVendingTap={() => {
-          // The panel opens only when the player holds a duplicate card to insert.
-          if (hasDuplicate) {
-            setVendingOpen(true);
-          } else {
-            setHint({ id: Date.now() });
-          }
-        }}
       />
 
       {notice ? (
@@ -288,7 +289,7 @@ export function VillageScreen({
         </div>
       ) : null}
 
-      {vendingOpen && nextToMachine && !out && !locked ? (
+      {vendingOpen && (nextToMachine || onMachine) && !out && !locked ? (
         <div
           role="dialog"
           aria-modal="true"

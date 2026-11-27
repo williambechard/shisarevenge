@@ -186,3 +186,24 @@ describe('gained card moment', () => {
     expect(gameReducer(second, { type: 'gained-done' }).gained).toBeNull();
   });
 });
+
+describe('entering a round fresh', () => {
+  it('clears last round text when the room enters the announce step', () => {
+    const start = {
+      ...createInitialState(),
+      roomCode: 'ABC123',
+      playerId: 'p1',
+      screen: 'round' as const,
+      specialNotice: { kind: 'eliminated' } as never,
+      roundSummary: { round: 1, caughtCount: 2 },
+      notice: 'Old village message',
+    };
+    const next = gameReducer(start, {
+      type: 'room-state',
+      room: { ...room('ABC123'), phase: 'announce', round: 2 },
+    });
+    expect(next.specialNotice).toBeNull();
+    expect(next.roundSummary).toBeNull();
+    expect(next.notice).toBeNull();
+  });
+});

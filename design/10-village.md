@@ -45,7 +45,7 @@ Accusations need the accuser and the target on the same tile. This is why the gr
 
 ## 5. Vending machine
 
-- **Use:** the machine tile cannot be walked onto. Stand on a tile next to it and tap the machine to open its panel as a modal. The panel opens only if the player holds a duplicate; otherwise a short hint appears above the machine for 3 seconds, saying what it does and that no duplicate is held. Then insert one duplicate number card, a card whose value you already hold. You receive one random card.
+- **Use:** the machine tile is walkable like any walkway tile. Stepping onto it opens its panel as a modal if the player holds a duplicate. Otherwise a short hint appears above the machine for 3 seconds, saying what it does and that no duplicate is held. A player can also use it from a tile next to it. Insert a duplicate card, and get one random card back.
 - **Odds (proposed):** number 1 to 5 each 16%, special 20%. The special is one of the three kinds, chosen at random.
 - **Special rule:** if the player already holds a special card, a special roll becomes a number roll instead.
 - **Limit:** one use per player per village.

@@ -69,6 +69,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'room-state':
       // Ignore state for a room this client has already left.
       if (state.roomCode !== action.room.roomCode) return state;
+      // Entering a round's announce step: clear what the last round or village left on screen, so the
+      // duel starts fresh. The new round's own state arrives with round-paired.
+      if (action.room.phase === 'announce') {
+        return {
+          ...state,
+          room: action.room,
+          roundSummary: null,
+          specialNotice: null,
+          autoLocked: false,
+          notice: null,
+        };
+      }
       return { ...state, room: action.room };
 
     case 'left':

@@ -15,8 +15,6 @@ type VillageBoardProps = {
   selfId: string | null;
   // Called with the tile a player taps. Only the four tiles next to the player's own token are enabled.
   onStep: (x: number, y: number) => void;
-  // Called when the player taps the vending machine from a tile next to it.
-  onVendingTap: () => void;
   // A short message shown above the vending machine, or null for none.
   vendingHint: string | null;
 };
@@ -46,7 +44,6 @@ export function VillageBoard({
   players,
   selfId,
   onStep,
-  onVendingTap,
   vendingHint,
 }: VillageBoardProps) {
   const columns = board[0]?.length ?? 0;
@@ -97,11 +94,7 @@ export function VillageBoard({
                       : `Tile ${String(x + 1)}, ${String(y + 1)}${enabled ? ', you can walk here' : ''}`
                   }
                   onClick={() => {
-                    if (char === 'V') {
-                      onVendingTap();
-                    } else {
-                      onStep(x, y);
-                    }
+                    onStep(x, y);
                   }}
                   className="relative overflow-hidden bg-transparent focus-visible:outline-3 focus-visible:outline-gold"
                 >

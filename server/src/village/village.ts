@@ -146,8 +146,8 @@ export function moveTo(
   );
   if (interrupts) return { ok: false, error: 'LOCKED_IN' };
   const cell = cellAt(state, target);
-  // The vending machine tile cannot be entered. Players use it from a neighbouring tile.
-  if (cell === null || cell === 'blocked' || cell === 'vending') {
+  // The vending machine tile is walkable like the rest. Standing on it, or next to it, lets a player use it.
+  if (cell === null || cell === 'blocked') {
     return { ok: false, error: 'BLOCKED_TILE' };
   }
   const last = state.lastMoveAt[playerId];
@@ -285,7 +285,8 @@ export function vend(
     [0, 1],
     [0, -1],
   ].some(([dx, dy]) => cellAt(state, { x: at.x + (dx ?? 0), y: at.y + (dy ?? 0) }) === 'vending');
-  if (!nextToMachine) return { ok: false, error: 'NOT_ON_VENDING' };
+  const onMachine = cellAt(state, at) === 'vending';
+  if (!onMachine && !nextToMachine) return { ok: false, error: 'NOT_ON_VENDING' };
   if ((state.vendingUses[playerId] ?? 0) >= state.settings.vending.usesPerVillage) {
     return { ok: false, error: 'VENDING_USED' };
   }
