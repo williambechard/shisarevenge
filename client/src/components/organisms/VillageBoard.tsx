@@ -62,6 +62,7 @@ export function VillageBoard({
     .find((cell) => cell.char === 'V');
 
   const seats = players.filter((player) => positions[player.id] !== undefined);
+  const firstOther = seats.find((player) => player.id !== selfId);
   const tokensOn = new Map<string, PublicPlayer[]>();
   for (const player of seats) {
     const at = positions[player.id];
@@ -92,6 +93,7 @@ export function VillageBoard({
               return (
                 <button
                   key={keyOf(here)}
+                  data-tour={char === 'V' ? 'machine' : undefined}
                   type="button"
                   disabled={!enabled}
                   aria-label={
@@ -170,6 +172,13 @@ export function VillageBoard({
                 spread={spread}
                 bounce={bounce}
                 masked={masked.has(player.id)}
+                tour={
+                  player.id === selfId
+                    ? 'self'
+                    : player.id === firstOther?.id
+                      ? 'player'
+                      : undefined
+                }
                 badge={
                   player.cardCount === null ? undefined : (
                     <CardCountBadge count={player.cardCount} />

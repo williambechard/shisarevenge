@@ -24,3 +24,15 @@ Each picture is one full-screen page. Pages slide in from the side the player mo
 ## 5. Music
 
 The story plays the `story` track (see design/11-audio.md).
+
+## 6. Village tour
+
+After the story, each player's first village of the room opens with a guided tour. Five tips point at real parts of the village screen, in order, and each stays for 5 seconds. A bar under the tip empties to show the time left. The tour overlay ignores taps, so players can keep moving meanwhile.
+
+1. The team bar at the top: the Survivors against Shisa's Army.
+2. The timer ring at the right: time until the next Duel.
+3. The vending machine tile.
+4. The player's own token: move freely around the village.
+5. The first other player's token: colliding with a player allows an accusation (costs 1 card) or a challenge, which locks both as opponents.
+
+The tips point at live elements (`data-tour` attributes), so they stay right when the layout changes. Tips are in `client/src/components/organisms/VillageTour.tsx`.
