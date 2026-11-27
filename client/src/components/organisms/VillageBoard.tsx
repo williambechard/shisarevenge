@@ -17,6 +17,8 @@ type VillageBoardProps = {
   onStep: (x: number, y: number) => void;
   // A short message shown above the vending machine, or null for none.
   vendingHint: string | null;
+  // Players wearing the Shisa mask.
+  masked: Set<string>;
 };
 
 // Horizontal gap in pixels between two tokens that share one tile.
@@ -45,6 +47,7 @@ export function VillageBoard({
   selfId,
   onStep,
   vendingHint,
+  masked,
 }: VillageBoardProps) {
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
@@ -163,6 +166,7 @@ export function VillageBoard({
                 rows={rows}
                 spread={spread}
                 bounce={bounce}
+                masked={masked.has(player.id)}
                 badge={
                   player.cardCount === null ? undefined : (
                     <CardCountBadge count={player.cardCount} />

@@ -146,3 +146,9 @@ Open questions for review:
 - Nobody can walk onto a tile where a locked player stands. The walker sees the message "Locked in for a pre-battle. No interrupting!".
 - A locked player cannot be challenged or accused.
 - Locks are public. The pair appears in the village state as partners.
+
+## 16. Shisa mask on revealed players
+
+- A player publicly revealed as Shisa's Army (by a correct accusation) wears the Shisa mask on their walkway token. The origin is revealed the same way, so the origin's mask shows only after a correct accusation against them.
+- The mask position is set in `MASK_STYLE` in `client/src/components/molecules/Token.tsx`.
+- Testing: `VillageScreen.tsx` puts the mask on the first player in the list. Remove that test line once the position is tuned.

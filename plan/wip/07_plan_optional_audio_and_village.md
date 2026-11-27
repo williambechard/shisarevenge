@@ -44,6 +44,7 @@
 - [x] Entering a round clears last round's text (playtest bug): the duel starts fresh when the room enters the announce step.
 - [x] Round summary explains a cold when anyone catches one: switching sides, and the lost Survivor special (playtest question).
 - [x] The player who catches a cold gets a full-screen overlay, shown to them only: they switched to Shisa's Army, their goal changes, their lost special, and the Shisa Mask they now have (`ColdOverlay`, design/04 section 7).
+- [x] Shisa mask on revealed Shisa's Army players, on the walkway token (design/10 section 16). Test: the first player wears it. Tune MASK_STYLE, then remove the test line in VillageScreen.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Optional art: a cold or wind graphic for the cold overlay, placed in `client/src/assets/shisa/` (the overlay works without it).
 - [ ] Server validates each move and limits position updates to 5 per second per socket.

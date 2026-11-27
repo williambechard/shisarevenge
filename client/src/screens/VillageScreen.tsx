@@ -165,6 +165,12 @@ export function VillageScreen({
     return at !== undefined && at.x === here.x && at.y === here.y;
   });
   const meetingKey = `${String(here?.x)},${String(here?.y)}:${onTile.map((player) => player.id).join(',')}`;
+  // Revealed Shisa's Army members wear the mask. TEST: the first player also wears it, so the mask can be tuned.
+  const maskedIds = new Set(
+    Object.entries(village.revealed).flatMap(([id, team]) => (team === 'infected' ? [id] : [])),
+  );
+  const testMaskId = room.players[0]?.id;
+  if (testMaskId !== undefined) maskedIds.add(testMaskId);
   // A challenge locks both players until the next round starts.
   const pair = room.village?.partners.find(([a, b]) => a === selfId || b === selfId);
   const partnerId = pair ? (pair[0] === selfId ? pair[1] : pair[0]) : null;
@@ -210,6 +216,7 @@ export function VillageScreen({
         positions={village.positions}
         players={room.players}
         selfId={selfId}
+        masked={maskedIds}
         onStep={(x, y) => {
           setVendingOpen(false);
           onStep(x, y);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { animate, motion, useAnimate } from 'motion/react';
+import { SHISA_MASK_ART } from '../../assets/village/index.js';
 import { Avatar } from './Avatar.js';
 
 // A recoil after a meeting: once the token has arrived, it bumps in direction (dx, dy) and settles back.
@@ -20,8 +21,13 @@ type TokenProps = {
   bounce: Bounce;
   // Shown above the token, such as the card count.
   badge?: ReactNode;
+  // Wears the Shisa mask.
+  masked: boolean;
 };
 
+// The Shisa mask worn by revealed Shisa's Army members. Tune the position here: left and top are the mask centre,
+// as a percentage of the icon, and width is a percentage of the icon width.
+const MASK_STYLE = { left: '50%', top: '40%', width: '150%' } as const;
 const MOVE_MS = 450;
 const BOUNCE_MS = 300;
 // How far the token recoils, in pixels.
@@ -31,7 +37,19 @@ const BOUNCE_FRESH_MS = 2000;
 
 // A player's token. It glides from tile to tile with ease-in/out, and squashes and stretches along the
 // way of travel: stretched as it leaves, squashed as it lands.
-export function Token({ name, icon, self, x, y, cols, rows, spread, bounce, badge }: TokenProps) {
+export function Token({
+  name,
+  icon,
+  self,
+  x,
+  y,
+  cols,
+  rows,
+  spread,
+  bounce,
+  badge,
+  masked,
+}: TokenProps) {
   const [scope, animateInner] = useAnimate<HTMLDivElement>();
   const last = useRef({ x, y });
   const bounceAt = bounce?.at;
@@ -84,6 +102,16 @@ export function Token({ name, icon, self, x, y, cols, rows, spread, bounce, badg
     >
       <div ref={scope} className="relative flex items-center justify-center">
         <Avatar name={name} icon={icon} self={self} />
+        {masked ? (
+          <img
+            src={SHISA_MASK_ART}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="pointer-events-none absolute aspect-square -translate-x-1/2 -translate-y-1/2"
+            style={{ left: MASK_STYLE.left, top: MASK_STYLE.top, width: MASK_STYLE.width }}
+          />
+        ) : null}
         {badge ? <div className="absolute -top-2 -right-3">{badge}</div> : null}
       </div>
     </motion.div>
