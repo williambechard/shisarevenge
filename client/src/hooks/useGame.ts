@@ -91,7 +91,7 @@ export type GameActions = {
   pickCard: (index: number) => void;
   dismissGained: () => void;
   continueToVillage: () => void;
-  villageStep: (x: number, y: number) => void;
+  villageStep: (x: number, y: number, bump: boolean) => void;
   villageAccuse: (targetId: string, card: PlayedCard | null) => void;
   villageInsert: (value: CardValue) => void;
   villageChallenge: (targetId: string | null) => void;
@@ -295,13 +295,14 @@ export function useGame(): { state: GameState } & GameActions {
   }, []);
 
   // Village actions. The server answers with the new village and any notice for this player.
-  const villageStep = useCallback((x: number, y: number): void => {
+  const villageStep = useCallback((x: number, y: number, bump: boolean): void => {
     getSocket().emit('village:move', { x, y }, (response: PlainAck) => {
       if (!response.ok) {
         dispatch({ type: 'notice', message: response.error.message });
         return;
       }
-      playSfx('step');
+      // Bumping into a player or the vending machine gets the success chime. Any other step gets the step sound.
+      playSfx(bump ? 'success' : 'step');
     });
   }, []);
 

@@ -17,11 +17,11 @@ Music loops. The overview after a match plays no music. Music starts at the firs
 
 | Sound | File | Plays when |
 |---|---|---|
-| select | `sfx/select.wav` | A card is tapped in the hand or in a card choice |
+| select | `sfx/select.wav` | A card is tapped: in the hand, in a card choice, or in the pick panel |
 | no | `sfx/no.wav` | A server action is refused (the notice text says why) |
 | bad | `sfx/bad.wav` | Bad news for this player: caught a cold, lost a card, eliminated, accused, time ran out, or a wrong accusation |
-| success | `sfx/success.mp3` | Good news for this player: recovered, took a card, used the machine, a correct accusation, or their team won the match |
-| step | `sfx/step.mp3` | A village move is accepted |
+| success | `sfx/success.mp3` | Good news for this player: recovered, took a card, used the machine, a correct accusation, their team won the match, or a bump: stepping onto the vending machine or onto another player |
+| step | `sfx/step.mp3` | A village move onto an empty walkway tile is accepted |
 | tick | `sfx/repeatedTimeAlmostUp.wav` | Last 10 seconds of any ring timer. Ticks speed up as time runs out, from one per second to about one per 0.15 seconds |
 
 ## 3. Mute

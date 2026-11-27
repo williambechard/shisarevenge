@@ -30,7 +30,7 @@ const noticeCard = 'rounded-xl bg-navy/90 px-4 py-3 text-sm text-white shadow-md
 type VillageScreenProps = {
   state: GameState;
   room: PublicRoomState;
-  onStep: (x: number, y: number) => void;
+  onStep: (x: number, y: number, bump: boolean) => void;
   onChallenge: (targetId: string | null) => void;
   onAccuse: (targetId: string, card: PlayedCard | null) => void;
   onInsert: (value: CardValue) => void;
@@ -221,7 +221,16 @@ export function VillageScreen({
         masked={maskedIds}
         onStep={(x, y) => {
           setVendingOpen(false);
-          onStep(x, y);
+          // A step onto the vending machine or onto another player counts as a bump.
+          const bump =
+            village.board[y]?.[x] === 'V' ||
+            room.players.some(
+              (player) =>
+                player.id !== selfId &&
+                village.positions[player.id]?.x === x &&
+                village.positions[player.id]?.y === y,
+            );
+          onStep(x, y, bump);
           // Stepping onto the machine opens its panel when you hold a duplicate, or shows the hint otherwise.
           if (village.board[y]?.[x] === 'V') {
             if (hasDuplicate) {

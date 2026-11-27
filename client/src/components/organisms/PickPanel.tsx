@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { NUMBER_CARD_ART } from '../../assets/cards/index.js';
 import { RingTimer } from '../atoms/RingTimer.js';
+import { playSfx } from '../../audio/audioManager.js';
 import { PlayingCard } from '../molecules/PlayingCard.js';
 import { WaitingIndicator } from '../molecules/WaitingIndicator.js';
 
@@ -71,6 +72,7 @@ export function PickPanel({ loserName, poolSize, deadline, onPick }: PickPanelPr
                 aria-label={`Face-down card ${String(index + 1)} of ${String(poolSize)}`}
                 onClick={() => {
                   setPicking(true);
+                  playSfx('select');
                   onPick(index);
                 }}
                 initial={{ opacity: 0, y: 50, rotate: tilt }}
