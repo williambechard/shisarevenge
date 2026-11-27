@@ -19,6 +19,8 @@ type VillageBoardProps = {
   vendingHint: string | null;
   // Players wearing the Shisa mask.
   masked: Set<string>;
+  // True while a meeting holds the player in place. No tile can be stepped on.
+  frozen: boolean;
 };
 
 // Horizontal gap in pixels between two tokens that share one tile.
@@ -48,6 +50,7 @@ export function VillageBoard({
   onStep,
   vendingHint,
   masked,
+  frozen,
 }: VillageBoardProps) {
   const columns = board[0]?.length ?? 0;
   const rows = board.length;
@@ -85,7 +88,7 @@ export function VillageBoard({
           {board.flatMap((row, y) =>
             Array.from(row, (char, x) => {
               const here = { x, y };
-              const enabled = isNeighbour(own, here) && (char === 'W' || char === 'V');
+              const enabled = !frozen && isNeighbour(own, here) && (char === 'W' || char === 'V');
               return (
                 <button
                   key={keyOf(here)}

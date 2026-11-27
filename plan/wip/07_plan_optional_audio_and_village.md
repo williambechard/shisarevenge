@@ -53,6 +53,7 @@
 - [x] Sound effects: select, no, bad, success, step, and the 10-second tick that speeds up (design/11 section 2).
 - [x] Mute toggle on every screen, saved in localStorage (design/11 section 3).
 - [x] Select sound on every card tap (hand, card choice, pick panel). Success chime when bumping into a player or the vending machine.
+- [x] A player cannot step again while a meeting is open: the bounce and the overlay come first (playtest bug: a quick second step skipped the overlay).
 - [ ] Playtest audio on phones: music start after the first tap, tick speed, and mute.
 - [x] Music compressed to MP3 at 80 to 96 kbps. Every track is under 1 MB (duel is 899 KB). Originals are in design/art-source/audio/music.
 - [ ] Playtest the movement feel and arrows on a phone.

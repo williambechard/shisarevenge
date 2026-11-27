@@ -177,6 +177,10 @@ export function VillageScreen({
   const me = room.players.find((player) => player.id === selfId);
   const lockedPair = partner !== undefined && me !== undefined ? { partner, me } : null;
   const locked = lockedPair !== null;
+  // A meeting holds the player on the tile until the bounce ends and the overlay is dismissed. No step is
+  // allowed meanwhile, so the overlay always gets its turn.
+  const meetingHolds =
+    !out && !locked && onTile.length > 0 && (walkedOn !== meetingKey || readyFor !== meetingAt);
   const overlayOpen =
     !out &&
     !locked &&
@@ -219,7 +223,9 @@ export function VillageScreen({
         players={room.players}
         selfId={selfId}
         masked={maskedIds}
+        frozen={meetingHolds}
         onStep={(x, y) => {
+          if (meetingHolds) return;
           setVendingOpen(false);
           // A step onto the vending machine or onto another player counts as a bump.
           const bump =

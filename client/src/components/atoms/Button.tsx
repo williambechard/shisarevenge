@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { playSfx } from '../../audio/audioManager.js';
 
 type ButtonProps = {
   children: ReactNode;
@@ -27,7 +28,15 @@ export function Button({
         : 'border-2 border-navy text-navy hover:bg-navy/10';
 
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
+    <button
+      type={type}
+      onClick={() => {
+        playSfx('select');
+        onClick();
+      }}
+      disabled={disabled}
+      className={`${base} ${styles}`}
+    >
       {children}
     </button>
   );

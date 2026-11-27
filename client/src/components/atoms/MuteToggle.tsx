@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isMuted, subscribeMuted, toggleMuted } from '../../audio/audioManager.js';
+import { isMuted, playSfx, subscribeMuted, toggleMuted } from '../../audio/audioManager.js';
 
 // Turns all sound on or off. The choice is kept between visits.
 export function MuteToggle() {
@@ -11,6 +11,7 @@ export function MuteToggle() {
       aria-label={muted ? 'Sound is off. Turn sound on' : 'Sound is on. Turn sound off'}
       onClick={() => {
         toggleMuted();
+        playSfx('select');
       }}
       className="rounded-full bg-navy/85 px-2.5 py-1 text-xs font-bold text-white shadow-md focus-visible:outline-3 focus-visible:outline-gold"
     >
