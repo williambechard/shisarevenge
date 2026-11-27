@@ -27,6 +27,8 @@ export type MatchPlayer = {
   special: PlayerSpecial | null;
   // Out of cards. Not paired, and cannot take or be taken from (design section 4.7).
   eliminated: boolean;
+  // True after a cold, until the player rebounds.
+  rebound?: boolean;
 };
 
 export type Pair = [string, string];
@@ -266,8 +268,20 @@ export function revealPair(
 
   // Step 2 uses the outcome of the duel. Step 3 applies team and special effects.
   const outcome = resolveDuel(
-    { id: a, team: teamA, effectiveStrength: valueA, committed: specialA },
-    { id: b, team: teamB, effectiveStrength: valueB, committed: specialB },
+    {
+      id: a,
+      team: teamA,
+      effectiveStrength: valueA,
+      committed: specialA,
+      rebound: playerA?.rebound === true,
+    },
+    {
+      id: b,
+      team: teamB,
+      effectiveStrength: valueB,
+      committed: specialB,
+      rebound: playerB?.rebound === true,
+    },
   );
 
   // Step 1: spend the special cards played, and remove a played number from the hand.
@@ -299,6 +313,13 @@ export function revealPair(
     players = result.players;
     recoveredNewSpecial = result.newSpecial;
     transformations = appendTransformation(transformations, outcome.recoveredId, state.round);
+  }
+  // A rebound is the same team change as Ramen recovery: the Army member rejoins the Survivors.
+  if (outcome.reboundId) {
+    const result = recover(players, outcome.reboundId, random);
+    players = result.players;
+    recoveredNewSpecial = result.newSpecial;
+    transformations = appendTransformation(transformations, outcome.reboundId, state.round);
   }
 
   // Step 5: the winner takes a card from the loser's remaining number cards (design section 4.6).

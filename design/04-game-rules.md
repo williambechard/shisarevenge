@@ -167,6 +167,13 @@ The `lost` notification must appear on the player's screen. Do not hide it.
 
 Recovery applies only to the duel's Shisa's Army member, and only when the Survivor played `ramen` and won.
 
+### 8.1 Rebound
+
+- A player who catches a cold (section 7) may rebound, once per match. The flag is set when they catch the cold.
+- A rebound happens when that player wins a duel against another Shisa's Army member. Same-team duels are the only duels where it can happen.
+- A rebound is the same team change as recovery above: the player rejoins the Survivors, loses the Shisa Mask, and gets a random Survivor special. The `recovered` notice is shown to them.
+- The origin never has the flag, because the origin is never caught.
+- Rebound is added to tighten the balance of longer matches (see `14-balance-rounds.md`).
 ## 9. Win checks
 
 Run after every round's resolution, in this order:

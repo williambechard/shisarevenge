@@ -9,6 +9,8 @@ export type Combatant = {
   effectiveStrength: number;
   // The special committed in this duel, or null. Spending happens in the caller.
   committed: SpecialKind | null;
+  // A player who caught a cold earlier, and has not yet rebounded. See design/04 section 8.
+  rebound?: boolean;
 };
 
 export type DuelOutcome = {
@@ -20,16 +22,28 @@ export type DuelOutcome = {
   blocked: boolean;
   // The Shisa's Army member recovered by a Survivor who committed Ramen and won. Null otherwise.
   recoveredId: string | null;
+  // The Shisa's Army member who rebounds: a caught player who won a duel against another Army member. Null otherwise.
+  reboundId: string | null;
 };
 
 export function resolveDuel(a: Combatant, b: Combatant): DuelOutcome {
-  const none: DuelOutcome = { winnerId: null, caughtCold: null, blocked: false, recoveredId: null };
+  const none: DuelOutcome = {
+    winnerId: null,
+    caughtCold: null,
+    blocked: false,
+    recoveredId: null,
+    reboundId: null,
+  };
   if (a.effectiveStrength === b.effectiveStrength) return none;
 
   const winner = a.effectiveStrength > b.effectiveStrength ? a : b;
 
   // Only a mixed-team duel can change teams. Same-team duels never do.
-  if (a.team === b.team) return { ...none, winnerId: winner.id };
+  if (a.team === b.team) {
+    // A caught player who wins against another Army member rebounds, once.
+    const rebounds = winner.team === 'infected' && winner.rebound === true;
+    return { ...none, winnerId: winner.id, reboundId: rebounds ? winner.id : null };
+  }
 
   const armyMember = a.team === 'infected' ? a : b;
   const survivor = armyMember.id === a.id ? b : a;

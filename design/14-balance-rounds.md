@@ -43,3 +43,31 @@ Question: should a match have more than 5 rounds, or a round count that depends 
 3. Keep 8 rounds, and give the Survivors a catch-back: a survivor who wins a duel against the Army can recover one caught player. This is a rule change and needs review.
 
 Recommendation: do not change the round count until the village and a human-play test are added to the simulation or the playtest.
+## 6. Rebound (added after the first run)
+
+A caught player may rebound once: when they win a duel against another Shisa's Army member, they return to the Survivors (design/04 section 8.1). The same simulation was run with and without it, rounds 3 to 8, 4,000 matches each.
+
+| Players | Rounds | Army wins, no rebound | Army wins, rebound |
+|---|---|---|---|
+| 4 | 3 | 19.3% | 15.8% |
+| 4 | 4 | 38.9% | 28.0% |
+| 4 | 5 | 58.5% | 43.2% |
+| 4 | 6 | 69.8% | 56.2% |
+| 4 | 7 | 73.5% | 63.1% |
+| 4 | 8 | 73.3% | 61.0% |
+| 6 | 3 | 1.7% | 0.9% |
+| 6 | 4 | 8.6% | 3.7% |
+| 6 | 5 | 28.8% | 11.8% |
+| 6 | 6 | 52.6% | 31.4% |
+| 6 | 7 | 62.5% | 44.5% |
+| 6 | 8 | 63.5% | 47.1% |
+| 8 | 3 | 0.1% | 0.1% |
+| 8 | 4 | 1.6% | 0.4% |
+| 8 | 5 | 10.4% | 3.5% |
+| 8 | 6 | 39.3% | 19.1% |
+| 8 | 7 | 56.0% | 37.0% |
+| 8 | 8 | 58.2% | 42.0% |
+
+Reading: rebound lowers the Army's win rate at every round count. Eight rounds at 6 or 8 players now gives an Army win rate near half (47% and 42%). At 4 players, 5 rounds gives 43%. The same play policy caveats apply: simple choices, no village.
+
+Candidate setting from these results: 5 rounds at 4 players, 8 rounds at 6 to 8 players. This is a different direction from the earlier suggestion, which relied on the balance before rebound. Confirm with a playtest before changing `ROUND_COUNT`.

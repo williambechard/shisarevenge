@@ -527,7 +527,7 @@ export class MatchRunner {
         newSpecial: 'shisa-mask',
       });
     }
-    const recovered = result.outcome.recoveredId;
+    const recovered = result.outcome.recoveredId ?? result.outcome.reboundId;
     if (recovered && result.recoveredNewSpecial) {
       this.emitToPlayer(code, recovered, 'player:notice', {
         kind: 'recovered',
@@ -553,7 +553,9 @@ export class MatchRunner {
     }
     const counts = teamCounts(state);
     const caught = state.results.filter((entry) => entry.outcome.caughtCold !== null);
-    const recovered = state.results.filter((entry) => entry.outcome.recoveredId !== null);
+    const recovered = state.results.filter(
+      (entry) => entry.outcome.recoveredId !== null || entry.outcome.reboundId !== null,
+    );
 
     this.registry.setTeamCounts(code, counts);
     this.io.to(code).emit('round:ended', {
@@ -914,12 +916,12 @@ function duelView(result: DuelResult, viewerId: string) {
   const myTeam = result.teams[side];
   const mixed = result.teams[0] !== result.teams[1];
   const winnerId = result.outcome.winnerId;
-  const { recoveredId, blocked } = result.outcome;
+  const { recoveredId, reboundId, blocked } = result.outcome;
 
   let outcome: 'won' | 'lost' | 'tie' | 'blocked' | 'repelled' | 'recovered';
   if (winnerId === null) outcome = 'tie';
   else if (blocked) outcome = 'blocked';
-  else if (recoveredId !== null) outcome = 'recovered';
+  else if (recoveredId !== null || reboundId !== null) outcome = 'recovered';
   else if (winnerId === viewerId) outcome = mixed && myTeam === 'survivor' ? 'repelled' : 'won';
   else outcome = 'lost';
 

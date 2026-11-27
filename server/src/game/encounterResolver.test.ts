@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveDuel } from './encounterResolver.js';
 
-const none = { caughtCold: null, blocked: false, recoveredId: null };
+const none = { caughtCold: null, blocked: false, recoveredId: null, reboundId: null };
 
 const survivor = (
   id: string,
@@ -65,7 +65,7 @@ describe('resolveDuel', () => {
 
   it('recovers the Army member when the Survivor committed Ramen and won', () => {
     const outcome = resolveDuel(army('s', 1), survivor('v', 4, 'ramen'));
-    expect(outcome).toEqual({ ...none, winnerId: 'v', recoveredId: 's' });
+    expect(outcome).toEqual({ ...none, winnerId: 'v', recoveredId: 's', reboundId: null });
   });
 
   it('does not recover on a Ramen commit that loses', () => {
@@ -76,5 +76,29 @@ describe('resolveDuel', () => {
   it('does not recover on a tie, even with Ramen committed', () => {
     const outcome = resolveDuel(army('s', 3), survivor('v', 3, 'ramen'));
     expect(outcome).toEqual({ ...none, winnerId: null });
+  });
+});
+
+describe('resolveDuel rebound (design/04 section 8)', () => {
+  it('rebounds a caught player who wins against another Army member', () => {
+    const outcome = resolveDuel(
+      { id: 'a', team: 'infected', effectiveStrength: 4, committed: null, rebound: true },
+      { id: 'b', team: 'infected', effectiveStrength: 2, committed: null },
+    );
+    expect(outcome.reboundId).toBe('a');
+    expect(outcome.caughtCold).toBeNull();
+  });
+
+  it('does not rebound a player who has already used it, or the origin', () => {
+    const used = resolveDuel(
+      { id: 'a', team: 'infected', effectiveStrength: 4, committed: null, rebound: false },
+      { id: 'b', team: 'infected', effectiveStrength: 2, committed: null },
+    );
+    expect(used.reboundId).toBeNull();
+    const origin = resolveDuel(
+      { id: 'a', team: 'infected', effectiveStrength: 4, committed: null },
+      { id: 'b', team: 'infected', effectiveStrength: 2, committed: null },
+    );
+    expect(origin.reboundId).toBeNull();
   });
 });

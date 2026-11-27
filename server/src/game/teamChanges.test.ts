@@ -41,6 +41,7 @@ describe('catchCold', () => {
       id: 'c',
       team: 'infected',
       special: { kind: 'shisa-mask', status: 'available' },
+      rebound: true,
     });
   });
 
@@ -75,6 +76,7 @@ describe('recover', () => {
       id: 'a',
       team: 'survivor',
       special: { kind: 'ramen', status: 'available' },
+      rebound: false,
     });
   });
 

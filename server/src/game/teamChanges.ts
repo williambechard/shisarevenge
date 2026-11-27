@@ -6,7 +6,13 @@ import type { RandomFn } from './pairing.js';
 
 export type PlayerSpecial = { kind: SpecialKind; status: SpecialStatus };
 
-export type TeamMember = { id: string; team: Team; special: PlayerSpecial | null };
+export type TeamMember = {
+  id: string;
+  team: Team;
+  special: PlayerSpecial | null;
+  // True after a cold, until the player rebounds (design/04 section 8).
+  rebound?: boolean;
+};
 
 export type CatchResult<T> = {
   players: T[];
@@ -38,6 +44,7 @@ export function catchCold<T extends TeamMember>(
       ...player,
       team: 'infected' as const,
       special: { kind: 'shisa-mask' as const, status: 'available' as const },
+      rebound: true,
     };
   });
   return { players: updated, lostSpecial };
@@ -57,6 +64,7 @@ export function recover<T extends TeamMember>(
       ...player,
       team: 'survivor' as const,
       special: { kind: newSpecial, status: 'available' as const },
+      rebound: false,
     };
   });
   return { players: updated, newSpecial };
