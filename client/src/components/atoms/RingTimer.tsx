@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useUrgencyTicks } from '../../audio/useUrgencyTicks.js';
 
 type RingTimerProps = {
   // Epoch milliseconds when the timer ends.
@@ -24,6 +25,8 @@ export function RingTimer({ deadline, label }: RingTimerProps) {
       clearInterval(interval);
     };
   }, []);
+
+  useUrgencyTicks(deadline);
 
   const span = deadline - startedAt;
   const left = span > 0 ? Math.min(1, Math.max(0, (deadline - now) / span)) : 0;

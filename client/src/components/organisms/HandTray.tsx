@@ -11,6 +11,7 @@ import {
 } from '@shisa-revenge/shared';
 import { NUMBER_CARD_ART, SPECIAL_CARD_ART } from '../../assets/cards/index.js';
 import { PlayingCard } from '../molecules/PlayingCard.js';
+import { playSfx } from '../../audio/audioManager.js';
 import { CardPreview } from './CardPreview.js';
 import { cardInfo } from './cardText.js';
 
@@ -141,6 +142,7 @@ export function HandTray({
                   aria-pressed={isSelected}
                   aria-label={`${item.label}, ${state}`}
                   onClick={() => {
+                    playSfx('select');
                     onSelect(item.card);
                     setPreviewCard(item.card);
                   }}

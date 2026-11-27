@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import type { PlayedCard } from '@shisa-revenge/shared';
 import { PlayingCard } from '../molecules/PlayingCard.js';
+import { playSfx } from '../../audio/audioManager.js';
 import { CardPreview } from './CardPreview.js';
 import type { CardInfo } from './cardText.js';
 
@@ -39,6 +40,7 @@ export function CardChoice({ items, actionLabel, layoutId, onChoose }: CardChoic
             type="button"
             aria-label={item.label}
             onClick={() => {
+              playSfx('select');
               setPreviewKey(item.key);
             }}
             className="rounded-xl focus-visible:outline-3 focus-visible:outline-gold"

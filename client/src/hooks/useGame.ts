@@ -16,6 +16,8 @@ import { getSocket } from '../socket/socketClient.js';
 import { createInitialState, type GameState, type Pairing } from '../state/gameState.js';
 import { gameReducer, type GameAction } from '../state/gameReducer.js';
 import { clearSession, readSession, writeSession, type KeyValueStorage } from '../state/session.js';
+import { playSfx } from '../audio/audioManager.js';
+import { soundForNotice } from '../audio/sounds.js';
 
 type EnterAck = AckResponse<{
   roomCode: string;
@@ -166,6 +168,8 @@ export function useGame(): { state: GameState } & GameActions {
     };
 
     const onNotice = (notice: PrivateNotice): void => {
+      const sound = soundForNotice(notice);
+      if (sound) playSfx(sound);
       if (notice.kind === 'auto-locked') {
         dispatch({ type: 'auto-locked' });
         return;
@@ -293,7 +297,11 @@ export function useGame(): { state: GameState } & GameActions {
   // Village actions. The server answers with the new village and any notice for this player.
   const villageStep = useCallback((x: number, y: number): void => {
     getSocket().emit('village:move', { x, y }, (response: PlainAck) => {
-      if (!response.ok) dispatch({ type: 'notice', message: response.error.message });
+      if (!response.ok) {
+        dispatch({ type: 'notice', message: response.error.message });
+        return;
+      }
+      playSfx('step');
     });
   }, []);
 

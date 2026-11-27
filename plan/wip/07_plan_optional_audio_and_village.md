@@ -49,6 +49,11 @@
 - [x] Team bar shows the Cursed Shisa's Army share from the start. The server sent zero counts to clients (playtest bug). Team counts now come from the room.
 - [x] Village and duel timers are a circular ring (`RingTimer`) beside the team bar, with no text. It starts full and empties at the deadline. The pick panel uses it too.
 - [x] Team bar and timer sit on a dark backing, so their text and ring read on the village photo and the sand duel background. The backing is kept small.
+- [x] Music by screen: lobby, duel, village. Story is registered but waits for the story screen. Starts at the first tap (design/11 section 1).
+- [x] Sound effects: select, no, bad, success, step, and the 10-second tick that speeds up (design/11 section 2).
+- [x] Mute toggle on every screen, saved in localStorage (design/11 section 3).
+- [ ] Playtest audio on phones: music start after the first tap, tick speed, and mute.
+- [ ] Music file sizes are above the 1 MB guideline (duel is about 2.9 MB). Decide whether to compress them.
 - [ ] Playtest the movement feel and arrows on a phone.
 - [ ] Optional art: a cold or wind graphic for the cold overlay, placed in `client/src/assets/shisa/` (the overlay works without it).
 - [ ] Server validates each move and limits position updates to 5 per second per socket.

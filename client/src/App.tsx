@@ -1,4 +1,8 @@
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { playSfx, setMusic } from './audio/audioManager.js';
+import type { MusicTrack } from './audio/tracks.js';
+import { MuteToggle } from './components/atoms/MuteToggle.js';
 import { PhoneFrame } from './components/templates/PhoneFrame.js';
 import { VILLAGE_BACKGROUND_ART } from './assets/village/index.js';
 import { PlayerBanner } from './components/molecules/PlayerBanner.js';
@@ -18,6 +22,14 @@ function roleOf(
   if (!privateState) return null;
   if (privateState.team === 'survivor') return 'Survivor';
   return privateState.origin ? 'Cursed Shisa' : "Shisa's Army";
+}
+
+// The background track for each screen. The overview after a match plays no music.
+function musicFor(view: View): MusicTrack | null {
+  if (view === 'village') return 'village';
+  if (view === 'round') return 'duel';
+  if (view === 'overview') return null;
+  return 'lobby';
 }
 
 // Screens fade in and out, so moving between the overview, the village, and a round is not abrupt.
@@ -58,9 +70,24 @@ export function App() {
   const self = state.room?.players.find((player) => player.id === state.playerId);
 
   const view = viewOf(state);
+  useEffect(() => {
+    setMusic(musicFor(view));
+  }, [view]);
+  // A win chime for the player whose team won the match.
+  const won = state.endgame !== null && state.privateState?.team === state.endgame.winner;
+  useEffect(() => {
+    if (won) playSfx('success');
+  }, [won]);
+  // A short low sound when an action is refused. The notice text says why.
+  useEffect(() => {
+    if (state.notice !== null) playSfx('no');
+  }, [state.notice]);
 
   return (
     <PhoneFrame background={view === 'village' ? VILLAGE_BACKGROUND_ART : undefined}>
+      <div className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50">
+        <MuteToggle />
+      </div>
       {state.name ? <PlayerBanner name={state.name} icon={self?.icon ?? null} role={role} /> : null}
       {state.connection === 'waking' ? (
         <WaitingIndicator
