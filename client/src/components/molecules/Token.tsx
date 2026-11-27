@@ -23,8 +23,6 @@ type TokenProps = {
   badge?: ReactNode;
   // Wears the Shisa mask.
   masked: boolean;
-  // Names this token for the village tour (data-tour).
-  tour?: string | undefined;
 };
 
 // The Shisa mask worn by revealed Shisa's Army members. Tune the position here: left and top are the mask centre,
@@ -51,7 +49,6 @@ export function Token({
   bounce,
   badge,
   masked,
-  tour,
 }: TokenProps) {
   const [scope, animateInner] = useAnimate<HTMLDivElement>();
   const last = useRef({ x, y });
@@ -93,7 +90,6 @@ export function Token({
 
   return (
     <motion.div
-      data-tour={tour}
       className="pointer-events-none absolute flex items-center justify-center"
       style={{ width: `${String(100 / cols)}%`, height: `${String(100 / rows)}%` }}
       initial={false}

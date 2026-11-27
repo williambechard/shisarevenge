@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
 import type { StoryPage } from '../../assets/story/index.js';
 import { Button } from '../atoms/Button.js';
+import { StoryTour } from './StoryTour.js';
 
 type StoryScreenProps = {
   // The story pages in reading order. Empty shows a short welcome instead.
@@ -11,7 +12,7 @@ type StoryScreenProps = {
 };
 
 // How long each page stays up before the story moves on by itself.
-const PAGE_SECONDS = 5;
+const PAGE_SECONDS = 10;
 
 // Each page slides in from the side the player is moving toward, tilts a little, and settles with a spring.
 const PAGE: Variants = {
@@ -74,12 +75,15 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
     setIndex(index + 1);
   }, [index, last, onDone]);
 
+  // A page with a tour stays up until the tour has shown its last tip.
+  const touring = current?.tour !== undefined;
   useEffect(() => {
+    if (touring) return;
     const handle = setTimeout(next, PAGE_SECONDS * 1000);
     return () => {
       clearTimeout(handle);
     };
-  }, [next]);
+  }, [next, touring]);
 
   return (
     <motion.section
@@ -125,7 +129,24 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
               onClick={next}
               className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4"
             >
-              {current.src ? (
+              {current.tour && current.src ? (
+                <div
+                  className="relative h-full max-w-full"
+                  style={{
+                    aspectRatio: `${String(current.tour.width)} / ${String(current.tour.height)}`,
+                  }}
+                >
+                  <img
+                    src={current.src}
+                    alt={`Story picture ${String(index + 1)} of ${String(pages.length)}`}
+                    draggable={false}
+                    className="size-full object-contain"
+                  />
+                  <StoryTour tour={current.tour} onDone={next} />
+                </div>
+              ) : null}
+
+              {current.src && !current.tour ? (
                 <motion.img
                   src={current.src}
                   alt={`Story picture ${String(index + 1)} of ${String(pages.length)}`}
@@ -136,7 +157,7 @@ export function StoryScreen({ pages, onDone }: StoryScreenProps) {
                   className={`min-h-0 max-w-full object-contain ${current.caption ? 'max-h-[60%]' : 'max-h-full'}`}
                 />
               ) : null}
-              {current.src && current.caption ? (
+              {current.src && current.caption && !current.tour ? (
                 <TextCard page={{ caption: current.caption }} below />
               ) : null}
               {!current.src ? <TextCard page={current} below={false} /> : null}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { playSfx, setMusic } from './audio/audioManager.js';
 import type { MusicTrack } from './audio/tracks.js';
@@ -80,7 +80,6 @@ export function App() {
     clearNotice,
   } = useGame();
   // The village tour runs once, in the first village after this room's story.
-  const [tourRoom, setTourRoom] = useState<string | null>(null);
   const role = roleOf(state.privateState);
   const self = state.room?.players.find((player) => player.id === state.playerId);
 
@@ -141,14 +140,7 @@ export function App() {
 
       <AnimatePresence mode="wait" initial={false}>
         {view === 'story' ? (
-          <StoryScreen
-            key="story"
-            pages={STORY_PAGES}
-            onDone={() => {
-              setTourRoom(state.roomCode);
-              storyDone();
-            }}
-          />
+          <StoryScreen key="story" pages={STORY_PAGES} onDone={storyDone} />
         ) : null}
 
         {view === 'round' ? (
@@ -189,10 +181,6 @@ export function App() {
               onInsert={villageInsert}
               message={state.notice}
               onClearNotice={clearNotice}
-              tour={tourRoom !== null && tourRoom === state.roomCode}
-              onTourDone={() => {
-                setTourRoom(null);
-              }}
             />
           </motion.div>
         ) : null}

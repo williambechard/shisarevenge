@@ -11,7 +11,6 @@ import { Button } from '../components/atoms/Button.js';
 import { RingTimer } from '../components/atoms/RingTimer.js';
 import { StatusMessage } from '../components/molecules/StatusMessage.js';
 import { TeamBar } from '../components/molecules/TeamBar.js';
-import { VillageTour } from '../components/organisms/VillageTour.js';
 import { AccusePanel } from '../components/organisms/AccusePanel.js';
 import { LockInOverlay } from '../components/organisms/LockInOverlay.js';
 import { VendingPanel } from '../components/organisms/VendingPanel.js';
@@ -38,9 +37,6 @@ type VillageScreenProps = {
   // A message for this player from the last village action, or null.
   message: string | null;
   onClearNotice: () => void;
-  // Runs the guided tour over this screen, and tells the parent when it has finished.
-  tour: boolean;
-  onTourDone: () => void;
 };
 
 function nameOf(room: PublicRoomState, playerId: string): string {
@@ -97,8 +93,6 @@ export function VillageScreen({
   onInsert,
   message,
   onClearNotice,
-  tour,
-  onTourDone,
 }: VillageScreenProps) {
   // Which meeting the player has already dismissed. A new arrival on the tile opens the overlay again.
   const [walkedOn, setWalkedOn] = useState<string | null>(null);
@@ -210,13 +204,11 @@ export function VillageScreen({
   return (
     <section aria-labelledby="village-heading" className="flex min-h-0 flex-1 flex-col gap-4">
       <header className="flex items-center gap-4 pr-2">
-        <div className="min-w-0 flex-1" data-tour="team">
+        <div className="min-w-0 flex-1">
           <TeamBar survivors={room.teamCounts.survivors} infected={room.teamCounts.infected} />
         </div>
         {village.endsAt !== null ? (
-          <span data-tour="timer" className="inline-flex">
-            <RingTimer deadline={village.endsAt} label="Time until the next round" />{' '}
-          </span>
+          <RingTimer deadline={village.endsAt} label="Time until the next round" />
         ) : null}
       </header>
 
@@ -275,7 +267,6 @@ export function VillageScreen({
           partner={{ name: lockedPair.partner.name, icon: lockedPair.partner.icon }}
         />
       ) : null}
-      {tour ? <VillageTour onDone={onTourDone} /> : null}
 
       {message ? (
         <div role="status" aria-live="polite" className={noticeCard}>
